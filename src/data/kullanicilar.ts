@@ -1,0 +1,178 @@
+import { Kullanici } from '../types';
+
+const TUM_MENULER = [
+'dashboard',
+'yeni-islem',
+'kayitlar',
+'odeme-makbuz',
+'sigorta',
+'isletmeciler',
+'tas-ocaklari',
+'kredi-hareketleri',
+'ajanda',
+'raporlar',
+'yetkiler',
+'arsiv',
+'audit',
+'kurallar'];
+
+
+export const kullanicilar: Kullanici[] = [
+{
+  id: 'u-admin',
+  kullaniciAdi: 'admin',
+  sifre: '1234',
+  adSoyad: 'Merkez Admin',
+  rol: 'Merkez Admin',
+  rolKodu: 'MERKEZ_ADMIN',
+  birim: 'KTPGV Merkez',
+  bentler: ['A', 'B', 'C', 'Ç', 'D', 'E', 'F'],
+  menuler: TUM_MENULER,
+  makbuzUretebilir: true,
+  sadeceGoruntule: false,
+  raporGorebilir: true,
+  ajandaKullanabilir: true
+},
+{
+  id: 'u-vakif',
+  kullaniciAdi: 'vakif',
+  sifre: '1234',
+  adSoyad: 'Vakıf Muhasebe',
+  rol: 'Vakıf Muhasebe',
+  rolKodu: 'VAKIF_MUHASEBE',
+  birim: 'KTPGV Mali İşler',
+  bentler: ['A', 'B'],
+  menuler: [
+  'dashboard',
+  'yeni-islem',
+  'kayitlar',
+  'odeme-makbuz',
+  'kredi-hareketleri',
+  'raporlar',
+  'arsiv',
+  'audit',
+  'kurallar'],
+
+  makbuzUretebilir: true,
+  sadeceGoruntule: false,
+  raporGorebilir: true,
+  ajandaKullanabilir: false
+},
+{
+  id: 'u-trafik',
+  kullaniciAdi: 'trafik',
+  sifre: '1234',
+  adSoyad: 'PGM Trafik Müdürlüğü',
+  rol: 'PGM Trafik Müdürlüğü',
+  rolKodu: 'PGM_TRAFIK',
+  birim: 'PGM Trafik Müdürlüğü',
+  bentler: ['F'],
+  menuler: [
+  'dashboard',
+  'yeni-islem',
+  'kayitlar',
+  'odeme-makbuz',
+  'sigorta',
+  'ajanda',
+  'raporlar',
+  'kurallar'],
+
+  makbuzUretebilir: true,
+  sadeceGoruntule: false,
+  raporGorebilir: true,
+  ajandaKullanabilir: true
+},
+{
+  id: 'u-itfaiye',
+  kullaniciAdi: 'itfaiye',
+  sifre: '1234',
+  adSoyad: 'İtfaiye Birimi',
+  rol: 'İtfaiye Birimi',
+  rolKodu: 'ITFAIYE',
+  birim: 'PGM İtfaiye Müdürlüğü',
+  bentler: ['C', 'Ç'],
+  menuler: ['dashboard', 'yeni-islem', 'kayitlar', 'odeme-makbuz', 'ajanda', 'raporlar', 'kurallar'],
+  makbuzUretebilir: true,
+  sadeceGoruntule: false,
+  raporGorebilir: true,
+  ajandaKullanabilir: true
+},
+{
+  id: 'u-karakol',
+  kullaniciAdi: 'karakol',
+  sifre: '1234',
+  adSoyad: 'İlçe / Karakol Kullanıcısı',
+  rol: 'İlçe / Karakol Kullanıcısı',
+  rolKodu: 'KARAKOL',
+  birim: 'Gazimağusa İlçe Karakolu',
+  bentler: ['D', 'F'],
+  menuler: ['dashboard', 'yeni-islem', 'kayitlar', 'ajanda', 'kurallar'],
+  makbuzUretebilir: false,
+  sadeceGoruntule: false,
+  raporGorebilir: false,
+  ajandaKullanabilir: true
+},
+{
+  id: 'u-tasocagi',
+  kullaniciAdi: 'tasocagi',
+  sifre: '1234',
+  adSoyad: 'Taş Ocağı İşlemleri Yetkilisi',
+  rol: 'Taş Ocağı İşlemleri Yetkilisi',
+  rolKodu: 'TAS_OCAGI',
+  birim: 'KTPGV Taş Ocağı Birimi',
+  bentler: ['E'],
+  menuler: [
+  'dashboard',
+  'yeni-islem',
+  'kayitlar',
+  'odeme-makbuz',
+  'isletmeciler',
+  'tas-ocaklari',
+  'kredi-hareketleri',
+  'ajanda',
+  'raporlar',
+  'kurallar'],
+
+  makbuzUretebilir: true,
+  sadeceGoruntule: false,
+  raporGorebilir: true,
+  ajandaKullanabilir: true
+},
+{
+  id: 'u-denetci',
+  kullaniciAdi: 'denetci',
+  sifre: '1234',
+  adSoyad: 'Denetçi',
+  rol: 'Denetçi',
+  rolKodu: 'DENETCI',
+  birim: 'Denetim',
+  bentler: [],
+  menuler: [
+  'dashboard',
+  'kayitlar',
+  'odeme-makbuz',
+  'sigorta',
+  'isletmeciler',
+  'tas-ocaklari',
+  'kredi-hareketleri',
+  'ajanda',
+  'raporlar',
+  'arsiv',
+  'audit',
+  'kurallar'],
+
+  makbuzUretebilir: false,
+  sadeceGoruntule: true,
+  raporGorebilir: true,
+  ajandaKullanabilir: false
+}];
+
+
+export const yetkiMatrisi: {rol: string;kapsam: string;}[] = [
+{ rol: 'Merkez Admin', kapsam: 'Tüm ekranlar, tüm bentler, tüm makbuzlar' },
+{ rol: 'Vakıf Muhasebe', kapsam: 'Ödeme, dekont, makbuz, rapor' },
+{ rol: 'PGM Trafik Müdürlüğü', kapsam: 'F / Trafik Raporu' },
+{ rol: 'İtfaiye Birimi', kapsam: 'C ve Ç bentleri' },
+{ rol: 'İlçe / Karakol', kapsam: 'Yetki verilen bentler (D, F)' },
+{ rol: 'Taş Ocağı Yetkilisi', kapsam: 'E bendi taş ocağı kredi ve kullanım işlemleri' },
+{ rol: 'Denetçi', kapsam: 'Sadece görüntüleme ve rapor' }];
