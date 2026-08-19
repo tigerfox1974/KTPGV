@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '../components/common/PageHeader';
@@ -23,7 +23,7 @@ import { sigortaBul } from '../data/sigortaSirketleri';
 import { isletmeciBul, tasOcagiBul } from '../data/tasOcagi';
 import { useApp } from '../contexts/AppContext';
 import { BentKodu, DekontDosyasi, Islem, TrafikAltBasvuru } from '../types';
-import { hesapla, patlatmaBedeli } from '../utils/hesaplama';
+import { hesapla, patlatmaBedeli, raporBedeli } from '../utils/hesaplama';
 import { altBasvuruNo, sonrakiKayitNo } from '../utils/numaralandirma';
 import { formatTL } from '../utils/currency';
 
@@ -33,6 +33,10 @@ const BOS_FORM: IslemFormu = {
   eIslemTuru: '',
   baslik: '',
   talepEden: '',
+  etkinlikAdi: '',
+  operasyonTarihi: '',
+  operasyonSaati: '',
+  yer: '',
   manuelTutar: '',
   adet: '',
   polisSayisi: '',
@@ -41,9 +45,16 @@ const BOS_FORM: IslemFormu = {
   sigortaSirketiId: '',
   isletmeciId: '',
   tasOcagiId: '',
-  patlatmaTarihi: '',
-  patlatmaSaati: '',
   notlar: ''
+};
+
+const BOS_ALT: TrafikAltBasvuru = {
+  no: '',
+  plaka: '',
+  hasarDosyaNo: '',
+  kazaTarihi: '',
+  raporKonusu: '',
+  raporTutari: 0
 };
 
 export function YeniIslem() {
@@ -61,6 +72,7 @@ export function YeniIslem() {
   const [form, setForm] = useState<IslemFormu>(BOS_FORM);
   const [dekont, setDekont] = useState<DekontFormu>(BOS_DEKONT);
   const [dosya, setDosya] = useState<DekontDosyasi | null>(null);
+  const [altSatirlar, setAltSatirlar] = useState<TrafikAltBasvuru[]>([]);
   const [sonKayit, setSonKayit] = useState<Islem | null>(null);
 
   const kullanilabilirBentler = useMemo(
@@ -74,8 +86,19 @@ export function YeniIslem() {
   const dekontGuncelle = (alan: keyof DekontFormu, deger: string) =>
   setDekont((eski) => ({ ...eski, [alan]: deger }));
 
+  const trafik = form.bent === 'F' && form.fAltTur === 'TRAFIK';
+  const krediYukleme = form.bent === 'E' && form.eIslemTuru === 'KREDI_YUKLEME';
   const krediKullanim = form.bent === 'E' && form.eIslemTuru === 'KREDI_KULLANIM';
   const ozet = form.isletmeciId ? krediOzeti(form.isletmeciId) : null;
+
+  useEffect(() => {
+    if (!trafik) {
+      setAltSatirlar([]);
+      return;
+    }
+    const adet = Number(form.adet) || 0;
+    setAltSatirlar((eski) => Array.from({ length: adet }, (_, i) => eski[i] ?? { ...BOS_ALT }));
+  }, [trafik, form.adet]);
 
   const sonuc = useMemo(
     () =>
@@ -92,30 +115,60 @@ export function YeniIslem() {
     [form, bau]
   );
 
+  const kayitNoOnizleme = form.bent ?
+  sonrakiKayitNo(islemler, form.bent as BentKodu, form.fAltTur, form.eIslemTuru) :
+  '';
+
+  const gosterilenAltlar = altSatirlar.map((satir, i) => ({
+    ...satir,
+    no: altBasvuruNo(kayitNoOnizleme, i + 1),
+    raporTutari: raporBedeli(bau)
+  }));
+
+  const altGuncelle = (sira: number, alan: keyof TrafikAltBasvuru, deger: string) =>
+  setAltSatirlar((eski) =>
+  eski.map((satir, i) => i === sira ? { ...satir, [alan]: deger } : satir)
+  );
+
+  const odenen = Number(dekont.odenenTutar);
+  const tutarUyumlu = odenen > 0 && Math.abs(odenen - sonuc.tutar) < 0.01;
+
   const dekontTamam =
   !!dosya &&
   dekont.dekontNo.trim() !== '' &&
   dekont.banka.trim() !== '' &&
   dekont.tarih !== '' &&
-  Number(dekont.odenenTutar) > 0 &&
-  dekont.odemeYapan.trim() !== '';
+  dekont.odemeYapan.trim() !== '' &&
+  tutarUyumlu;
 
   const temelTamam = form.baslik.trim() !== '' && form.talepEden.trim() !== '';
 
   const bentTamam = (() => {
     if (!form.bent) return false;
+    if (form.bent === 'C' || form.bent === 'Ç') {
+      return (
+        sonuc.gecerli && !!form.operasyonTarihi && !!form.operasyonSaati && form.yer.trim() !== '');
+
+    }
+    if (form.bent === 'D') {
+      return sonuc.gecerli && !!form.operasyonTarihi && form.yer.trim() !== '';
+    }
     if (form.bent === 'F') {
-      if (!form.fAltTur) return false;
-      if (form.fAltTur === 'TRAFIK' && !form.sigortaSirketiId) return false;
-      return sonuc.gecerli;
+      if (!form.fAltTur || !form.operasyonTarihi || !sonuc.gecerli) return false;
+      if (!trafik) return true;
+      if (!form.sigortaSirketiId) return false;
+      return (
+        altSatirlar.length > 0 &&
+        altSatirlar.every((s) => s.plaka.trim() !== '' && s.kazaTarihi !== ''));
+
     }
     if (form.bent === 'E') {
       if (!form.eIslemTuru || !form.isletmeciId) return false;
       if (krediKullanim) {
         return (
           !!form.tasOcagiId &&
-          !!form.patlatmaTarihi &&
-          !!form.patlatmaSaati &&
+          !!form.operasyonTarihi &&
+          !!form.operasyonSaati &&
           Number(form.krediAdedi) > 0);
 
       }
@@ -135,6 +188,7 @@ export function YeniIslem() {
     setForm(BOS_FORM);
     setDekont(BOS_DEKONT);
     setDosya(null);
+    setAltSatirlar([]);
   };
 
   const kaydet = () => {
@@ -145,22 +199,26 @@ export function YeniIslem() {
       const kullanilacak = Number(form.krediAdedi);
       const mevcut = ozet?.kalan ?? 0;
       if (kullanilacak > mevcut) {
-        toast.error('Yeterli patlatma kredisi yok', {
-          description: `Kalan kredi ${mevcut}. Önce kredi yükleme / ödeme işlemi yapılmalıdır.`
+        auditEkle(
+          'Kredi yetersiz işlem engellendi',
+          `${isletmeciBul(form.isletmeciId)?.ad} · talep ${kullanilacak} / kullanılabilir ${mevcut}`
+        );
+        toast.error('Kullanılabilir kredi yetersiz', {
+          description:
+          'Önce kredi yükleme / ödeme doğrulama / makbuz süreci tamamlanmalıdır.'
         });
         return;
       }
     }
 
     const kayitNo = sonrakiKayitNo(islemler, bent, form.fAltTur, form.eIslemTuru);
-    const trafik = bent === 'F' && form.fAltTur === 'TRAFIK';
 
     const altBasvurular: TrafikAltBasvuru[] | undefined = trafik ?
-    Array.from({ length: Number(form.adet) }, (_, i) => ({
+    altSatirlar.map((satir, i) => ({
+      ...satir,
       no: altBasvuruNo(kayitNo, i + 1),
-      dosyaKonusu: 'Trafik kaza raporu',
-      plaka: '—',
-      kazaTarihi: dekont.tarih
+      raporKonusu: satir.raporKonusu.trim() || 'Trafik kaza raporu',
+      raporTutari: raporBedeli(bau)
     })) :
     undefined;
 
@@ -174,16 +232,22 @@ export function YeniIslem() {
       talepEden: form.talepEden.trim(),
       birim: kullanici.birim,
       olusturan: kullanici.rol,
-      olusturmaTarihi: (krediKullanim ? form.patlatmaTarihi : dekont.tarih) || form.patlatmaTarihi,
+      olusturmaTarihi: new Date().toISOString().slice(0, 10),
+      operasyonTarihi: form.operasyonTarihi || undefined,
+      operasyonSaati: form.operasyonSaati || undefined,
+      yer: form.yer.trim() || undefined,
+      etkinlikAdi: form.etkinlikAdi.trim() || undefined,
+      polisSayisi: bent === 'D' ? Number(form.polisSayisi) : undefined,
+      gorevSuresi: bent === 'D' ? Number(form.gorevSuresi) : undefined,
       tutar: krediKullanim ? 0 : sonuc.tutar,
       hesaplamaAciklamasi: krediKullanim ?
-      `Kredi kullanımı — yeniden ödeme alınmaz. ${form.krediAdedi} kredi düşüldü.` :
+      `Kredi kullanımı — yeniden ödeme alınmaz. Ön ödemeli krediden ${form.krediAdedi} kredi düşüldü.` :
       sonuc.satirlar.join(' · '),
       dekont: krediKullanim ?
       {
         dekontNo: 'Ön ödemeli kredi',
         banka: '—',
-        tarih: form.patlatmaTarihi,
+        tarih: '',
         odenenTutar: 0,
         odemeYapan: isletmeciBul(form.isletmeciId)?.ad ?? '—',
         dosya: null
@@ -192,12 +256,16 @@ export function YeniIslem() {
         dekontNo: dekont.dekontNo.trim(),
         banka: dekont.banka.trim(),
         tarih: dekont.tarih,
-        odenenTutar: Number(dekont.odenenTutar),
+        odenenTutar: odenen,
         odemeYapan: dekont.odemeYapan.trim(),
         dosya
       },
       makbuzNo: null,
-      durum: krediKullanim ? 'ISLEM_BASLATILABILIR' : 'ODEME_DOGRULANDI',
+      durum: krediKullanim ?
+      'ISLEM_BASLATILABILIR' :
+      krediYukleme ?
+      'ODEME_BEKLIYOR' :
+      'MAKBUZ_BEKLIYOR',
       sigortaSirketiId: trafik ? form.sigortaSirketiId : undefined,
       altBasvurular,
       isletmeciId: bent === 'E' ? form.isletmeciId : undefined,
@@ -209,11 +277,13 @@ export function YeniIslem() {
     islemEkle(yeni);
     auditEkle('Kayıt oluşturuldu', kayitNo);
     if (trafik) {
-      auditEkle('TTRF ana kayıt oluşturuldu', kayitNo);
-      altBasvurular?.forEach((alt) => auditEkle('Trafik alt başvuru oluşturuldu', alt.no));
+      auditEkle('Trafik ana TTRF oluşturuldu', kayitNo);
+      altBasvurular?.forEach((alt) =>
+      auditEkle('Trafik alt başvuru oluşturuldu', `${alt.no} · ${alt.plaka}`)
+      );
     }
 
-    if (bent === 'E' && form.eIslemTuru === 'KREDI_YUKLEME') {
+    if (krediYukleme) {
       krediHareketiEkle({
         id: `kh-${Date.now()}`,
         isletmeciId: form.isletmeciId,
@@ -222,11 +292,11 @@ export function YeniIslem() {
         kayitNo,
         dekontNo: dekont.dekontNo.trim(),
         tarih: dekont.tarih,
-        aciklama: `${form.krediAdedi} patlatmalık ön ödeme alındı.`
+        aciklama: `${form.krediAdedi} patlatmalık ön ödeme alındı (doğrulama bekliyor).`
       });
       auditEkle(
         'Taş ocağı kredi yüklendi',
-        `${isletmeciBul(form.isletmeciId)?.ad} · +${form.krediAdedi} kredi`
+        `${isletmeciBul(form.isletmeciId)?.ad} · +${form.krediAdedi} kredi (doğrulama bekliyor)`
       );
     }
 
@@ -238,7 +308,7 @@ export function YeniIslem() {
         adet: Number(form.krediAdedi),
         kayitNo,
         tasOcagiId: form.tasOcagiId,
-        tarih: form.patlatmaTarihi,
+        tarih: form.operasyonTarihi,
         aciklama: `${tasOcagiBul(form.tasOcagiId)?.ad} — planlı patlatma.`
       });
       auditEkle(
@@ -254,16 +324,27 @@ export function YeniIslem() {
         id: `aj-${Date.now()}`,
         kayitNo,
         bent,
-        baslik: yeni.baslik,
+        islemTuru: krediKullanim ?
+        'Patlatma kullanımı' :
+        bent === 'F' ?
+        `${form.fAltTur === 'TRAFIK' ? 'Trafik' : 'Adli'} polis raporu${
+        trafik ? ` (${altSatirlar.length} alt başvuru)` : ''}` :
+
+        bentler.find((b) => b.kod === bent)?.baslik ?? '',
+        baslik: form.etkinlikAdi.trim() || yeni.baslik,
+        talepEden: krediKullanim ?
+        isletmeciBul(form.isletmeciId)?.ad ?? yeni.talepEden :
+        yeni.talepEden,
         birim: kullanici.birim,
-        tarih: krediKullanim ? form.patlatmaTarihi : dekont.tarih,
-        saat: krediKullanim ? form.patlatmaSaati : '09:00',
+        tarih: form.operasyonTarihi,
+        saat: form.operasyonSaati || '09:00',
+        yer: krediKullanim ? tasOcagiBul(form.tasOcagiId)?.ad ?? '—' : form.yer.trim() || '—',
         durum: 'Planlandı',
-        detay: krediKullanim ?
-        `İşletmeci: ${isletmeciBul(form.isletmeciId)?.ad} · Kullanılan kredi: ${
-        form.krediAdedi} · Kalan kredi: ${
+        odemeDurumu: krediKullanim ?
+        `Ön ödemeli kredi · ${form.krediAdedi} kredi düşüldü · Kalan ${
         (ozet?.kalan ?? 0) - Number(form.krediAdedi)}` :
-        `${yeni.talepEden} · ${formatTL(yeni.tutar)}`
+
+        `Ödeme alındı · Makbuz bekliyor · ${formatTL(yeni.tutar)}`
       });
     }
 
@@ -297,7 +378,9 @@ export function YeniIslem() {
     <div className="space-y-6">
       <PageHeader
         baslik="Yeni İşlem"
-        aciklama="Kayıt numarası sistem tarafından üretilir, kullanıcı tarafından yazılmaz. Dekont dosyası olmadan kayıt oluşturulamaz." />
+        aciklama={`Kayıt numarası sistem tarafından üretilir. BAÜ: ${formatTL(
+          bau
+        )} · Dekont dosyası olmadan ödeme gerektiren kayıt oluşturulamaz.`} />
       
 
       {sonKayit &&
@@ -312,7 +395,7 @@ export function YeniIslem() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <section className="space-y-4 rounded-xl border border-border bg-card p-5">
+          <section className="space-y-5 rounded-xl border border-border bg-card p-5">
             <h2 className="font-heading text-base font-semibold">İşlem Bilgisi</h2>
 
             <div className="sm:max-w-sm">
@@ -323,6 +406,7 @@ export function YeniIslem() {
                   setForm({ ...BOS_FORM, bent: v as BentKodu });
                   setDosya(null);
                   setDekont(BOS_DEKONT);
+                  setAltSatirlar([]);
                 }}>
                 
                 <SelectTrigger id="bent" className="mt-1.5">
@@ -368,7 +452,10 @@ export function YeniIslem() {
               form={form}
               guncelle={guncelle}
               krediOzeti={ozet}
-              patlatmaBedeliTutar={patlatmaBedeli(bau)} />
+              patlatmaBedeliTutar={patlatmaBedeli(bau)}
+              raporBedeliTutar={raporBedeli(bau)}
+              altBasvurular={gosterilenAltlar}
+              altGuncelle={altGuncelle} />
             
 
             <div>
@@ -391,10 +478,19 @@ export function YeniIslem() {
                 yükleme kaydında (EKRD serisi) bulunur.
               </p>
               <div className="mt-4">
-                <KuralNotu baslik="Kredi kontrolü">
+                <KuralNotu
+                baslik="Kullanılabilir kredi kontrolü"
+                ton={
+                ozet && Number(form.krediAdedi) > ozet.kalan ? 'uyari' : 'bilgi'
+                }>
+                
                   {ozet ?
-                `İşletmecinin kalan kredisi: ${ozet.kalan}. Kullanılacak kredi: ${
-                form.krediAdedi || 0}. Yeterli kredi yoksa kullanım kaydı oluşturulamaz.` :
+                `Kullanılabilir kalan kredi: ${ozet.kalan} · Doğrulama bekleyen: ${
+                ozet.dogrulamaBekleyen} · Kullanılacak: ${
+                form.krediAdedi || 0}. ${
+                Number(form.krediAdedi) > ozet.kalan ?
+                'Kullanılabilir kredi yetersiz. Önce kredi yükleme / ödeme doğrulama / makbuz süreci tamamlanmalıdır.' :
+                'Kayıt oluşturulduğunda kredi işletmeci hesabından düşer.'}` :
 
                 'Kredi kontrolü için işletmeci seçilmelidir.'}
                 </KuralNotu>
@@ -418,13 +514,13 @@ export function YeniIslem() {
         <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
           <HesaplamaKutusu sonuc={sonuc} />
 
-          {form.bent === 'F' && form.fAltTur === 'TRAFIK' && form.sigortaSirketiId &&
+          {trafik && form.sigortaSirketiId &&
           <div className="rounded-lg border border-border bg-card p-4 text-sm">
               <p className="font-medium text-foreground">Trafik başvuru kaynağı</p>
               <p className="mt-1 text-muted-foreground">{sigortaBul(form.sigortaSirketiId)?.ad}</p>
               <p className="mt-2 text-xs text-muted-foreground">
-                Ana kayıt TTRF serisinde açılır, {form.adet || 0} alt başvuru ana kayda bağlanır.
-                Ödeme, dekont ve makbuz yalnızca ana kayda işlenir.
+                Ana kayıt TTRF serisinde açılır, {altSatirlar.length} alt başvuru ana kayda
+                bağlanır. Ödeme, dekont ve makbuz yalnızca ana kayda işlenir.
               </p>
             </div>
           }
@@ -432,9 +528,7 @@ export function YeniIslem() {
           <div className="rounded-lg border border-border bg-card p-4">
             <p className="text-sm font-medium text-foreground">Kayıt numarası</p>
             <p className="mt-1 font-mono text-sm text-muted-foreground">
-              {form.bent ?
-              sonrakiKayitNo(islemler, form.bent as BentKodu, form.fAltTur, form.eIslemTuru) :
-              '—'}
+              {kayitNoOnizleme || '—'}
             </p>
             <p className="mt-2 text-xs text-muted-foreground">
               Numara merkezi sistem tarafından üretilir; kullanıcı tarafından yazılamaz. Eşzamanlı
@@ -449,8 +543,8 @@ export function YeniIslem() {
           {!kaydedilebilir &&
           <p className="text-xs text-muted-foreground">
               {krediKullanim ?
-            'Kayıt için işletmeci, taş ocağı, tarih, saat ve patlatma adedi girilmelidir.' :
-            'Kayıt için bent alanları, hesaplama ve dekont bilgileri ile dijital dekont dosyası tamamlanmalıdır.'}
+            'Kayıt için işletmeci, taş ocağı, patlatma tarihi/saati ve kullanılacak kredi girilmelidir.' :
+            'Kayıt için işlem bilgileri, operasyon tarihi, hesaplama, dekont alanları, dijital dekont dosyası ve hesaplanan tutarla eşleşen ödeme tamamlanmalıdır.'}
             </p>
           }
           <Button variant="ghost" className="w-full" onClick={sifirla}>

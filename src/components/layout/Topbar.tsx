@@ -38,15 +38,17 @@ export function Topbar({ menuAc }: {menuAc: () => void;}) {
           </span>
         </div>
 
+        {kullanici?.bauGuncelleyebilir &&
         <Button
           variant="outline"
           size="sm"
           onClick={() => setAyarAcik((a) => !a)}
           aria-expanded={ayarAcik}>
           
-          <Settings2 className="h-4 w-4" aria-hidden="true" />
-          <span className="hidden sm:inline">Sistem Ayarı</span>
-        </Button>
+            <Settings2 className="h-4 w-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Sistem Ayarı</span>
+          </Button>
+        }
 
         <div className="hidden text-right sm:block">
           <p className="text-sm font-medium leading-tight text-foreground">{kullanici?.adSoyad}</p>
@@ -58,7 +60,7 @@ export function Topbar({ menuAc }: {menuAc: () => void;}) {
         </Button>
       </div>
 
-      {ayarAcik &&
+      {ayarAcik && kullanici?.bauGuncelleyebilir &&
       <div className="border-t border-border bg-muted/40 px-4 py-4 sm:px-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="w-full sm:max-w-xs">
@@ -74,8 +76,8 @@ export function Topbar({ menuAc }: {menuAc: () => void;}) {
             
             </div>
             <p className="text-xs text-muted-foreground sm:pb-2">
-              Tüm bent hesaplamaları bu değere göre yeniden hesaplanır. Değer sistem ayarında
-              tutulur, kullanıcı formlarında değiştirilemez.
+              BAÜ sistem ayarıdır ve yalnızca Merkez Admin güncelleyebilir. Değer değiştiğinde tüm
+              bent hesaplamaları yeniden hesaplanır; değişiklik audit log’a yazılır.
             </p>
           </div>
         </div>

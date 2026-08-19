@@ -84,7 +84,7 @@ export const krediHareketleri: KrediHareketi[] = [
   dekontNo: '987654321',
   makbuzNo: 'BM-2026-000144',
   tarih: '2026-08-18',
-  aciklama: '7 patlatmalık ön ödeme alındı.'
+  aciklama: '7 patlatmalık ön ödeme alındı, makbuz kesildi.'
 },
 {
   id: 'kh-2',
@@ -113,9 +113,8 @@ export const krediHareketleri: KrediHareketi[] = [
   adet: 3,
   kayitNo: 'EKRD-2026-000016',
   dekontNo: '445512309',
-  makbuzNo: 'BM-2026-000145',
   tarih: '2026-08-19',
-  aciklama: '3 patlatmalık ön ödeme alındı.'
+  aciklama: '3 patlatmalık ön ödeme alındı (ödeme doğrulaması bekliyor).'
 }];
 
 

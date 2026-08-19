@@ -1,5 +1,8 @@
 import { BentKodu, FAltTur } from '../types';
-import { formatTL } from './currency';
+import { formatTL, formatTLHassas } from './currency';
+
+/** Varsayılan brüt asgari ücret (BAÜ) — sistem ayarı. */
+export const VARSAYILAN_BAU = 70893;
 
 export interface HesaplamaGirdi {
   bent: BentKodu | '';
@@ -70,19 +73,16 @@ export function hesapla(girdi: HesaplamaGirdi): HesaplamaSonuc {
     if (bent === 'F' && !girdi.fAltTur)
     hatalar.push('F bendi için alt tür seçilmelidir.');
     const birimTutar = bau * oran;
+    const oranMetni = `%${(oran * 100).toString().replace('.', ',')}`;
     return {
       gecerli: hatalar.length === 0,
       tutar: birimTutar * adet,
       birimTutar,
-      formul: `Brüt Asgari Ücret x %${(oran * 100).
-      toString().
-      replace('.', ',')} x Adet`,
+      formul: `BAÜ x ${oranMetni} x Adet`,
       satirlar: [
-      `Brüt Asgari Ücret (BAÜ): ${formatTL(bau)}`,
-      `BAÜ x %${(oran * 100).toString().replace('.', ',')} = ${formatTL(
-        birimTutar
-      )} (işlem başı tutar)`,
-      `İşlem başı tutar x ${adet || 0} adet = ${formatTL(birimTutar * adet)}`],
+      `BAÜ: ${formatTL(bau)}`,
+      `BAÜ x ${oranMetni} = ${formatTL(birimTutar)} (işlem/rapor başı tutar)`,
+      `${formatTL(birimTutar)} x ${adet || 0} adet = ${formatTL(birimTutar * adet)}`],
 
       hatalar
     };
@@ -93,19 +93,19 @@ export function hesapla(girdi: HesaplamaGirdi): HesaplamaSonuc {
     const sure = girdi.gorevSuresi ?? 0;
     const hatalar: string[] = [];
     if (!Number.isInteger(polis) || polis <= 0)
-    hatalar.push('Polis sayısı sıfırdan büyük tam sayı olmalıdır. Yarım personel girilemez.');
+    hatalar.push('Polis sayısı pozitif tam sayı olmalıdır. Yarım personel girilemez.');
     if (!Number.isInteger(sure) || sure <= 0)
-    hatalar.push('Görev süresi sıfırdan büyük tam saat olmalıdır. Buçuklu saat girilemez.');
+    hatalar.push('Görev süresi pozitif tam saat olmalıdır. Buçuklu saat girilemez.');
     const saatlik = bau * 0.005;
     return {
       gecerli: hatalar.length === 0,
       tutar: polis * sure * saatlik,
       birimTutar: saatlik,
-      formul: 'Polis Sayısı x Görev Süresi x Brüt Asgari Ücret x %0,5',
+      formul: 'Polis Sayısı x Görev Süresi x BAÜ x %0,5',
       satirlar: [
-      `Brüt Asgari Ücret (BAÜ): ${formatTL(bau)}`,
-      `BAÜ x %0,5 = ${formatTL(saatlik)} (personel/saat tutarı)`,
-      `${polis || 0} polis x ${sure || 0} saat x ${formatTL(saatlik)} = ${formatTL(
+      `BAÜ: ${formatTL(bau)}`,
+      `BAÜ x %0,5 = ${formatTLHassas(saatlik)} (kişi/saat tutarı)`,
+      `${polis || 0} polis x ${sure || 0} saat x ${formatTLHassas(saatlik)} = ${formatTL(
         polis * sure * saatlik
       )}`],
 
@@ -118,18 +118,16 @@ export function hesapla(girdi: HesaplamaGirdi): HesaplamaSonuc {
   const hatalar: string[] = [];
   if (!Number.isInteger(kredi) || kredi <= 0)
   hatalar.push('Kredi adedi sıfırdan büyük tam sayı olmalıdır.');
-  const patlatmaBedeli = bau * 0.1;
+  const patlatma = bau * 0.1;
   return {
     gecerli: hatalar.length === 0,
-    tutar: patlatmaBedeli * kredi,
-    birimTutar: patlatmaBedeli,
-    formul: '1 Patlatma Kredisi = Brüt Asgari Ücret x %10',
+    tutar: patlatma * kredi,
+    birimTutar: patlatma,
+    formul: '1 Patlatma Kredisi = BAÜ x %10',
     satirlar: [
-    `Brüt Asgari Ücret (BAÜ): ${formatTL(bau)}`,
-    `BAÜ x %10 = ${formatTL(patlatmaBedeli)} (1 patlatma bedeli)`,
-    `${kredi || 0} kredi x ${formatTL(patlatmaBedeli)} = ${formatTL(
-      patlatmaBedeli * kredi
-    )}`],
+    `BAÜ: ${formatTL(bau)}`,
+    `BAÜ x %10 = ${formatTL(patlatma)} (1 patlatma bedeli)`,
+    `${kredi || 0} kredi x ${formatTL(patlatma)} = ${formatTL(patlatma * kredi)}`],
 
     hatalar
   };
@@ -137,4 +135,8 @@ export function hesapla(girdi: HesaplamaGirdi): HesaplamaSonuc {
 
 export function patlatmaBedeli(bau: number): number {
   return bau * 0.1;
+}
+
+export function raporBedeli(bau: number): number {
+  return bau * 0.01;
 }

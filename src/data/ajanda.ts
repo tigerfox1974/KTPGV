@@ -1,58 +1,88 @@
 import { AjandaKaydi } from '../types';
 
+/** Ajanda operasyon tarihinden beslenir; dekont tarihi kullanılmaz. */
 export const baslangicAjandasi: AjandaKaydi[] = [
 {
   id: 'aj-1',
   kayitNo: 'EKUL-2026-000031',
   bent: 'E',
+  islemTuru: 'Patlatma kullanımı',
   baslik: 'Patlatma kullanımı — Alfa Taş Ocağı',
+  talepEden: 'Ahmet Kaya',
   birim: 'KTPGV Taş Ocağı Birimi',
   tarih: '2026-08-20',
   saat: '10:00',
+  yer: 'Alfa Taş Ocağı — Lefkoşa',
   durum: 'Planlandı',
-  detay: 'İşletmeci: Ahmet Kaya · Kullanılacak kredi: 1 · Kalan kredi: 6'
+  odemeDurumu: 'Ön ödemeli kredi · 1 kredi düşüldü'
 },
 {
   id: 'aj-2',
   kayitNo: 'EKUL-2026-000032',
   bent: 'E',
+  islemTuru: 'Patlatma kullanımı',
   baslik: 'Patlatma kullanımı — Güney Blok Taş Ocağı',
+  talepEden: 'Ahmet Kaya',
   birim: 'KTPGV Taş Ocağı Birimi',
   tarih: '2026-08-21',
   saat: '14:30',
+  yer: 'Güney Blok Taş Ocağı — Gazimağusa',
   durum: 'Planlandı',
-  detay: 'İşletmeci: Ahmet Kaya · Kullanılacak kredi: 1 · Kalan kredi: 5'
+  odemeDurumu: 'Ön ödemeli kredi · 1 kredi düşüldü'
 },
 {
   id: 'aj-3',
   kayitNo: 'C-2026-000008',
   bent: 'C',
+  islemTuru: 'İtfaiye denetim / kontrol',
   baslik: 'İtfaiye denetimi — Palm Beach Otel',
+  talepEden: 'Palm Beach Otel',
   birim: 'PGM İtfaiye Müdürlüğü',
   tarih: '2026-08-19',
   saat: '09:00',
+  yer: 'Palm Beach Otel — Gazimağusa',
   durum: 'Görev Tamamlandı',
-  detay: '2 işlem · Ödeme ve makbuz tamam'
+  odemeDurumu: 'Ödeme alındı · Makbuz BM-2026-000139'
 },
 {
   id: 'aj-4',
   kayitNo: 'D-2026-000004',
   bent: 'D',
-  baslik: 'Yol kapama — Girne festival güzergâhı',
+  islemTuru: 'Yol kapama / güvenlik tedbiri',
+  baslik: 'Girne Zeytin Festivali kortej yürüyüşü',
+  talepEden: 'Girne Belediyesi',
   birim: 'Gazimağusa İlçe Karakolu',
   tarih: '2026-08-22',
   saat: '18:00',
+  yer: 'Girne sahil yolu — festival güzergâhı',
   durum: 'Planlandı',
-  detay: '6 polis · 2 saat · Ödeme doğrulaması bekleniyor'
+  odemeDurumu: 'Ödeme doğrulaması bekliyor'
 },
 {
   id: 'aj-5',
   kayitNo: 'TTRF-2026-000045',
   bent: 'F',
-  baslik: 'Trafik raporu hazırlığı — 3 alt başvuru',
+  islemTuru: 'Trafik polis raporu (3 alt başvuru)',
+  baslik: 'Trafik raporu hazırlığı — Kıbrıs Sigorta Ltd.',
+  talepEden: 'Kıbrıs Sigorta Ltd.',
   birim: 'PGM Trafik Müdürlüğü',
   tarih: '2026-08-19',
   saat: '11:00',
+  yer: 'PGM Trafik Müdürlüğü — Lefkoşa',
   durum: 'İşlem Başlatılabilir',
-  detay: 'Kıbrıs Sigorta Ltd. · Makbuz BM-2026-000141'
+  odemeDurumu: 'Ödeme alındı · Makbuz BM-2026-000141'
+},
+{
+  id: 'aj-6',
+  kayitNo: 'TTRF-2026-000046',
+  bent: 'F',
+  islemTuru: 'Trafik polis raporu (1 alt başvuru)',
+  baslik: 'Trafik raporu hazırlığı — Anadolu Akdeniz Sigorta',
+  talepEden: 'Anadolu Akdeniz Sigorta',
+  birim: 'PGM Trafik Müdürlüğü',
+  tarih: '2026-08-24',
+  saat: '10:30',
+  yer: 'PGM Trafik Müdürlüğü — Girne',
+  durum: 'Planlandı',
+  odemeDurumu: 'Ödeme alındı · Makbuz bekliyor'
 }];

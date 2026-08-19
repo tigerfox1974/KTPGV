@@ -36,12 +36,12 @@ export interface Kullanici {
   sadeceGoruntule: boolean;
   raporGorebilir: boolean;
   ajandaKullanabilir: boolean;
+  bauGuncelleyebilir: boolean;
 }
 
 export type DekontYontemi = 'PERSONEL' | 'QR_LINK';
 
-export interface DekontDosyasi
-{
+export interface DekontDosyasi {
   ad: string;
   tur: 'PDF' | 'JPG' | 'PNG';
   boyutKb: number;
@@ -61,6 +61,7 @@ export interface Dekont {
 
 export type IslemDurumu =
 'ODEME_BEKLIYOR' |
+'MAKBUZ_BEKLIYOR' |
 'ODEME_DOGRULANDI' |
 'ISLEM_BASLATILABILIR' |
 'TAMAMLANDI' |
@@ -68,9 +69,11 @@ export type IslemDurumu =
 
 export interface TrafikAltBasvuru {
   no: string;
-  dosyaKonusu: string;
   plaka: string;
+  hasarDosyaNo: string;
   kazaTarihi: string;
+  raporKonusu: string;
+  raporTutari: number;
 }
 
 export interface Islem {
@@ -84,6 +87,13 @@ export interface Islem {
   birim: string;
   olusturan: string;
   olusturmaTarihi: string;
+  /** Operasyon (görev/denetim/rapor/patlatma) tarihi — ajanda bu tarihten beslenir. */
+  operasyonTarihi?: string;
+  operasyonSaati?: string;
+  yer?: string;
+  etkinlikAdi?: string;
+  polisSayisi?: number;
+  gorevSuresi?: number;
   tutar: number;
   hesaplamaAciklamasi: string;
   dekont: Dekont;
@@ -159,12 +169,16 @@ export interface AjandaKaydi {
   id: string;
   kayitNo: string;
   bent: BentKodu;
+  islemTuru: string;
   baslik: string;
+  talepEden: string;
   birim: string;
+  /** Operasyon tarihi — dekont tarihi asla ajanda tarihi olarak kullanılmaz. */
   tarih: string;
   saat: string;
+  yer: string;
   durum: AjandaDurumu;
-  detay: string;
+  odemeDurumu: string;
 }
 
 export interface AuditKaydi {

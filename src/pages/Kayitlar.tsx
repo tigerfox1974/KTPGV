@@ -144,6 +144,22 @@ export function Kayitlar() {
                                 <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
                                   <dt>Dekont no</dt>
                                   <dd className="font-mono text-foreground">{islem.dekont.dekontNo}</dd>
+                                  <dt>Dekont tarihi (mali)</dt>
+                                  <dd className="text-foreground">{formatTarih(islem.dekont.tarih)}</dd>
+                                  <dt>Operasyon tarihi</dt>
+                                  <dd className="text-foreground">
+                                    {islem.operasyonTarihi ?
+                                `${formatTarih(islem.operasyonTarihi)}${
+                                islem.operasyonSaati ? ` · ${islem.operasyonSaati}` : ''}` :
+
+                                '—'}
+                                  </dd>
+                                  {islem.yer &&
+                              <>
+                                      <dt>Yer</dt>
+                                      <dd className="text-foreground">{islem.yer}</dd>
+                                    </>
+                              }
                                   <dt>Banka</dt>
                                   <dd className="text-foreground">{islem.dekont.banka}</dd>
                                   <dt>Ödeme yapan</dt>
@@ -180,16 +196,22 @@ export function Kayitlar() {
                                     <p className="text-sm font-medium text-foreground">
                                       Alt başvurular ({islem.altBasvurular.length})
                                     </p>
-                                    <ul className="mt-2 space-y-1 text-xs">
+                                    <ul className="mt-2 space-y-1.5 text-xs">
                                       {islem.altBasvurular.map((alt) =>
                                 <li
                                   key={alt.no}
-                                  className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-1 last:border-0">
+                                  className="border-b border-border/60 pb-1.5 last:border-0">
                                   
-                                          <span className="font-mono text-foreground">{alt.no}</span>
-                                          <span className="text-muted-foreground">
-                                            {alt.dosyaKonusu} · {alt.plaka}
-                                          </span>
+                                          <div className="flex flex-wrap items-center justify-between gap-2">
+                                            <span className="font-mono text-foreground">{alt.no}</span>
+                                            <span className="font-medium text-foreground">
+                                              {formatTL(alt.raporTutari)}
+                                            </span>
+                                          </div>
+                                          <p className="text-muted-foreground">
+                                            Plaka {alt.plaka} · Hasar/dosya {alt.hasarDosyaNo} · Kaza{' '}
+                                            {formatTarih(alt.kazaTarihi)} · {alt.raporKonusu}
+                                          </p>
                                         </li>
                                 )}
                                     </ul>

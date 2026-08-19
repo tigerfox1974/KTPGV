@@ -5,12 +5,42 @@ export interface KuralGrubu {
 
 export const isKurallari: KuralGrubu[] = [
 {
+  baslik: 'Nihai Kararlar',
+  kurallar: [
+  'Kayıt numarası kullanıcı tarafından yazılmaz.',
+  'Makbuz numarası kullanıcı tarafından yazılmaz.',
+  'Gerçek sistemde numaralar merkezi online sistem tarafından transaction, sequence, unique constraint ve idempotency ile üretilecektir.',
+  'Offline makbuz üretimi yoktur.',
+  'Dekont dosyası olmadan ödeme gerektiren kayıt oluşturulamaz.',
+  'QR/link ayrı bir menü değildir, dijital dekont alanının içindedir.',
+  'Trafik raporları yalnızca sigorta şirketi kartlarına bağlı açılır.',
+  'TTRF alt başvurularına ayrı makbuz kesilmez.',
+  'E bendi kredi taş ocağına değil işletmeciye bağlıdır.',
+  'Aynı işletmeciye bağlı tüm taş ocakları ortak krediden kullanır.',
+  'Kredi kullanımı ajandaya düşer, kredi yükleme ajandaya düşmez.',
+  'Dekont tarihi mali tarihtir; operasyon tarihi ajanda tarihidir.']
+
+},
+{
   baslik: 'Temel İlke',
   kurallar: [
   'Ödeme/dekont süreci tamamlanmadan işlem kaydı oluşturulmaz.',
   'Dekont dosyası olmadan işlem asla kayda alınmaz.',
   'Ödeme, makbuz ve işlem süreçleri rol, birim ve bent yetkisine göre yönetilir.',
-  'Hatalı veya eksik veri ile işlem kaydı oluşturulmaz.']
+  'Hatalı veya eksik veri ile işlem kaydı oluşturulmaz.',
+  'Ödenen tutar hesaplanan tutardan düşükse veya fazlaysa kayıt oluşturulamaz; fark kullanıcıya gösterilir.']
+
+},
+{
+  baslik: 'Tarih Ayrımı',
+  kurallar: [
+  'Dekont tarihi mali belge tarihidir.',
+  'Operasyon tarihi işin yapılacağı / takip edileceği tarihtir.',
+  'Ajanda yalnızca operasyon tarihinden beslenir.',
+  'C ve Ç: işlem / denetim tarihi ve saati, yer bilgisi zorunludur.',
+  'D: görev tarihi, başlama saati ve görev yeri zorunludur.',
+  'E kredi kullanımı: patlatma tarihi ve saati zorunludur.',
+  'F: rapor / işlem tarihi zorunludur.']
 
 },
 {
@@ -62,12 +92,14 @@ export const isKurallari: KuralGrubu[] = [
 {
   baslik: 'E Bendi — Taş Ocağı Kredi Modeli',
   kurallar: [
-  '1 patlatma kredisi = Brüt Asgari Ücret x %10.',
+  '1 patlatma kredisi = BAÜ x %10.',
   'Ödeme önceden alınır ve patlatma kredisi olarak yüklenir.',
   'Kredi taş ocağına değil, işletmeci/sahip hesabına bağlıdır.',
   'Aynı işletmeciye bağlı farklı taş ocakları ortak krediden düşer.',
   'Kredi yüklemede dekont ve ödeme bilgileri zorunludur.',
-  'Yeterli kredi yoksa patlatma kullanım kaydı oluşturulamaz.',
+  'Yüklenen kredi, ödeme doğrulanana veya makbuz üretilene kadar "doğrulama bekleyen kredi"dir; kullanılabilir krediye eklenmez.',
+  'Kredi kullanımında yalnızca kullanılabilir kredi düşülür.',
+  'Kullanılabilir kredi yetersizse patlatma kullanım kaydı oluşturulamaz.',
   'Makbuz kredi yükleme kaydına kesilir; patlatma kullanımında makbuz aranmaz.',
   'Kredi yükleme ajandaya düşmez, patlatma kullanımı ajandaya düşer.']
 

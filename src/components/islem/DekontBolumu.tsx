@@ -47,6 +47,9 @@ export function DekontBolumu({
   auditEkle
 }: DekontBolumuProps) {
   const [onizleme, setOnizleme] = useState(false);
+  const odenen = Number(form.odenenTutar);
+  const fark = Number((odenen - beklenenTutar).toFixed(2));
+  const tutarUyumlu = odenen > 0 && Math.abs(fark) < 0.01;
 
   return (
     <section className="space-y-4" aria-labelledby="dekont-baslik">
@@ -96,10 +99,11 @@ export function DekontBolumu({
             id="dekont-tutar"
             type="number"
             min={0}
+            step="0.01"
             value={form.odenenTutar}
             onChange={(e) => guncelle('odenenTutar', e.target.value)}
-            placeholder="0"
-            className="mt-1.5" />
+            className="mt-1.5"
+            aria-invalid={odenen > 0 && !tutarUyumlu} />
           
           <p className="mt-1 text-xs text-muted-foreground">
             Hesaplanan tutar: {formatTL(beklenenTutar)}
@@ -116,6 +120,31 @@ export function DekontBolumu({
           
         </div>
       </div>
+
+      {odenen > 0 && !tutarUyumlu &&
+      <div
+        role="alert"
+        className="space-y-1 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
+        
+          <p className="font-medium">
+            {fark < 0 ? 'Eksik ödeme nedeniyle kayıt oluşturulamaz.' : 'Fazla ödeme tespit edildi.'}
+          </p>
+          <p>Hesaplanan tutar: {formatTL(beklenenTutar)}</p>
+          <p>Ödenen tutar: {formatTL(odenen)}</p>
+          <p>
+            Fark: {formatTL(Math.abs(fark))}{' '}
+            {fark < 0 ?
+          '(eksik)' :
+          '(fazla) — Ödenen tutar hesaplanan tutardan fazladır. Mali onay/politika gerektirir.'}
+          </p>
+        </div>
+      }
+
+      {tutarUyumlu &&
+      <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-900">
+          Ödenen tutar hesaplanan tutarla eşleşiyor: {formatTL(odenen)}
+        </p>
+      }
 
       <div className="space-y-3 rounded-xl border border-border p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">

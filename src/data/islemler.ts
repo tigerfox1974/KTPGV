@@ -1,5 +1,6 @@
 import { Islem } from '../types';
 
+/** Tutarlar BAÜ = 70.893,00 TL üzerinden hesaplanmıştır. */
 export const baslangicIslemleri: Islem[] = [
 {
   id: 'is-1',
@@ -11,13 +12,17 @@ export const baslangicIslemleri: Islem[] = [
   birim: 'PGM Trafik Müdürlüğü',
   olusturan: 'PGM Trafik Müdürlüğü',
   olusturmaTarihi: '2026-08-14',
-  tutar: 1020,
-  hesaplamaAciklamasi: 'BAÜ x %1 = 340,00 TL rapor başı tutar x 3 rapor = 1.020,00 TL',
+  operasyonTarihi: '2026-08-19',
+  operasyonSaati: '11:00',
+  yer: 'PGM Trafik Müdürlüğü — Lefkoşa',
+  tutar: 2126.79,
+  hesaplamaAciklamasi:
+  'BAÜ x %1 = 708,93 TL rapor başı tutar · 708,93 TL x 3 rapor = 2.126,79 TL',
   dekont: {
     dekontNo: '556123900',
     banka: 'Kıbrıs Vakıflar Bankası',
     tarih: '2026-08-14',
-    odenenTutar: 1020,
+    odenenTutar: 2126.79,
     odemeYapan: 'Kıbrıs Sigorta Ltd.',
     dosya: {
       ad: 'dekont-556123900.pdf',
@@ -32,9 +37,30 @@ export const baslangicIslemleri: Islem[] = [
   durum: 'ISLEM_BASLATILABILIR',
   sigortaSirketiId: 'sg-1',
   altBasvurular: [
-  { no: 'TTRF-2026-000045-001', dosyaKonusu: 'Maddi hasarlı kaza', plaka: 'LF 421', kazaTarihi: '2026-07-28' },
-  { no: 'TTRF-2026-000045-002', dosyaKonusu: 'Yaralanmalı kaza', plaka: 'GR 118', kazaTarihi: '2026-08-01' },
-  { no: 'TTRF-2026-000045-003', dosyaKonusu: 'Maddi hasarlı kaza', plaka: 'MG 903', kazaTarihi: '2026-08-05' }]
+  {
+    no: 'TTRF-2026-000045-001',
+    plaka: 'LF 421',
+    hasarDosyaNo: 'HS-2026-11840',
+    kazaTarihi: '2026-07-28',
+    raporKonusu: 'Maddi hasarlı kaza',
+    raporTutari: 708.93
+  },
+  {
+    no: 'TTRF-2026-000045-002',
+    plaka: 'GR 118',
+    hasarDosyaNo: 'HS-2026-11902',
+    kazaTarihi: '2026-08-01',
+    raporKonusu: 'Yaralanmalı kaza',
+    raporTutari: 708.93
+  },
+  {
+    no: 'TTRF-2026-000045-003',
+    plaka: 'MG 903',
+    hasarDosyaNo: 'HS-2026-12044',
+    kazaTarihi: '2026-08-05',
+    raporKonusu: 'Maddi hasarlı kaza',
+    raporTutari: 708.93
+  }]
 
 },
 {
@@ -47,13 +73,17 @@ export const baslangicIslemleri: Islem[] = [
   birim: 'PGM Trafik Müdürlüğü',
   olusturan: 'PGM Trafik Müdürlüğü',
   olusturmaTarihi: '2026-08-17',
-  tutar: 340,
-  hesaplamaAciklamasi: 'BAÜ x %1 = 340,00 TL rapor başı tutar x 1 rapor = 340,00 TL',
+  operasyonTarihi: '2026-08-24',
+  operasyonSaati: '10:30',
+  yer: 'PGM Trafik Müdürlüğü — Girne',
+  tutar: 708.93,
+  hesaplamaAciklamasi:
+  'BAÜ x %1 = 708,93 TL rapor başı tutar · 708,93 TL x 1 rapor = 708,93 TL',
   dekont: {
     dekontNo: '778100234',
     banka: 'Kooperatif Merkez Bankası',
     tarih: '2026-08-17',
-    odenenTutar: 340,
+    odenenTutar: 708.93,
     odemeYapan: 'Anadolu Akdeniz Sigorta',
     dosya: {
       ad: 'dekont-778100234.jpg',
@@ -64,10 +94,17 @@ export const baslangicIslemleri: Islem[] = [
     }
   },
   makbuzNo: null,
-  durum: 'ODEME_DOGRULANDI',
+  durum: 'MAKBUZ_BEKLIYOR',
   sigortaSirketiId: 'sg-2',
   altBasvurular: [
-  { no: 'TTRF-2026-000046-001', dosyaKonusu: 'Maddi hasarlı kaza', plaka: 'LN 776', kazaTarihi: '2026-08-11' }]
+  {
+    no: 'TTRF-2026-000046-001',
+    plaka: 'LN 776',
+    hasarDosyaNo: 'HS-2026-12310',
+    kazaTarihi: '2026-08-11',
+    raporKonusu: 'Maddi hasarlı kaza',
+    raporTutari: 708.93
+  }]
 
 },
 {
@@ -79,13 +116,17 @@ export const baslangicIslemleri: Islem[] = [
   birim: 'PGM İtfaiye Müdürlüğü',
   olusturan: 'İtfaiye Birimi',
   olusturmaTarihi: '2026-08-12',
-  tutar: 1360,
-  hesaplamaAciklamasi: 'BAÜ x %2 = 680,00 TL işlem başı tutar x 2 işlem = 1.360,00 TL',
+  operasyonTarihi: '2026-08-19',
+  operasyonSaati: '09:00',
+  yer: 'Palm Beach Otel — Gazimağusa',
+  tutar: 2835.72,
+  hesaplamaAciklamasi:
+  'BAÜ x %2 = 1.417,86 TL işlem başı tutar · 1.417,86 TL x 2 işlem = 2.835,72 TL',
   dekont: {
     dekontNo: '330091822',
     banka: 'Kıbrıs Vakıflar Bankası',
     tarih: '2026-08-12',
-    odenenTutar: 1360,
+    odenenTutar: 2835.72,
     odemeYapan: 'Palm Beach Otel',
     dosya: {
       ad: 'itfaiye-dekont.pdf',
@@ -108,13 +149,20 @@ export const baslangicIslemleri: Islem[] = [
   birim: 'Gazimağusa İlçe Karakolu',
   olusturan: 'İlçe / Karakol Kullanıcısı',
   olusturmaTarihi: '2026-08-16',
-  tutar: 1020,
-  hesaplamaAciklamasi: '6 polis x 2 saat x 85,00 TL (BAÜ x %0,5) = 1.020,00 TL',
+  operasyonTarihi: '2026-08-22',
+  operasyonSaati: '18:00',
+  yer: 'Girne sahil yolu — festival güzergâhı',
+  etkinlikAdi: 'Girne Zeytin Festivali kortej yürüyüşü',
+  polisSayisi: 6,
+  gorevSuresi: 2,
+  tutar: 4253.58,
+  hesaplamaAciklamasi:
+  'BAÜ x %0,5 = 354,465 TL kişi/saat · 6 polis x 2 saat x 354,465 TL = 4.253,58 TL',
   dekont: {
     dekontNo: '901238877',
     banka: 'Limasol Türk Kooperatif Bankası',
     tarih: '2026-08-16',
-    odenenTutar: 1020,
+    odenenTutar: 4253.58,
     odemeYapan: 'Girne Belediyesi',
     dosya: {
       ad: 'belediye-dekont.png',
@@ -138,13 +186,14 @@ export const baslangicIslemleri: Islem[] = [
   birim: 'KTPGV Taş Ocağı Birimi',
   olusturan: 'Taş Ocağı İşlemleri Yetkilisi',
   olusturmaTarihi: '2026-08-18',
-  tutar: 23800,
-  hesaplamaAciklamasi: 'BAÜ x %10 = 3.400,00 TL (1 patlatma bedeli) x 7 kredi = 23.800,00 TL',
+  tutar: 49625.1,
+  hesaplamaAciklamasi:
+  'BAÜ x %10 = 7.089,30 TL (1 patlatma bedeli) · 7.089,30 TL x 7 kredi = 49.625,10 TL',
   dekont: {
     dekontNo: '987654321',
     banka: 'Kıbrıs Vakıflar Bankası',
     tarih: '2026-08-18',
-    odenenTutar: 23800,
+    odenenTutar: 49625.1,
     odemeYapan: 'Ahmet Kaya',
     dosya: {
       ad: 'kredi-dekont-987654321.pdf',
@@ -169,22 +218,20 @@ export const baslangicIslemleri: Islem[] = [
   talepEden: 'Ahmet Kaya',
   birim: 'KTPGV Taş Ocağı Birimi',
   olusturan: 'Taş Ocağı İşlemleri Yetkilisi',
-  olusturmaTarihi: '2026-08-20',
+  olusturmaTarihi: '2026-08-19',
+  operasyonTarihi: '2026-08-20',
+  operasyonSaati: '10:00',
+  yer: 'Alfa Taş Ocağı — Lefkoşa',
   tutar: 0,
-  hesaplamaAciklamasi: 'Kredi kullanımı — yeniden ödeme alınmaz. 1 kredi düşüldü.',
+  hesaplamaAciklamasi:
+  'Kredi kullanımı — yeniden ödeme alınmaz. Ön ödemeli krediden 1 kredi düşüldü.',
   dekont: {
     dekontNo: 'EKRD-2026-000015',
     banka: '—',
     tarih: '2026-08-18',
     odenenTutar: 0,
     odemeYapan: 'Ön ödemeli kredi',
-    dosya: {
-      ad: 'kredi-dekont-987654321.pdf',
-      tur: 'PDF',
-      boyutKb: 520,
-      yontem: 'PERSONEL',
-      yuklemeZamani: '18.08.2026 13:31'
-    }
+    dosya: null
   },
   makbuzNo: null,
   durum: 'ISLEM_BASLATILABILIR',
@@ -220,4 +267,36 @@ export const baslangicIslemleri: Islem[] = [
   makbuzNo: 'BM-2026-000136',
   makbuzUreten: 'Vakıf Muhasebe',
   durum: 'TAMAMLANDI'
+},
+{
+  id: 'is-8',
+  kayitNo: 'EKRD-2026-000016',
+  bent: 'E',
+  eIslemTuru: 'KREDI_YUKLEME',
+  baslik: 'Patlatma kredisi yükleme — 3 kredi',
+  talepEden: 'Beyaz Taş Madencilik Ltd.',
+  birim: 'KTPGV Taş Ocağı Birimi',
+  olusturan: 'Taş Ocağı İşlemleri Yetkilisi',
+  olusturmaTarihi: '2026-08-19',
+  tutar: 21267.9,
+  hesaplamaAciklamasi:
+  'BAÜ x %10 = 7.089,30 TL (1 patlatma bedeli) · 7.089,30 TL x 3 kredi = 21.267,90 TL',
+  dekont: {
+    dekontNo: '445512309',
+    banka: 'Kooperatif Merkez Bankası',
+    tarih: '2026-08-19',
+    odenenTutar: 21267.9,
+    odemeYapan: 'Beyaz Taş Madencilik Ltd.',
+    dosya: {
+      ad: 'beyaz-tas-dekont.pdf',
+      tur: 'PDF',
+      boyutKb: 366,
+      yontem: 'QR_LINK',
+      yuklemeZamani: '19.08.2026 10:47'
+    }
+  },
+  makbuzNo: null,
+  durum: 'ODEME_BEKLIYOR',
+  isletmeciId: 'im-2',
+  krediAdedi: 3
 }];

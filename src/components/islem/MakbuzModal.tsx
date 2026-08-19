@@ -66,9 +66,24 @@ function Nusha({ islem, nusha }: {islem: Islem;nusha: 1 | 2;}) {
       </dl>
 
       {islem.altBasvurular &&
-      <p className="mt-3 text-xs text-muted-foreground">
-          Bu makbuz {islem.altBasvurular.length} alt başvuruyu kapsar ve ana TTRF kaydına kesilmiştir.
-        </p>
+      <div className="mt-3 rounded-md border border-border bg-muted/40 p-2.5">
+          <p className="text-[11px] font-medium text-foreground">
+            Ek liste — kapsanan alt başvurular ({islem.altBasvurular.length})
+          </p>
+          <ul className="mt-1.5 space-y-1 text-[10px]">
+            {islem.altBasvurular.map((alt) =>
+          <li key={alt.no} className="flex items-center justify-between gap-2">
+                <span className="font-mono text-foreground">{alt.no}</span>
+                <span className="text-muted-foreground">
+                  {alt.plaka} · {formatTL(alt.raporTutari)}
+                </span>
+              </li>
+          )}
+          </ul>
+          <p className="mt-1.5 text-[10px] text-muted-foreground">
+            Alt başvurulara ayrı makbuz kesilmez; makbuz ana TTRF kaydına aittir.
+          </p>
+        </div>
       }
       {bagliOcaklar.length > 0 &&
       <p className="mt-3 text-xs text-muted-foreground">

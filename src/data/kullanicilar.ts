@@ -31,7 +31,8 @@ export const kullanicilar: Kullanici[] = [
   makbuzUretebilir: true,
   sadeceGoruntule: false,
   raporGorebilir: true,
-  ajandaKullanabilir: true
+  ajandaKullanabilir: true,
+  bauGuncelleyebilir: true
 },
 {
   id: 'u-vakif',
@@ -56,7 +57,8 @@ export const kullanicilar: Kullanici[] = [
   makbuzUretebilir: true,
   sadeceGoruntule: false,
   raporGorebilir: true,
-  ajandaKullanabilir: false
+  ajandaKullanabilir: false,
+  bauGuncelleyebilir: false
 },
 {
   id: 'u-trafik',
@@ -80,7 +82,8 @@ export const kullanicilar: Kullanici[] = [
   makbuzUretebilir: true,
   sadeceGoruntule: false,
   raporGorebilir: true,
-  ajandaKullanabilir: true
+  ajandaKullanabilir: true,
+  bauGuncelleyebilir: false
 },
 {
   id: 'u-itfaiye',
@@ -95,7 +98,8 @@ export const kullanicilar: Kullanici[] = [
   makbuzUretebilir: true,
   sadeceGoruntule: false,
   raporGorebilir: true,
-  ajandaKullanabilir: true
+  ajandaKullanabilir: true,
+  bauGuncelleyebilir: false
 },
 {
   id: 'u-karakol',
@@ -110,7 +114,8 @@ export const kullanicilar: Kullanici[] = [
   makbuzUretebilir: false,
   sadeceGoruntule: false,
   raporGorebilir: false,
-  ajandaKullanabilir: true
+  ajandaKullanabilir: true,
+  bauGuncelleyebilir: false
 },
 {
   id: 'u-tasocagi',
@@ -136,7 +141,8 @@ export const kullanicilar: Kullanici[] = [
   makbuzUretebilir: true,
   sadeceGoruntule: false,
   raporGorebilir: true,
-  ajandaKullanabilir: true
+  ajandaKullanabilir: true,
+  bauGuncelleyebilir: false
 },
 {
   id: 'u-denetci',
@@ -164,12 +170,13 @@ export const kullanicilar: Kullanici[] = [
   makbuzUretebilir: false,
   sadeceGoruntule: true,
   raporGorebilir: true,
-  ajandaKullanabilir: false
+  ajandaKullanabilir: false,
+  bauGuncelleyebilir: false
 }];
 
 
 export const yetkiMatrisi: {rol: string;kapsam: string;}[] = [
-{ rol: 'Merkez Admin', kapsam: 'Tüm ekranlar, tüm bentler, tüm makbuzlar' },
+{ rol: 'Merkez Admin', kapsam: 'Tüm ekranlar, tüm bentler, tüm makbuzlar, BAÜ sistem ayarı' },
 { rol: 'Vakıf Muhasebe', kapsam: 'Ödeme, dekont, makbuz, rapor' },
 { rol: 'PGM Trafik Müdürlüğü', kapsam: 'F / Trafik Raporu' },
 { rol: 'İtfaiye Birimi', kapsam: 'C ve Ç bentleri' },

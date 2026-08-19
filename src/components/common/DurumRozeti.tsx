@@ -2,7 +2,8 @@ import React from 'react';
 import { AjandaDurumu, IslemDurumu } from '../../types';
 
 const ISLEM_ETIKETLERI: Record<IslemDurumu, string> = {
-  ODEME_BEKLIYOR: 'Ödeme Bekliyor',
+  ODEME_BEKLIYOR: 'Ödeme Doğrulama Bekliyor',
+  MAKBUZ_BEKLIYOR: 'Makbuz Bekliyor',
   ODEME_DOGRULANDI: 'Ödeme Doğrulandı',
   ISLEM_BASLATILABILIR: 'İşlem Başlatılabilir',
   TAMAMLANDI: 'Tamamlandı',
@@ -11,6 +12,7 @@ const ISLEM_ETIKETLERI: Record<IslemDurumu, string> = {
 
 const ISLEM_STILLERI: Record<IslemDurumu, string> = {
   ODEME_BEKLIYOR: 'bg-amber-50 text-amber-700 border-amber-200',
+  MAKBUZ_BEKLIYOR: 'bg-orange-50 text-orange-700 border-orange-200',
   ODEME_DOGRULANDI: 'bg-sky-50 text-sky-700 border-sky-200',
   ISLEM_BASLATILABILIR: 'bg-indigo-50 text-indigo-700 border-indigo-200',
   TAMAMLANDI: 'bg-emerald-50 text-emerald-700 border-emerald-200',

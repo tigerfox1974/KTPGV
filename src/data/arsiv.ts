@@ -3,9 +3,9 @@ import { MaliYilArsivi } from '../types';
 export const maliYilArsivleri: MaliYilArsivi[] = [
 {
   yil: 2026,
-  kayitSayisi: 7,
+  kayitSayisi: 8,
   makbuzSayisi: 4,
-  toplamTutar: 78560,
+  toplamTutar: 130818.02,
   durum: 'Aktif',
   manifestHash: null,
   dogrulandi: false

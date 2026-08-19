@@ -21,6 +21,10 @@ export function Dashboard() {
   filter((a) => a.durum === 'Planlandı' || a.durum === 'İşlem Başlatılabilir').
   slice(0, 5);
   const kalanKrediToplami = isletmeciler.reduce((t, i) => t + krediOzeti(i.id).kalan, 0);
+  const bekleyenKrediToplami = isletmeciler.reduce(
+    (t, i) => t + krediOzeti(i.id).dogrulamaBekleyen,
+    0
+  );
 
   const bentDagilimi = bentler.map((b) => {
     const kayitlar = islemler.filter((i) => i.bent === b.kod);
@@ -37,7 +41,7 @@ export function Dashboard() {
     <div className="space-y-6">
       <PageHeader
         baslik={`Hoş geldiniz, ${kullanici.adSoyad}`}
-        aciklama={`${kullanici.rol} · ${kullanici.birim} · Brüt asgari ücret: ${formatTL(bau)}`} />
+        aciklama={`${kullanici.rol} · ${kullanici.birim} · BAÜ: ${formatTL(bau)}`} />
       
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -50,9 +54,9 @@ export function Dashboard() {
           ikon={Receipt} />
         
         <OzetKart
-          etiket="Kalan patlatma kredisi"
+          etiket="Kullanılabilir patlatma kredisi"
           deger={`${kalanKrediToplami} kredi`}
-          altMetin="Tüm işletmeciler"
+          altMetin={`${bekleyenKrediToplami} kredi doğrulama bekliyor`}
           ikon={CalendarDays} />
         
       </div>

@@ -16,12 +16,23 @@ import { baslangicAuditKayitlari } from '../data/auditLog';
 import { krediHareketleri as baslangicKredileri } from '../data/tasOcagi';
 import { maliYilArsivleri } from '../data/arsiv';
 import { sonrakiMakbuzNo } from '../utils/numaralandirma';
+import { VARSAYILAN_BAU } from '../utils/hesaplama';
+import { formatTL } from '../utils/currency';
 
 export interface KrediOzeti {
+  /** Ödemesi alınan toplam kredi */
   yuklenen: number;
+  /** Ödeme doğrulanmış / makbuzu kesilmiş, kullanıma hazır kredi */
+  kullanilabilir: number;
+  /** Patlatmalarda harcanan kredi */
   kullanilan: number;
+  /** Kullanılabilir - kullanılan */
   kalan: number;
+  /** Ödeme doğrulaması veya makbuz bekleyen, henüz kullanılamayan kredi */
+  dogrulamaBekleyen: number;
 }
+
+const DOGRULANMIS_DURUMLAR = ['ODEME_DOGRULANDI', 'ISLEM_BASLATILABILIR', 'TAMAMLANDI'];
 
 interface AppContextDegeri {
   kullanici: Kullanici | null;
@@ -66,7 +77,7 @@ export function AppProvider({
 
 }: {children: React.ReactNode;baslangicKullanicisi?: Kullanici | null;}) {
   const [kullanici, setKullanici] = useState<Kullanici | null>(baslangicKullanicisi);
-  const [bau, setBau] = useState(34000);
+  const [bau, setBau] = useState(VARSAYILAN_BAU);
   const [islemler, setIslemler] = useState<Islem[]>(baslangicIslemleri);
   const [ajanda, setAjanda] = useState<AjandaKaydi[]>(baslangicAjandasi);
   const [auditKayitlari, setAuditKayitlari] = useState<AuditKaydi[]>(baslangicAuditKayitlari);
@@ -105,7 +116,7 @@ export function AppProvider({
   const bauGuncelle = useCallback(
     (deger: number) => {
       setBau(deger);
-      auditEkle('Sistem ayarı değiştirildi', `Brüt asgari ücret: ${deger}`);
+      auditEkle('BAÜ güncellendi', `Brüt asgari ücret: ${formatTL(deger)}`);
     },
     [auditEkle]
   );
@@ -131,20 +142,40 @@ export function AppProvider({
       i
       )
       );
+      if (hedef.eIslemTuru === 'KREDI_YUKLEME') {
+        auditEkle(
+          'Taş ocağı kredi kullanılabilir yapıldı',
+          `${hedef.talepEden} · ${hedef.krediAdedi} kredi (makbuz ${uretilen})`
+        );
+      }
       return uretilen;
     },
-    [islemler, kullanici]
+    [islemler, kullanici, auditEkle]
   );
 
-  const odemeDogrula = useCallback((islemId: string) => {
-    setIslemler((eski) =>
-    eski.map((i) => i.id === islemId ? { ...i, durum: 'ODEME_DOGRULANDI' as const } : i)
-    );
-  }, []);
+  const odemeDogrula = useCallback(
+    (islemId: string) => {
+      const hedef = islemler.find((i) => i.id === islemId);
+      setIslemler((eski) =>
+      eski.map((i) => i.id === islemId ? { ...i, durum: 'ODEME_DOGRULANDI' as const } : i)
+      );
+      if (hedef?.eIslemTuru === 'KREDI_YUKLEME') {
+        auditEkle(
+          'Taş ocağı kredi kullanılabilir yapıldı',
+          `${hedef.talepEden} · ${hedef.krediAdedi} kredi (ödeme doğrulandı)`
+        );
+      }
+    },
+    [islemler, auditEkle]
+  );
 
-  const ajandaEkle = useCallback((kayit: AjandaKaydi) => {
-    setAjanda((eski) => [kayit, ...eski]);
-  }, []);
+  const ajandaEkle = useCallback(
+    (kayit: AjandaKaydi) => {
+      setAjanda((eski) => [kayit, ...eski]);
+      auditEkle('Ajanda kaydı oluşturuldu', `${kayit.kayitNo} · ${kayit.tarih} ${kayit.saat}`);
+    },
+    [auditEkle]
+  );
 
   const ajandaDurumGuncelle = useCallback((id: string, durum: AjandaDurumu) => {
     setAjanda((eski) => eski.map((a) => a.id === id ? { ...a, durum } : a));
@@ -157,11 +188,27 @@ export function AppProvider({
   const krediOzeti = useCallback(
     (isletmeciId: string): KrediOzeti => {
       const hareketler = krediHareketleri.filter((h) => h.isletmeciId === isletmeciId);
-      const yuklenen = hareketler.filter((h) => h.tip === 'YUKLEME').reduce((t, h) => t + h.adet, 0);
-      const kullanilan = hareketler.filter((h) => h.tip === 'KULLANIM').reduce((t, h) => t + h.adet, 0);
-      return { yuklenen, kullanilan, kalan: yuklenen - kullanilan };
+      const yuklemeler = hareketler.filter((h) => h.tip === 'YUKLEME');
+      const yuklenen = yuklemeler.reduce((t, h) => t + h.adet, 0);
+      const dogrulamaBekleyen = yuklemeler.reduce((t, h) => {
+        const kayit = islemler.find((i) => i.kayitNo === h.kayitNo);
+        const dogrulandi =
+        !kayit || !!kayit.makbuzNo || DOGRULANMIS_DURUMLAR.includes(kayit.durum);
+        return dogrulandi ? t : t + h.adet;
+      }, 0);
+      const kullanilan = hareketler.
+      filter((h) => h.tip === 'KULLANIM').
+      reduce((t, h) => t + h.adet, 0);
+      const kullanilabilir = yuklenen - dogrulamaBekleyen;
+      return {
+        yuklenen,
+        kullanilabilir,
+        kullanilan,
+        kalan: kullanilabilir - kullanilan,
+        dogrulamaBekleyen
+      };
     },
-    [krediHareketleri]
+    [krediHareketleri, islemler]
   );
 
   const manifestOlustur = useCallback(
