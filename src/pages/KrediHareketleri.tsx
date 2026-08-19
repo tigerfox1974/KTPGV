@@ -11,15 +11,14 @@ import {
   SelectTrigger,
   SelectValue } from
 '../components/ui/Select';
-import { isletmeciler, tasOcagiBul } from '../data/tasOcagi';
 import { useApp } from '../contexts/AppContext';
 import { formatTarih } from '../utils/currency';
 
 const DOGRULANMIS = ['ODEME_DOGRULANDI', 'ISLEM_BASLATILABILIR', 'TAMAMLANDI'];
 
 export function KrediHareketleri() {
-  const { krediHareketleri, krediOzeti, islemler } = useApp();
-  const [isletmeciId, setIsletmeciId] = useState(isletmeciler[0].id);
+  const { krediHareketleri, krediOzeti, islemler, isletmeciler, tasOcagiBul } = useApp();
+  const [isletmeciId, setIsletmeciId] = useState(isletmeciler[0]?.id ?? '');
 
   const ozet = krediOzeti(isletmeciId);
 

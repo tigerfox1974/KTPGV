@@ -14,13 +14,12 @@ import {
   SelectValue } from
 '../components/ui/Select';
 import { bentler } from '../data/bentler';
-import { sigortaBul } from '../data/sigortaSirketleri';
 import { useApp } from '../contexts/AppContext';
 import { DekontDosyasi } from '../types';
 import { formatTL, formatTarih } from '../utils/currency';
 
 export function Kayitlar() {
-  const { islemler, auditEkle } = useApp();
+  const { islemler, auditEkle, sigortaBul } = useApp();
   const [arama, setArama] = useState('');
   const [bentFiltre, setBentFiltre] = useState('TUMU');
   const [acikSatir, setAcikSatir] = useState<string | null>(null);

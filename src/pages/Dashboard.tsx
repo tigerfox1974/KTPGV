@@ -8,10 +8,9 @@ import { KuralNotu } from '../components/common/KuralNotu';
 import { useApp } from '../contexts/AppContext';
 import { formatTL, formatTarih } from '../utils/currency';
 import { bentler } from '../data/bentler';
-import { isletmeciler } from '../data/tasOcagi';
 
 export function Dashboard() {
-  const { kullanici, islemler, ajanda, krediOzeti, bau } = useApp();
+  const { kullanici, islemler, ajanda, krediOzeti, bau, isletmeciler } = useApp();
   if (!kullanici) return null;
 
   const toplamGelir = islemler.reduce((t, i) => t + i.tutar, 0);

@@ -5,15 +5,23 @@ import {
   AuditKaydi,
   BentKodu,
   Islem,
+  Isletmeci,
   KrediHareketi,
   Kullanici,
-  MaliYilArsivi } from
+  MaliYilArsivi,
+  SigortaSirketi,
+  TasOcagi } from
 '../types';
 import { kullanicilar } from '../data/kullanicilar';
 import { baslangicIslemleri } from '../data/islemler';
 import { baslangicAjandasi } from '../data/ajanda';
 import { baslangicAuditKayitlari } from '../data/auditLog';
-import { krediHareketleri as baslangicKredileri } from '../data/tasOcagi';
+import { sigortaSirketleri as baslangicSigortalari } from '../data/sigortaSirketleri';
+import {
+  isletmeciler as baslangicIsletmecileri,
+  tasOcaklari as baslangicOcaklari,
+  krediHareketleri as baslangicKredileri } from
+'../data/tasOcagi';
 import { maliYilArsivleri } from '../data/arsiv';
 import { sonrakiMakbuzNo } from '../utils/numaralandirma';
 import { VARSAYILAN_BAU } from '../utils/hesaplama';
@@ -52,6 +60,15 @@ interface AppContextDegeri {
   krediHareketleri: KrediHareketi[];
   krediHareketiEkle: (hareket: KrediHareketi) => void;
   krediOzeti: (isletmeciId: string) => KrediOzeti;
+  sigortalar: SigortaSirketi[];
+  sigortaBul: (id?: string) => SigortaSirketi | undefined;
+  sigortaKaydet: (sirket: SigortaSirketi) => void;
+  isletmeciler: Isletmeci[];
+  isletmeciBul: (id?: string) => Isletmeci | undefined;
+  isletmeciKaydet: (isletmeci: Isletmeci) => void;
+  tasOcaklari: TasOcagi[];
+  tasOcagiBul: (id?: string) => TasOcagi | undefined;
+  tasOcagiKaydet: (ocak: TasOcagi) => void;
   arsivler: MaliYilArsivi[];
   manifestOlustur: (yil: number) => void;
   arsivDogrula: (yil: number) => void;
@@ -83,6 +100,9 @@ export function AppProvider({
   const [auditKayitlari, setAuditKayitlari] = useState<AuditKaydi[]>(baslangicAuditKayitlari);
   const [krediHareketleri, setKrediHareketleri] = useState<KrediHareketi[]>(baslangicKredileri);
   const [arsivler, setArsivler] = useState<MaliYilArsivi[]>(maliYilArsivleri);
+  const [sigortalar, setSigortalar] = useState<SigortaSirketi[]>(baslangicSigortalari);
+  const [isletmeciler, setIsletmeciler] = useState<Isletmeci[]>(baslangicIsletmecileri);
+  const [tasOcaklari, setTasOcaklari] = useState<TasOcagi[]>(baslangicOcaklari);
 
   const auditYaz = useCallback((kullaniciAdi: string, eylem: string, hedef: string) => {
     setAuditKayitlari((eski) => [
@@ -211,6 +231,69 @@ export function AppProvider({
     [krediHareketleri, islemler]
   );
 
+  const sigortaBul = useCallback(
+    (id?: string) => sigortalar.find((s) => s.id === id),
+    [sigortalar]
+  );
+
+  const sigortaKaydet = useCallback(
+    (sirket: SigortaSirketi) => {
+      setSigortalar((eski) => {
+        const varMi = eski.some((s) => s.id === sirket.id);
+        return varMi ? eski.map((s) => s.id === sirket.id ? sirket : s) : [sirket, ...eski];
+      });
+      const yeniMi = !sigortalar.some((s) => s.id === sirket.id);
+      auditEkle(
+        yeniMi ? 'Sigorta şirketi kartı oluşturuldu' : 'Sigorta şirketi kartı güncellendi',
+        `${sirket.ad} · ${sirket.aktif ? 'Aktif' : 'Pasif'}`
+      );
+    },
+    [sigortalar, auditEkle]
+  );
+
+  const isletmeciBul = useCallback(
+    (id?: string) => isletmeciler.find((i) => i.id === id),
+    [isletmeciler]
+  );
+
+  const isletmeciKaydet = useCallback(
+    (isletmeci: Isletmeci) => {
+      setIsletmeciler((eski) => {
+        const varMi = eski.some((i) => i.id === isletmeci.id);
+        return varMi ? eski.map((i) => i.id === isletmeci.id ? isletmeci : i) : [isletmeci, ...eski];
+      });
+      const yeniMi = !isletmeciler.some((i) => i.id === isletmeci.id);
+      auditEkle(
+        yeniMi ?
+        'Taş ocağı işletmeci kartı oluşturuldu' :
+        'Taş ocağı işletmeci kartı güncellendi',
+        `${isletmeci.ad} · ${isletmeci.tur === 'SAHIS' ? 'Şahıs' : 'Şirket'}`
+      );
+    },
+    [isletmeciler, auditEkle]
+  );
+
+  const tasOcagiBul = useCallback(
+    (id?: string) => tasOcaklari.find((t) => t.id === id),
+    [tasOcaklari]
+  );
+
+  const tasOcagiKaydet = useCallback(
+    (ocak: TasOcagi) => {
+      setTasOcaklari((eski) => {
+        const varMi = eski.some((t) => t.id === ocak.id);
+        return varMi ? eski.map((t) => t.id === ocak.id ? ocak : t) : [ocak, ...eski];
+      });
+      const yeniMi = !tasOcaklari.some((t) => t.id === ocak.id);
+      const isletmeciAdi = isletmeciler.find((i) => i.id === ocak.isletmeciId)?.ad ?? '—';
+      auditEkle(
+        yeniMi ? 'Taş ocağı kartı oluşturuldu' : 'Taş ocağı kartı güncellendi',
+        `${ocak.ad} · Bağlı işletmeci: ${isletmeciAdi}`
+      );
+    },
+    [tasOcaklari, isletmeciler, auditEkle]
+  );
+
   const manifestOlustur = useCallback(
     (yil: number) => {
       const hash = `sha256:${Math.random().toString(16).slice(2, 14)}…${Math.random().
@@ -261,6 +344,15 @@ export function AppProvider({
       krediHareketleri,
       krediHareketiEkle,
       krediOzeti,
+      sigortalar,
+      sigortaBul,
+      sigortaKaydet,
+      isletmeciler,
+      isletmeciBul,
+      isletmeciKaydet,
+      tasOcaklari,
+      tasOcagiBul,
+      tasOcagiKaydet,
       arsivler,
       manifestOlustur,
       arsivDogrula,
@@ -285,6 +377,15 @@ export function AppProvider({
     krediHareketleri,
     krediHareketiEkle,
     krediOzeti,
+    sigortalar,
+    sigortaBul,
+    sigortaKaydet,
+    isletmeciler,
+    isletmeciBul,
+    isletmeciKaydet,
+    tasOcaklari,
+    tasOcagiBul,
+    tasOcagiKaydet,
     arsivler,
     manifestOlustur,
     arsivDogrula,

@@ -11,7 +11,7 @@ import {
 import { Button } from '../ui/Button';
 import { Islem } from '../../types';
 import { formatTL, formatTarih } from '../../utils/currency';
-import { isletmeciBul, tasOcaklari } from '../../data/tasOcagi';
+import { useApp } from '../../contexts/AppContext';
 
 interface MakbuzModalProps {
   islem: Islem | null;
@@ -20,6 +20,7 @@ interface MakbuzModalProps {
 }
 
 function Nusha({ islem, nusha }: {islem: Islem;nusha: 1 | 2;}) {
+  const { isletmeciBul, tasOcaklari } = useApp();
   const isletmeci = isletmeciBul(islem.isletmeciId);
   const bagliOcaklar = isletmeci ?
   tasOcaklari.filter((t) => t.isletmeciId === isletmeci.id).map((t) => t.ad) :

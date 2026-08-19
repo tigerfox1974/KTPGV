@@ -1,76 +1,135 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Pencil, Plus } from 'lucide-react';
+import { toast } from 'sonner';
 import { PageHeader } from '../components/common/PageHeader';
 import { AktiflikRozeti } from '../components/common/DurumRozeti';
-import { isletmeciBul, tasOcaklari } from '../data/tasOcagi';
+import { KuralNotu } from '../components/common/KuralNotu';
+import { BosDurum } from '../components/common/BosDurum';
+import { Button } from '../components/ui/Button';
+import { TasOcagiFormu } from '../components/kart/TasOcagiFormu';
 import { useApp } from '../contexts/AppContext';
+import { TasOcagi } from '../types';
 import { formatTarih } from '../utils/currency';
 
 export function TasOcagiKartlari() {
-  const { krediHareketleri } = useApp();
+  const { kullanici, krediHareketleri, tasOcaklari, isletmeciBul, isletmeciler, tasOcagiKaydet } =
+  useApp();
+  const [formAcik, setFormAcik] = useState(false);
+  const [duzenlenen, setDuzenlenen] = useState<TasOcagi | null>(null);
+
+  const duzenleyebilir = !!kullanici && !kullanici.sadeceGoruntule;
+  const isletmeciVar = isletmeciler.length > 0;
+
+  const ac = (ocak: TasOcagi | null) => {
+    setDuzenlenen(ocak);
+    setFormAcik(true);
+  };
+
+  const durumDegistir = (ocak: TasOcagi) => {
+    tasOcagiKaydet({ ...ocak, aktif: !ocak.aktif });
+    toast.success(`${ocak.ad} ${ocak.aktif ? 'pasife alındı' : 'aktife alındı'}`);
+  };
 
   return (
     <div className="space-y-6">
       <PageHeader
         baslik="Taş Ocağı Kartları"
-        aciklama="Her taş ocağı bir işletmeciye bağlıdır. Aynı işletmecinin birden fazla taş ocağı olabilir." />
+        aciklama="Her taş ocağı bir işletmeciye bağlıdır. Aynı işletmecinin birden fazla taş ocağı olabilir."
+        eylem={
+        duzenleyebilir &&
+        <Button size="lg" onClick={() => ac(null)} disabled={!isletmeciVar}>
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Yeni Taş Ocağı Ekle
+            </Button>
+
+        } />
       
 
+      <KuralNotu baslik="İlişkilendirme kuralı">
+        Taş ocağı kartı mutlaka bir işletmeciye bağlanır. Patlatma yapıldığında kredi taş ocağından
+        değil, işletmecinin ortak kredisinden düşer. Bağlı işletmeci düzenleme ile değiştirilebilir.
+      </KuralNotu>
+
+      {tasOcaklari.length === 0 ?
+      <BosDurum
+        baslik="Kayıtlı taş ocağı yok"
+        aciklama="Önce bir işletmeci / sahip kartı oluşturun, ardından taş ocağı kartını bu işletmeciye bağlayın." /> :
+
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {tasOcaklari.map((ocak) => {
+          {tasOcaklari.map((ocak) => {
           const isletmeci = isletmeciBul(ocak.isletmeciId);
           const kullanimlar = krediHareketleri.filter(
             (h) => h.tasOcagiId === ocak.id && h.tip === 'KULLANIM'
           );
           return (
-            <article key={ocak.id} className="rounded-xl border border-border bg-card p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="font-heading text-base font-semibold text-foreground">{ocak.ad}</h2>
-                  <p className="mt-0.5 text-xs text-muted-foreground">
-                    Bağlı işletmeci: {isletmeci?.ad}
-                  </p>
+            <article
+              key={ocak.id}
+              className="flex flex-col rounded-xl border border-border bg-card p-5">
+              
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="font-heading text-base font-semibold text-foreground">
+                      {ocak.ad}
+                    </h2>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Bağlı işletmeci: {isletmeci?.ad ?? '—'}
+                    </p>
+                  </div>
+                  <AktiflikRozeti aktif={ocak.aktif} />
                 </div>
-                <AktiflikRozeti aktif={ocak.aktif} />
-              </div>
 
-              <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                <dt className="text-muted-foreground">Ruhsat no</dt>
-                <dd className="font-mono text-foreground">{ocak.ruhsatNo}</dd>
-                <dt className="text-muted-foreground">Bölge</dt>
-                <dd className="text-foreground">{ocak.bolge}</dd>
-                <dt className="text-muted-foreground">Adres / konum</dt>
-                <dd className="text-foreground">{ocak.adres}</dd>
-                <dt className="text-muted-foreground">Sorumlu kişi</dt>
-                <dd className="text-foreground">{ocak.sorumluKisi}</dd>
-                <dt className="text-muted-foreground">Telefon</dt>
-                <dd className="text-foreground">{ocak.telefon}</dd>
-              </dl>
+                <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                  <dt className="text-muted-foreground">Ruhsat no</dt>
+                  <dd className="font-mono text-foreground">{ocak.ruhsatNo}</dd>
+                  <dt className="text-muted-foreground">Bölge</dt>
+                  <dd className="text-foreground">{ocak.bolge}</dd>
+                  <dt className="text-muted-foreground">Adres / konum</dt>
+                  <dd className="text-foreground">{ocak.adres || '—'}</dd>
+                  <dt className="text-muted-foreground">Sorumlu kişi</dt>
+                  <dd className="text-foreground">{ocak.sorumluKisi || '—'}</dd>
+                  <dt className="text-muted-foreground">Telefon</dt>
+                  <dd className="text-foreground">{ocak.telefon || '—'}</dd>
+                </dl>
 
-              <div className="mt-4 rounded-lg bg-muted/50 p-3">
-                <p className="text-xs text-muted-foreground">Bu ocaktaki patlatma kullanımları</p>
-                {kullanimlar.length ?
+                <div className="mt-4 rounded-lg bg-muted/50 p-3">
+                  <p className="text-xs text-muted-foreground">Bu ocaktaki patlatma kullanımları</p>
+                  {kullanimlar.length ?
                 <ul className="mt-1.5 space-y-1 text-xs">
-                    {kullanimlar.map((k) =>
+                      {kullanimlar.map((k) =>
                   <li key={k.id} className="flex items-center justify-between gap-2">
-                        <span className="font-mono text-foreground">{k.kayitNo}</span>
-                        <span className="text-muted-foreground">
-                          -{k.adet} kredi · {formatTarih(k.tarih)}
-                        </span>
-                      </li>
+                          <span className="font-mono text-foreground">{k.kayitNo}</span>
+                          <span className="text-muted-foreground">
+                            -{k.adet} kredi · {formatTarih(k.tarih)}
+                          </span>
+                        </li>
                   )}
-                  </ul> :
+                    </ul> :
 
                 <p className="mt-1 text-xs text-foreground">Henüz patlatma kaydı yok.</p>
                 }
-              </div>
+                </div>
 
-              {ocak.notlar &&
-              <p className="mt-3 text-xs text-muted-foreground">{ocak.notlar}</p>
+                {ocak.notlar && <p className="mt-3 text-xs text-muted-foreground">{ocak.notlar}</p>}
+
+                {duzenleyebilir &&
+              <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
+                    <Button size="sm" variant="outline" onClick={() => ac(ocak)}>
+                      <Pencil className="h-4 w-4" aria-hidden="true" />
+                      Düzenle
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => durumDegistir(ocak)}>
+                      {ocak.aktif ? 'Pasife al' : 'Aktife al'}
+                    </Button>
+                  </div>
               }
-            </article>);
+              </article>);
 
         })}
-      </div>
+        </div>
+      }
+
+      <TasOcagiFormu acik={formAcik} kapat={() => setFormAcik(false)} mevcut={duzenlenen} />
     </div>);
 
 }

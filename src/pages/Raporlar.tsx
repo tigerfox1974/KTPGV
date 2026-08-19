@@ -5,13 +5,11 @@ import { PageHeader } from '../components/common/PageHeader';
 import { Button } from '../components/ui/Button';
 import { raporTanimlari } from '../data/raporlar';
 import { bentler } from '../data/bentler';
-import { sigortaSirketleri } from '../data/sigortaSirketleri';
-import { isletmeciler } from '../data/tasOcagi';
 import { useApp } from '../contexts/AppContext';
 import { formatTL } from '../utils/currency';
 
 export function Raporlar() {
-  const { islemler, krediOzeti, auditEkle } = useApp();
+  const { islemler, krediOzeti, auditEkle, sigortalar, isletmeciler } = useApp();
   const [seciliRapor, setSeciliRapor] = useState(raporTanimlari[1].id);
 
   const rapor = raporTanimlari.find((r) => r.id === seciliRapor)!;
@@ -31,7 +29,7 @@ export function Raporlar() {
     };
   });
 
-  const sigortaSatirlari = sigortaSirketleri.map((s) => {
+  const sigortaSatirlari = sigortalar.map((s) => {
     const kayitlar = islemler.filter((i) => i.sigortaSirketiId === s.id);
     return {
       etiket: s.ad,

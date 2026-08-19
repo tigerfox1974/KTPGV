@@ -1,14 +1,17 @@
 import React from 'react';
 import { LogOut, Menu, Settings2 } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
+import { ParaInput } from '../ui/ParaInput';
 import { useApp } from '../../contexts/AppContext';
 import { formatTL } from '../../utils/currency';
 
 export function Topbar({ menuAc }: {menuAc: () => void;}) {
   const { kullanici, cikis, bau, bauGuncelle } = useApp();
   const [ayarAcik, setAyarAcik] = React.useState(false);
+  const [bauTaslak, setBauTaslak] = React.useState<number | null>(bau);
+
+  React.useEffect(() => setBauTaslak(bau), [bau]);
 
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
@@ -65,16 +68,20 @@ export function Topbar({ menuAc }: {menuAc: () => void;}) {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="w-full sm:max-w-xs">
               <Label htmlFor="bau-ayar">Brüt Asgari Ücret (BAÜ)</Label>
-              <Input
+              <ParaInput
               id="bau-ayar"
-              type="number"
-              min={0}
-              step={100}
-              value={bau}
-              onChange={(e) => bauGuncelle(Number(e.target.value))}
+              value={bauTaslak}
+              onValueChange={setBauTaslak}
               className="mt-1.5" />
             
             </div>
+            <Button
+            size="lg"
+            disabled={!bauTaslak || bauTaslak <= 0 || bauTaslak === bau}
+            onClick={() => bauTaslak && bauGuncelle(bauTaslak)}>
+            
+              Uygula
+            </Button>
             <p className="text-xs text-muted-foreground sm:pb-2">
               BAÜ sistem ayarıdır ve yalnızca Merkez Admin güncelleyebilir. Değer değiştiğinde tüm
               bent hesaplamaları yeniden hesaplanır; değişiklik audit log’a yazılır.

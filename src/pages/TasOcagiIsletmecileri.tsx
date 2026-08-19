@@ -1,21 +1,54 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Mountain, Phone, User } from 'lucide-react';
+import { MapPin, Mountain, Pencil, Phone, Plus, User } from 'lucide-react';
+import { toast } from 'sonner';
 import { PageHeader } from '../components/common/PageHeader';
 import { AktiflikRozeti, BilgiRozeti } from '../components/common/DurumRozeti';
 import { KuralNotu } from '../components/common/KuralNotu';
-import { isletmeciler, tasOcaklari, tasOcagiBul } from '../data/tasOcagi';
+import { Button } from '../components/ui/Button';
+import { IsletmeciFormu } from '../components/kart/IsletmeciFormu';
 import { useApp } from '../contexts/AppContext';
+import { Isletmeci } from '../types';
 import { formatTarih } from '../utils/currency';
 
 export function TasOcagiIsletmecileri() {
-  const { krediOzeti, krediHareketleri } = useApp();
+  const {
+    kullanici,
+    krediOzeti,
+    krediHareketleri,
+    isletmeciler,
+    isletmeciKaydet,
+    tasOcaklari,
+    tasOcagiBul
+  } = useApp();
+  const [formAcik, setFormAcik] = useState(false);
+  const [duzenlenen, setDuzenlenen] = useState<Isletmeci | null>(null);
+
+  const duzenleyebilir = !!kullanici && !kullanici.sadeceGoruntule;
+
+  const ac = (isletmeci: Isletmeci | null) => {
+    setDuzenlenen(isletmeci);
+    setFormAcik(true);
+  };
+
+  const durumDegistir = (isletmeci: Isletmeci) => {
+    isletmeciKaydet({ ...isletmeci, aktif: !isletmeci.aktif });
+    toast.success(`${isletmeci.ad} ${isletmeci.aktif ? 'pasife alındı' : 'aktife alındı'}`);
+  };
 
   return (
     <div className="space-y-6">
       <PageHeader
         baslik="Taş Ocağı İşletmecileri"
-        aciklama="Patlatma kredisi taş ocağına değil, işletmeci / sahip hesabına bağlı tutulur." />
+        aciklama="Patlatma kredisi taş ocağına değil, işletmeci / sahip hesabına bağlı tutulur."
+        eylem={
+        duzenleyebilir &&
+        <Button size="lg" onClick={() => ac(null)}>
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              Yeni İşletmeci / Sahip Ekle
+            </Button>
+
+        } />
       
 
       <KuralNotu baslik="Ortak kredi kuralı">
@@ -33,7 +66,7 @@ export function TasOcagiIsletmecileri() {
           return (
             <article key={isletmeci.id} className="rounded-xl border border-border bg-card p-5">
               <div className="flex items-start justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <h2 className="font-heading text-base font-semibold text-foreground">
                     {isletmeci.ad}
                   </h2>
@@ -56,7 +89,7 @@ export function TasOcagiIsletmecileri() {
                 </div>
                 <div className="flex gap-2 text-muted-foreground sm:col-span-2">
                   <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                  <dd className="text-foreground">{isletmeci.adres}</dd>
+                  <dd className="text-foreground">{isletmeci.adres || '—'}</dd>
                 </div>
                 <div className="flex gap-2 text-muted-foreground sm:col-span-2">
                   <Mountain className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
@@ -86,14 +119,32 @@ export function TasOcagiIsletmecileri() {
               </div>
 
               <div className="mt-4">
-                <p className="text-sm font-medium text-foreground">Bağlı taş ocakları</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-foreground">Bağlı taş ocakları</p>
+                  <Link
+                    to="/tas-ocagi-kartlari"
+                    className="text-xs font-medium text-primary hover:underline">
+                    
+                    Taş ocağı kartları
+                  </Link>
+                </div>
+                {ocaklar.length ?
                 <ul className="mt-2 flex flex-wrap gap-1.5">
-                  {ocaklar.map((ocak) =>
+                    {ocaklar.map((ocak) =>
                   <li key={ocak.id}>
-                      <BilgiRozeti metin={`${ocak.ad} · ${ocak.bolge}`} />
-                    </li>
+                        <BilgiRozeti
+                      metin={`${ocak.ad} · ${ocak.bolge}`}
+                      ton={ocak.aktif ? 'notr' : 'uyari'} />
+                    
+                      </li>
                   )}
-                </ul>
+                  </ul> :
+
+                <p className="mt-2 text-xs text-muted-foreground">
+                    Bu işletmeciye bağlı taş ocağı yok. Taş Ocağı Kartları ekranından ocak
+                    ekleyebilirsiniz.
+                  </p>
+                }
               </div>
 
               <div className="mt-4 border-t border-border pt-4">
@@ -106,30 +157,52 @@ export function TasOcagiIsletmecileri() {
                     Tümü
                   </Link>
                 </div>
+                {hareketler.length ?
                 <ul className="mt-2 space-y-1.5 text-xs">
-                  {hareketler.map((h) =>
+                    {hareketler.map((h) =>
                   <li key={h.id} className="flex flex-wrap items-center gap-2">
-                      <span
+                        <span
                       className={`font-mono font-semibold ${
                       h.tip === 'YUKLEME' ? 'text-emerald-700' : 'text-rose-700'}`
                       }>
                       
-                        {h.tip === 'YUKLEME' ? '+' : '-'}
-                        {h.adet} kredi
-                      </span>
-                      <span className="font-mono text-muted-foreground">{h.kayitNo}</span>
-                      {h.tasOcagiId &&
-                    <span className="text-muted-foreground">{tasOcagiBul(h.tasOcagiId)?.ad}</span>
+                          {h.tip === 'YUKLEME' ? '+' : '-'}
+                          {h.adet} kredi
+                        </span>
+                        <span className="font-mono text-muted-foreground">{h.kayitNo}</span>
+                        {h.tasOcagiId &&
+                    <span className="text-muted-foreground">
+                            {tasOcagiBul(h.tasOcagiId)?.ad}
+                          </span>
                     }
-                      <span className="text-muted-foreground">{formatTarih(h.tarih)}</span>
-                    </li>
+                        <span className="text-muted-foreground">{formatTarih(h.tarih)}</span>
+                      </li>
                   )}
-                </ul>
+                  </ul> :
+
+                <p className="mt-2 text-xs text-muted-foreground">
+                    Henüz kredi hareketi yok. Kredi yükleme Yeni İşlem → E bendi üzerinden yapılır.
+                  </p>
+                }
               </div>
+
+              {duzenleyebilir &&
+              <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
+                  <Button size="sm" variant="outline" onClick={() => ac(isletmeci)}>
+                    <Pencil className="h-4 w-4" aria-hidden="true" />
+                    Düzenle
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => durumDegistir(isletmeci)}>
+                    {isletmeci.aktif ? 'Pasife al' : 'Aktife al'}
+                  </Button>
+                </div>
+              }
             </article>);
 
         })}
       </div>
+
+      <IsletmeciFormu acik={formAcik} kapat={() => setFormAcik(false)} mevcut={duzenlenen} />
     </div>);
 
 }
