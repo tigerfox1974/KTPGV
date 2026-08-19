@@ -211,10 +211,10 @@ export const baslangicIslemleri: Islem[] = [
 },
 {
   id: 'is-6',
-  kayitNo: 'EKUL-2026-000031',
+  kayitNo: 'EKPL-2026-000031',
   bent: 'E',
-  eIslemTuru: 'KREDI_KULLANIM',
-  baslik: 'Patlatma kullanımı — Alfa Taş Ocağı',
+  eIslemTuru: 'KREDI_PLANLAMA',
+  baslik: 'Planlı patlatma — Alfa Taş Ocağı',
   talepEden: 'Ahmet Kaya',
   birim: 'KTPGV Taş Ocağı Birimi',
   olusturan: 'Taş Ocağı İşlemleri Yetkilisi',
@@ -224,7 +224,7 @@ export const baslangicIslemleri: Islem[] = [
   yer: 'Alfa Taş Ocağı — Lefkoşa',
   tutar: 0,
   hesaplamaAciklamasi:
-  'Kredi kullanımı — yeniden ödeme alınmaz. Ön ödemeli krediden 1 kredi düşüldü.',
+  'Patlatma planlama — kredi henüz düşülmedi. Kredi düşümü gerçekleşme raporu işlendiğinde yapılır.',
   dekont: {
     dekontNo: 'EKRD-2026-000015',
     banka: '—',
@@ -237,7 +237,8 @@ export const baslangicIslemleri: Islem[] = [
   durum: 'ISLEM_BASLATILABILIR',
   isletmeciId: 'im-1',
   tasOcagiId: 'to-1',
-  krediAdedi: 1
+  krediAdedi: 1,
+  notlar: 'Saha ekibi patlatma sonrası raporu bildirdiğinde kredi düşümü işlenecek.'
 },
 {
   id: 'is-7',

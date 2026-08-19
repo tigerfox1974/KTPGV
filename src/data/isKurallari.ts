@@ -17,8 +17,20 @@ export const isKurallari: KuralGrubu[] = [
   'TTRF alt başvurularına ayrı makbuz kesilmez.',
   'E bendi kredi taş ocağına değil işletmeciye bağlıdır.',
   'Aynı işletmeciye bağlı tüm taş ocakları ortak krediden kullanır.',
-  'Kredi kullanımı ajandaya düşer, kredi yükleme ajandaya düşmez.',
-  'Dekont tarihi mali tarihtir; operasyon tarihi ajanda tarihidir.']
+  'Patlatma planlama ajandaya düşer, kredi yükleme ajandaya düşmez.',
+  'Dekont tarihi mali tarihtir; operasyon tarihi ajanda tarihidir.',
+  'Kredi düşümü planlama aşamasında değil, patlatma gerçekleşme raporu işlendiğinde yapılır.']
+
+},
+{
+  baslik: 'E Bendi — Patlatma Kredisi Akışı',
+  kurallar: [
+  'Kredi yükleme (EKRD): ödeme alınır, dekont ve makbuz süreci işler; ödeme doğrulanınca veya makbuz kesilince kredi kullanılabilir olur.',
+  'Patlatma planlama (EKPL): plan kaydı açılır, kredi düşülmez; kredi “planlanan / rapor bekleyen” olarak izlenir.',
+  'Patlatma gerçekleşme raporu (EKGR): patlatmanın yapıldığına dair rapor işlenir ve kredi bu aşamada düşer.',
+  'Gerçekleşme raporu işlenirken kullanılabilir kredi yetersizse kayıt tamamlanmaz; kredi yükleme / ödeme doğrulama / makbuz süreci gerekir.',
+  'Gerçekleşme raporu işlendiğinde ajanda kaydı “Görev Tamamlandı” olur ve audit log’a kredi düşüm hareketi yazılır.',
+  'Planlama ve gerçekleşme kayıtlarında yeniden ödeme, dekont veya makbuz istenmez.']
 
 },
 {

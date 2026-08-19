@@ -119,7 +119,8 @@ export function OdemeTablosu({
                           <p className="font-mono text-xs">{islem.makbuzNo}</p>
                           <BilgiRozeti metin={islem.makbuzUreten ?? 'Üretildi'} ton="olumlu" />
                         </div> :
-                      islem.eIslemTuru === 'KREDI_KULLANIM' ?
+                      islem.eIslemTuru === 'KREDI_PLANLAMA' ||
+                      islem.eIslemTuru === 'KREDI_GERCEKLESME' ?
                       <BilgiRozeti metin="Makbuz aranmaz" /> :
 
                       <BilgiRozeti metin="Makbuz bekliyor" ton="uyari" />
@@ -145,7 +146,8 @@ export function OdemeTablosu({
                           disabled={
                           !makbuzUretebilir ||
                           islem.durum === 'ODEME_BEKLIYOR' ||
-                          islem.eIslemTuru === 'KREDI_KULLANIM'
+                          islem.eIslemTuru === 'KREDI_PLANLAMA' ||
+                          islem.eIslemTuru === 'KREDI_GERCEKLESME'
                           }>
                           
                             <Receipt className="h-4 w-4" aria-hidden="true" />

@@ -6,7 +6,7 @@ import { DekontDosyasi } from '../../types';
 
 interface DosyaKartiProps {
   dosya: DekontDosyasi;
-  goruntule: () => void;
+  goruntule?: () => void;
   kaldir?: () => void;
 }
 
@@ -40,10 +40,12 @@ export function DosyaKarti({ dosya, goruntule, kaldir }: DosyaKartiProps) {
         </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-2">
+        {goruntule &&
         <Button variant="outline" size="sm" onClick={goruntule}>
-          <Eye className="h-4 w-4" aria-hidden="true" />
-          Dosyayı görüntüle
-        </Button>
+            <Eye className="h-4 w-4" aria-hidden="true" />
+            Dosyayı görüntüle
+          </Button>
+        }
         {kaldir &&
         <Button variant="ghost" size="sm" onClick={kaldir} className="text-rose-700 hover:text-rose-800">
             <Trash2 className="h-4 w-4" aria-hidden="true" />

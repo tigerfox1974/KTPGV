@@ -193,7 +193,8 @@ export function Kayitlar() {
                                 {islem.altBasvurular &&
                             <div className="rounded-lg border border-border bg-card p-3">
                                     <p className="text-sm font-medium text-foreground">
-                                      Alt başvurular ({islem.altBasvurular.length})
+                                      Raporlar ({islem.altBasvurular.length}) — tümü tek TTRF ana
+                                      kaydına bağlıdır
                                     </p>
                                     <ul className="mt-2 space-y-1.5 text-xs">
                                       {islem.altBasvurular.map((alt) =>
@@ -215,8 +216,48 @@ export function Kayitlar() {
                                 )}
                                     </ul>
                                     <p className="mt-2 text-xs text-muted-foreground">
-                                      Alt başvurulara ayrı makbuz kesilmez; ödeme ve makbuz ana TTRF
+                                      Ek raporlara ayrı makbuz kesilmez; ödeme ve makbuz ana TTRF
                                       kaydına bağlıdır.
+                                    </p>
+                                  </div>
+                            }
+                                {islem.adliRaporlar &&
+                            <div className="rounded-lg border border-border bg-card p-3">
+                                    <p className="text-sm font-medium text-foreground">
+                                      Adli raporlar ({islem.adliRaporlar.length})
+                                    </p>
+                                    <ul className="mt-2 space-y-1.5 text-xs">
+                                      {islem.adliRaporlar.map((rapor) =>
+                                <li
+                                  key={rapor.no}
+                                  className="border-b border-border/60 pb-1.5 last:border-0">
+                                  
+                                          <div className="flex flex-wrap items-center justify-between gap-2">
+                                            <span className="font-mono text-foreground">
+                                              {rapor.no}
+                                            </span>
+                                            <span className="font-medium text-foreground">
+                                              {formatTL(rapor.raporTutari)}
+                                            </span>
+                                          </div>
+                                          <p className="text-muted-foreground">
+                                            {rapor.basvuran} · Dosya {rapor.dosyaNo} · Olay{' '}
+                                            {formatTarih(rapor.olayTarihi)} · {rapor.raporKonusu}
+                                          </p>
+                                        </li>
+                                )}
+                                    </ul>
+                                  </div>
+                            }
+                                {islem.raporNo &&
+                            <div className="rounded-lg border border-border bg-card p-3 text-xs">
+                                    <p className="text-sm font-medium text-foreground">
+                                      Patlatma gerçekleşme raporu
+                                    </p>
+                                    <p className="mt-1 text-muted-foreground">
+                                      Rapor no {islem.raporNo}
+                                      {islem.bildiren && ` · Bildiren: ${islem.bildiren}`}
+                                      {islem.planKayitNo && ` · Plan kaydı: ${islem.planKayitNo}`}
                                     </p>
                                   </div>
                             }

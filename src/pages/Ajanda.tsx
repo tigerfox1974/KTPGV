@@ -1,17 +1,22 @@
-import React from 'react';
-import { CalendarClock, MapPin, Wallet } from 'lucide-react';
+import React, { useState } from 'react';
+import { CalendarClock, CheckCircle2, MapPin, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '../components/common/PageHeader';
-import { AjandaDurumRozeti } from '../components/common/DurumRozeti';
+import { AjandaDurumRozeti, BilgiRozeti } from '../components/common/DurumRozeti';
 import { KuralNotu } from '../components/common/KuralNotu';
 import { BosDurum } from '../components/common/BosDurum';
 import { Button } from '../components/ui/Button';
+import {
+  GerceklesmeBaslangici,
+  GerceklesmeRaporuFormu } from
+'../components/tasocagi/GerceklesmeRaporuFormu';
 import { useApp } from '../contexts/AppContext';
-import { AjandaDurumu } from '../types';
+import { AjandaDurumu, AjandaKaydi } from '../types';
 import { formatTarih } from '../utils/currency';
 
 const DURUMLAR: AjandaDurumu[] = [
 'Planlandı',
+'Rapor Bekliyor',
 'İşlem Başlatılabilir',
 'Görev Tamamlandı',
 'Ertelendi',
@@ -20,6 +25,8 @@ const DURUMLAR: AjandaDurumu[] = [
 
 export function Ajanda() {
   const { kullanici, ajanda, ajandaDurumGuncelle, auditEkle } = useApp();
+  const [raporBaslangici, setRaporBaslangici] = useState<GerceklesmeBaslangici | null>(null);
+
   if (!kullanici) return null;
 
   const siraliAjanda = [...ajanda].sort((a, b) => a.tarih.localeCompare(b.tarih));
@@ -33,6 +40,15 @@ export function Ajanda() {
     toast.success('Ajanda durumu güncellendi', { description: `${kayitNo} · ${durum}` });
   };
 
+  /** Planlı E bendi patlatma kaydı, gerçekleşme raporu bekliyor mu? */
+  const raporIslenebilir = (kayit: AjandaKaydi) =>
+  kayit.bent === 'E' &&
+  !!kayit.isletmeciId &&
+  !!kayit.tasOcagiId &&
+  !kayit.gerceklesmeKayitNo &&
+  kayit.durum !== 'İptal Edildi' &&
+  kayit.durum !== 'Görev Tamamlandı';
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -40,9 +56,10 @@ export function Ajanda() {
         aciklama="Operasyonel görev ve işlem takibi. Kartlardaki tarih operasyon tarihidir; dekont tarihi ajandaya yazılmaz." />
       
 
-      <KuralNotu baslik="Ajanda kuralı">
-        Ajandaya düşenler: C, Ç, D, E kredi kullanımı ve F. Ajandaya düşmeyenler: A, B ve E kredi
-        yükleme. Kredi yükleme mali işlemdir, patlatma kullanımı operasyonel işlemdir.
+      <KuralNotu baslik="Ajanda ve kredi düşüm kuralı">
+        Ajandaya düşenler: C, Ç, D, E patlatma planlama ve F. Ajandaya düşmeyenler: A, B ve E kredi
+        yükleme. Planlı patlatmada kredi düşülmez; kredi yalnızca kartın “Patlatma gerçekleşti /
+        rapor işle” işlemi ile düşer.
       </KuralNotu>
 
       {siraliAjanda.length === 0 ?
@@ -97,6 +114,38 @@ export function Ajanda() {
                 Talep eden / işletmeci: {kayit.talepEden} · Birim: {kayit.birim}
               </p>
 
+              {kayit.gerceklesmeKayitNo &&
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  <BilgiRozeti metin={`Kredi düşüldü · ${kayit.gerceklesmeKayitNo}`} ton="olumlu" />
+                  {kayit.raporNo && <BilgiRozeti metin={`Rapor ${kayit.raporNo}`} />}
+                </div>
+          }
+
+              {kullanici.ajandaKullanabilir && raporIslenebilir(kayit) &&
+          <div className="mt-4 border-t border-border pt-4">
+                  <Button
+              size="sm"
+              onClick={() =>
+              setRaporBaslangici({
+                isletmeciId: kayit.isletmeciId!,
+                tasOcagiId: kayit.tasOcagiId!,
+                planKayitNo: kayit.kayitNo,
+                ajandaId: kayit.id,
+                tarih: kayit.tarih,
+                saat: kayit.saat,
+                adet: kayit.planlananAdet ?? 1
+              })
+              }>
+              
+                    <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                    Patlatma gerçekleşti / rapor işle
+                  </Button>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Kredi düşümü bu işlemle yapılır.
+                  </p>
+                </div>
+          }
+
               {kullanici.ajandaKullanabilir &&
           <div className="mt-4 flex flex-wrap gap-1.5 border-t border-border pt-4">
                   {DURUMLAR.filter((d) => d !== kayit.durum).map((d) =>
@@ -115,6 +164,12 @@ export function Ajanda() {
         )}
         </ul>
       }
+
+      <GerceklesmeRaporuFormu
+        acik={!!raporBaslangici}
+        kapat={() => setRaporBaslangici(null)}
+        baslangic={raporBaslangici} />
+      
     </div>);
 
 }

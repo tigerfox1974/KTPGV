@@ -12,7 +12,11 @@ bent: BentKodu,
 fAltTur?: FAltTur | '',
 eIslemTuru?: EIslemTuru | '')
 : string {
-  if (bent === 'E') return eIslemTuru === 'KREDI_KULLANIM' ? 'EKUL' : 'EKRD';
+  if (bent === 'E') {
+    if (eIslemTuru === 'KREDI_PLANLAMA') return 'EKPL';
+    if (eIslemTuru === 'KREDI_GERCEKLESME') return 'EKGR';
+    return 'EKRD';
+  }
   if (bent === 'F') return fAltTur === 'TRAFIK' ? 'TTRF' : 'FADL';
   return bent;
 }

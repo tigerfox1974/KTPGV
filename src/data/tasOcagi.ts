@@ -89,22 +89,25 @@ export const krediHareketleri: KrediHareketi[] = [
 {
   id: 'kh-2',
   isletmeciId: 'im-1',
-  tip: 'KULLANIM',
+  tip: 'PLAN',
   adet: 1,
-  kayitNo: 'EKUL-2026-000031',
+  kayitNo: 'EKPL-2026-000031',
   tasOcagiId: 'to-1',
   tarih: '2026-08-20',
-  aciklama: 'Alfa Taş Ocağı — planlı patlatma.'
+  aciklama: 'Alfa Taş Ocağı — planlı patlatma, gerçekleşme raporu bekliyor. Kredi düşülmedi.'
 },
 {
   id: 'kh-3',
   isletmeciId: 'im-1',
   tip: 'KULLANIM',
   adet: 1,
-  kayitNo: 'EKUL-2026-000032',
+  kayitNo: 'EKGR-2026-000001',
+  planKayitNo: 'EKPL-2026-000032',
   tasOcagiId: 'to-3',
+  raporNo: 'PR-2026-00392',
+  bildiren: 'Taş Ocağı Birimi',
   tarih: '2026-08-21',
-  aciklama: 'Güney Blok Taş Ocağı — planlı patlatma.'
+  aciklama: 'Güney Blok Taş Ocağı — patlatma gerçekleşme raporu işlendi, kredi düşüldü.'
 },
 {
   id: 'kh-4',

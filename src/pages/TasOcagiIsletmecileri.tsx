@@ -51,9 +51,10 @@ export function TasOcagiIsletmecileri() {
         } />
       
 
-      <KuralNotu baslik="Ortak kredi kuralı">
+      <KuralNotu baslik="Ortak kredi ve kredi düşüm kuralı">
         Aynı işletmeciye bağlı farklı taş ocaklarında yapılan patlatmalar aynı ortak krediden düşer.
-        Yüklenen kredi, ödeme doğrulanana veya makbuz üretilene kadar kullanılabilir sayılmaz.
+        Yüklenen kredi, ödeme doğrulanana veya makbuz üretilene kadar kullanılabilir sayılmaz. Kredi
+        düşümü planlama aşamasında değil, patlatma gerçekleşme raporu işlendiğinde yapılır.
       </KuralNotu>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -97,24 +98,31 @@ export function TasOcagiIsletmecileri() {
                 </div>
               </dl>
 
-              <div className="mt-4 grid grid-cols-2 gap-2 rounded-lg bg-muted/50 p-3 text-center sm:grid-cols-4">
+              <div className="mt-4 grid grid-cols-2 gap-2 rounded-lg bg-muted/50 p-3 text-center sm:grid-cols-5">
                 <div>
                   <p className="font-heading text-lg font-semibold">{ozet.yuklenen}</p>
-                  <p className="text-xs text-muted-foreground">Ödeme alınan</p>
+                  <p className="text-xs text-muted-foreground">Yüklenen kredi</p>
+                </div>
+                <div>
+                  <p className="font-heading text-lg font-semibold">{ozet.kullanilabilir}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Kullanılabilir
+                    {ozet.dogrulamaBekleyen > 0 && ` (${ozet.dogrulamaBekleyen} bekliyor)`}
+                  </p>
                 </div>
                 <div>
                   <p className="font-heading text-lg font-semibold text-amber-700">
-                    {ozet.dogrulamaBekleyen}
+                    {ozet.planlanan}
                   </p>
-                  <p className="text-xs text-muted-foreground">Doğrulama bekleyen</p>
+                  <p className="text-xs text-muted-foreground">Planlanan / rapor bekleyen</p>
                 </div>
                 <div>
                   <p className="font-heading text-lg font-semibold">{ozet.kullanilan}</p>
-                  <p className="text-xs text-muted-foreground">Kullanılmış</p>
+                  <p className="text-xs text-muted-foreground">Gerçekleşmiş kullanılan</p>
                 </div>
                 <div>
                   <p className="font-heading text-lg font-semibold text-primary">{ozet.kalan}</p>
-                  <p className="text-xs text-muted-foreground">Kalan kullanılabilir</p>
+                  <p className="text-xs text-muted-foreground">Kalan kredi</p>
                 </div>
               </div>
 
@@ -163,12 +171,19 @@ export function TasOcagiIsletmecileri() {
                   <li key={h.id} className="flex flex-wrap items-center gap-2">
                         <span
                       className={`font-mono font-semibold ${
-                      h.tip === 'YUKLEME' ? 'text-emerald-700' : 'text-rose-700'}`
+                      h.tip === 'YUKLEME' ?
+                      'text-emerald-700' :
+                      h.tip === 'PLAN' ?
+                      'text-amber-700' :
+                      'text-rose-700'}`
                       }>
                       
-                          {h.tip === 'YUKLEME' ? '+' : '-'}
+                          {h.tip === 'YUKLEME' ? '+' : h.tip === 'PLAN' ? '~' : '-'}
                           {h.adet} kredi
                         </span>
+                        {h.tip === 'PLAN' &&
+                    <span className="text-amber-700">rapor bekliyor</span>
+                    }
                         <span className="font-mono text-muted-foreground">{h.kayitNo}</span>
                         {h.tasOcagiId &&
                     <span className="text-muted-foreground">

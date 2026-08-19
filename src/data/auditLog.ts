@@ -4,7 +4,7 @@ export const baslangicAuditKayitlari: AuditKaydi[] = [
 { id: 'au-1', zaman: '19.08.2026 10:47', kullanici: 'Beyaz Taş Madencilik (QR/link)', eylem: 'Dekont yüklendi', hedef: 'beyaz-tas-dekont.pdf (QR/link)' },
 { id: 'au-2', zaman: '19.08.2026 10:45', kullanici: 'Taş Ocağı İşlemleri Yetkilisi', eylem: 'Taş ocağı kredi yüklendi', hedef: 'Beyaz Taş Madencilik Ltd. · +3 kredi (doğrulama bekliyor)' },
 { id: 'au-3', zaman: '19.08.2026 10:40', kullanici: 'Taş Ocağı İşlemleri Yetkilisi', eylem: 'QR/link oluşturuldu', hedef: 'EKRD-2026-000016' },
-{ id: 'au-4', zaman: '19.08.2026 09:20', kullanici: 'Taş Ocağı İşlemleri Yetkilisi', eylem: 'Ajanda kaydı oluşturuldu', hedef: 'EKUL-2026-000031 · 20.08.2026 10:00' },
+{ id: 'au-4', zaman: '19.08.2026 09:20', kullanici: 'Taş Ocağı İşlemleri Yetkilisi', eylem: 'Ajanda kaydı oluşturuldu', hedef: 'EKPL-2026-000031 · 20.08.2026 10:00' },
 { id: 'au-5', zaman: '18.08.2026 13:40', kullanici: 'Vakıf Muhasebe', eylem: 'Taş ocağı kredi kullanılabilir yapıldı', hedef: 'Ahmet Kaya · 7 kredi' },
 { id: 'au-6', zaman: '18.08.2026 13:35', kullanici: 'Vakıf Muhasebe', eylem: 'Makbuz üretildi', hedef: 'BM-2026-000144 / EKRD-2026-000015' },
 { id: 'au-7', zaman: '18.08.2026 13:31', kullanici: 'Taş Ocağı İşlemleri Yetkilisi', eylem: 'Dekont yüklendi', hedef: 'kredi-dekont-987654321.pdf (Personel ekranı)' },

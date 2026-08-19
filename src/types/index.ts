@@ -2,7 +2,13 @@ export type BentKodu = 'A' | 'B' | 'C' | 'Ç' | 'D' | 'E' | 'F';
 
 export type FAltTur = 'ADLI' | 'TRAFIK';
 
-export type EIslemTuru = 'KREDI_YUKLEME' | 'KREDI_KULLANIM';
+/**
+ * E bendi işlem türleri:
+ * - KREDI_YUKLEME: ödeme alınır, dekont/makbuz süreci işler (EKRD serisi).
+ * - KREDI_PLANLAMA: patlatma planlanır, kredi HENÜZ düşmez (EKPL serisi).
+ * - KREDI_GERCEKLESME: patlatmanın yapıldığına dair rapor işlenir, kredi düşer (EKGR serisi).
+ */
+export type EIslemTuru = 'KREDI_YUKLEME' | 'KREDI_PLANLAMA' | 'KREDI_GERCEKLESME';
 
 export interface Bent {
   kod: BentKodu;
@@ -76,6 +82,16 @@ export interface TrafikAltBasvuru {
   raporTutari: number;
 }
 
+export interface AdliRapor {
+  no: string;
+  basvuran: string;
+  dosyaNo: string;
+  raporKonusu: string;
+  olayTarihi: string;
+  aciklama: string;
+  raporTutari: number;
+}
+
 export interface Islem {
   id: string;
   kayitNo: string;
@@ -102,9 +118,17 @@ export interface Islem {
   durum: IslemDurumu;
   sigortaSirketiId?: string;
   altBasvurular?: TrafikAltBasvuru[];
+  adliRaporlar?: AdliRapor[];
   isletmeciId?: string;
   tasOcagiId?: string;
   krediAdedi?: number;
+  /** Gerçekleşme kaydının bağlı olduğu plan kaydı (EKPL). */
+  planKayitNo?: string;
+  /** Patlatmanın yapıldığına dair gelen rapor / belge no. */
+  raporNo?: string;
+  /** Raporu bildiren kişi / birim. */
+  bildiren?: string;
+  raporDosyasi?: DekontDosyasi | null;
   notlar?: string;
 }
 
@@ -145,21 +169,32 @@ export interface TasOcagi {
   notlar: string;
 }
 
+/**
+ * Kredi hareketi tipleri:
+ * - YUKLEME: ödeme alınan kredi.
+ * - PLAN: planlanan / rapor bekleyen kredi (kredi düşümü YAPILMAZ).
+ * - KULLANIM: gerçekleşme raporu işlendi, kredi düşüldü.
+ */
 export interface KrediHareketi {
   id: string;
   isletmeciId: string;
-  tip: 'YUKLEME' | 'KULLANIM';
+  tip: 'YUKLEME' | 'PLAN' | 'KULLANIM';
   adet: number;
   kayitNo: string;
   tasOcagiId?: string;
   dekontNo?: string;
   makbuzNo?: string;
+  /** Gerçekleşme hareketinin bağlı olduğu plan kaydı. */
+  planKayitNo?: string;
+  raporNo?: string;
+  bildiren?: string;
   tarih: string;
   aciklama: string;
 }
 
 export type AjandaDurumu =
 'Planlandı' |
+'Rapor Bekliyor' |
 'İşlem Başlatılabilir' |
 'Görev Tamamlandı' |
 'Ertelendi' |
@@ -179,6 +214,12 @@ export interface AjandaKaydi {
   yer: string;
   durum: AjandaDurumu;
   odemeDurumu: string;
+  /** E bendi planlı patlatma kartları için gerçekleşme raporu bağlamı. */
+  isletmeciId?: string;
+  tasOcagiId?: string;
+  planlananAdet?: number;
+  raporNo?: string;
+  gerceklesmeKayitNo?: string;
 }
 
 export interface AuditKaydi {

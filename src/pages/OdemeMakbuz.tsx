@@ -63,7 +63,11 @@ export function OdemeMakbuz() {
     id: 'makbuz-bekleyen',
     etiket: 'Makbuz bekleyenler',
     kayitlar: islemler.filter(
-      (i) => !i.makbuzNo && i.durum !== 'ODEME_BEKLIYOR' && i.eIslemTuru !== 'KREDI_KULLANIM'
+      (i) =>
+      !i.makbuzNo &&
+      i.durum !== 'ODEME_BEKLIYOR' &&
+      i.eIslemTuru !== 'KREDI_PLANLAMA' &&
+      i.eIslemTuru !== 'KREDI_GERCEKLESME'
     )
   },
   {

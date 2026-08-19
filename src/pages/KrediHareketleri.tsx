@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Clock, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
+import { CalendarClock, Clock, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
 import { PageHeader } from '../components/common/PageHeader';
 import { KuralNotu } from '../components/common/KuralNotu';
 import { OzetKart } from '../components/common/OzetKart';
@@ -30,7 +30,9 @@ export function KrediHareketleri() {
   let bakiye = 0;
   const satirlar = artan.map((h) => {
     const onceki = bakiye;
-    bakiye += h.tip === 'YUKLEME' ? h.adet : -h.adet;
+    // Plan hareketleri bakiyeyi değiştirmez; kredi yalnızca gerçekleşme raporuyla düşer.
+    if (h.tip === 'YUKLEME') bakiye += h.adet;
+    if (h.tip === 'KULLANIM') bakiye -= h.adet;
     const kayit = islemler.find((i) => i.kayitNo === h.kayitNo);
     const dogrulandi = !kayit || !!kayit.makbuzNo || DOGRULANMIS.includes(kayit.durum);
     return { ...h, onceki, sonraki: bakiye, makbuzNo: kayit?.makbuzNo ?? h.makbuzNo, dogrulandi };
@@ -57,7 +59,7 @@ export function KrediHareketleri() {
         } />
       
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <OzetKart
           etiket="Ödeme alınan kredi"
           deger={`${ozet.yuklenen}`}
@@ -71,9 +73,15 @@ export function KrediHareketleri() {
           ikon={Clock} />
         
         <OzetKart
-          etiket="Kullanılmış kredi"
+          etiket="Planlanan / rapor bekleyen"
+          deger={`${ozet.planlanan}`}
+          altMetin="Kredi henüz düşülmedi"
+          ikon={CalendarClock} />
+        
+        <OzetKart
+          etiket="Gerçekleşmiş kullanılan"
           deger={`${ozet.kullanilan}`}
-          altMetin="Patlatma kullanımları"
+          altMetin="Gerçekleşme raporu işlenmiş"
           ikon={TrendingDown} />
         
         <OzetKart
@@ -108,29 +116,48 @@ export function KrediHareketleri() {
               <tr key={h.id} className="hover:bg-muted/40">
                     <td className="px-4 py-3">
                       <p className="font-medium text-foreground">
-                        {h.tip === 'YUKLEME' ? 'Kredi yükleme' : 'Patlatma kullanımı'}
+                        {h.tip === 'YUKLEME' ?
+                    'Kredi yükleme' :
+                    h.tip === 'PLAN' ?
+                    'Planlanan / rapor bekleyen' :
+                    'Gerçekleşmiş kullanım'}
                       </p>
                       <p className="text-xs text-muted-foreground">{h.aciklama}</p>
-                      {h.tip === 'YUKLEME' &&
-                  <span className="mt-1 inline-block">
-                          <BilgiRozeti
+                      <span className="mt-1 inline-flex flex-wrap gap-1.5">
+                        {h.tip === 'YUKLEME' &&
+                    <BilgiRozeti
                       metin={h.dogrulandi ? 'Kullanılabilir' : 'Doğrulama bekliyor'}
                       ton={h.dogrulandi ? 'olumlu' : 'uyari'} />
-                    
-                        </span>
-                  }
+
+                    }
+                        {h.tip === 'PLAN' &&
+                    <BilgiRozeti metin="Kredi düşülmedi" ton="uyari" />
+                    }
+                        {h.tip === 'KULLANIM' && h.raporNo &&
+                    <BilgiRozeti metin={`Rapor ${h.raporNo}`} ton="olumlu" />
+                    }
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <span
                     className={`font-mono font-semibold ${
-                    h.tip === 'YUKLEME' ? 'text-emerald-700' : 'text-rose-700'}`
+                    h.tip === 'YUKLEME' ?
+                    'text-emerald-700' :
+                    h.tip === 'PLAN' ?
+                    'text-amber-700' :
+                    'text-rose-700'}`
                     }>
                     
-                        {h.tip === 'YUKLEME' ? '+' : '-'}
+                        {h.tip === 'YUKLEME' ? '+' : h.tip === 'PLAN' ? '~' : '-'}
                         {h.adet}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs">{h.kayitNo}</td>
+                    <td className="px-4 py-3 font-mono text-xs">
+                      {h.kayitNo}
+                      {h.planKayitNo &&
+                  <span className="block text-muted-foreground">Plan: {h.planKayitNo}</span>
+                  }
+                    </td>
                     <td className="px-4 py-3">{h.tasOcagiId ? tasOcagiBul(h.tasOcagiId)?.ad : '—'}</td>
                     <td className="px-4 py-3 font-mono text-xs">{h.dekontNo ?? '—'}</td>
                     <td className="px-4 py-3 font-mono text-xs">{h.makbuzNo ?? '—'}</td>
@@ -144,9 +171,11 @@ export function KrediHareketleri() {
         </div>
       </div>
 
-      <KuralNotu baslik="Makbuz ve kullanılabilirlik">
-        Makbuz kredi yükleme kaydına kesilir; patlatma kullanımında yeniden ödeme ve makbuz aranmaz.
-        Yüklenen kredi, ödeme doğrulanana veya makbuz üretilene kadar kullanılamaz.
+      <KuralNotu baslik="Makbuz, kullanılabilirlik ve kredi düşümü">
+        Makbuz kredi yükleme kaydına kesilir; planlama ve gerçekleşme kayıtlarında yeniden ödeme ve
+        makbuz aranmaz. Yüklenen kredi, ödeme doğrulanana veya makbuz üretilene kadar kullanılamaz.
+        Kredi düşümü yalnızca patlatma gerçekleşme raporu işlendiğinde yapılır; planlı patlatmalar
+        “rapor bekliyor” olarak izlenir.
       </KuralNotu>
     </div>);
 

@@ -12,8 +12,15 @@ import { TasOcagi } from '../types';
 import { formatTarih } from '../utils/currency';
 
 export function TasOcagiKartlari() {
-  const { kullanici, krediHareketleri, tasOcaklari, isletmeciBul, isletmeciler, tasOcagiKaydet } =
-  useApp();
+  const {
+    kullanici,
+    krediHareketleri,
+    krediOzeti,
+    tasOcaklari,
+    isletmeciBul,
+    isletmeciler,
+    tasOcagiKaydet
+  } = useApp();
   const [formAcik, setFormAcik] = useState(false);
   const [duzenlenen, setDuzenlenen] = useState<TasOcagi | null>(null);
 
@@ -59,9 +66,15 @@ export function TasOcagiKartlari() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {tasOcaklari.map((ocak) => {
           const isletmeci = isletmeciBul(ocak.isletmeciId);
-          const kullanimlar = krediHareketleri.filter(
-            (h) => h.tasOcagiId === ocak.id && h.tip === 'KULLANIM'
+          const ocakHareketleri = krediHareketleri.filter((h) => h.tasOcagiId === ocak.id);
+          const kullanimlar = ocakHareketleri.filter((h) => h.tip === 'KULLANIM');
+          const raporlananPlanlar = kullanimlar.
+          map((h) => h.planKayitNo).
+          filter((no): no is string => !!no);
+          const planlar = ocakHareketleri.filter(
+            (h) => h.tip === 'PLAN' && !raporlananPlanlar.includes(h.kayitNo)
           );
+          const kullanilanKredi = kullanimlar.reduce((t, h) => t + h.adet, 0);
           return (
             <article
               key={ocak.id}
@@ -92,22 +105,60 @@ export function TasOcagiKartlari() {
                   <dd className="text-foreground">{ocak.telefon || '—'}</dd>
                 </dl>
 
-                <div className="mt-4 rounded-lg bg-muted/50 p-3">
-                  <p className="text-xs text-muted-foreground">Bu ocaktaki patlatma kullanımları</p>
-                  {kullanimlar.length ?
-                <ul className="mt-1.5 space-y-1 text-xs">
-                      {kullanimlar.map((k) =>
-                  <li key={k.id} className="flex items-center justify-between gap-2">
-                          <span className="font-mono text-foreground">{k.kayitNo}</span>
-                          <span className="text-muted-foreground">
-                            -{k.adet} kredi · {formatTarih(k.tarih)}
-                          </span>
-                        </li>
-                  )}
-                    </ul> :
+                <div className="mt-4 space-y-3 rounded-lg bg-muted/50 p-3">
+                  <div>
+                    <p className="text-xs font-medium text-foreground">
+                      Planlanan patlatmalar (rapor bekliyor)
+                    </p>
+                    {planlar.length ?
+                  <ul className="mt-1.5 space-y-1 text-xs">
+                        {planlar.map((p) =>
+                    <li key={p.id} className="flex items-center justify-between gap-2">
+                            <span className="font-mono text-foreground">{p.kayitNo}</span>
+                            <span className="text-amber-700">
+                              ~{p.adet} kredi · {formatTarih(p.tarih)}
+                            </span>
+                          </li>
+                    )}
+                      </ul> :
 
-                <p className="mt-1 text-xs text-foreground">Henüz patlatma kaydı yok.</p>
-                }
+                  <p className="mt-1 text-xs text-muted-foreground">
+                        Rapor bekleyen planlı patlatma yok.
+                      </p>
+                  }
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-medium text-foreground">Gerçekleşen patlatmalar</p>
+                    {kullanimlar.length ?
+                  <ul className="mt-1.5 space-y-1 text-xs">
+                        {kullanimlar.map((k) =>
+                    <li key={k.id} className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="font-mono text-foreground">{k.kayitNo}</span>
+                            <span className="text-muted-foreground">
+                              -{k.adet} kredi · {formatTarih(k.tarih)}
+                              {k.raporNo && ` · Rapor ${k.raporNo}`}
+                            </span>
+                          </li>
+                    )}
+                      </ul> :
+
+                  <p className="mt-1 text-xs text-muted-foreground">
+                        Gerçekleşme raporu işlenmiş patlatma yok.
+                      </p>
+                  }
+                  </div>
+
+                  <dl className="grid grid-cols-2 gap-2 border-t border-border pt-2 text-xs">
+                    <dt className="text-muted-foreground">Bu ocakta kullanılan kredi</dt>
+                    <dd className="text-right font-medium text-foreground">
+                      {kullanilanKredi} kredi
+                    </dd>
+                    <dt className="text-muted-foreground">Kalan işletmeci kredisi</dt>
+                    <dd className="text-right font-medium text-primary">
+                      {isletmeci ? krediOzeti(isletmeci.id).kalan : 0} kredi
+                    </dd>
+                  </dl>
                 </div>
 
                 {ocak.notlar && <p className="mt-3 text-xs text-muted-foreground">{ocak.notlar}</p>}
