@@ -16,6 +16,18 @@ interface DosyaOnizlemeModalProps {
 }
 
 function PdfOnizleme({ dosya }: {dosya: DekontDosyasi;}) {
+  if (dosya.previewUrl) {
+    return (
+      <div className="rounded-lg border border-border bg-muted/50 p-3">
+        <object data={dosya.previewUrl} type="application/pdf" className="h-[520px] w-full rounded-md border border-border bg-white">
+          <div className="rounded-md border border-border bg-card p-4 text-sm text-muted-foreground">
+            <p className="font-medium text-foreground">PDF önizlemesi bu tarayıcıda desteklenmiyor.</p>
+            <p className="mt-1">{dosya.ad} · {dosya.tur} · {(dosya.boyutKb / 1024).toFixed(2)} MB</p>
+          </div>
+        </object>
+      </div>);
+
+  }
   return (
     <div className="rounded-lg border border-border bg-muted/50 p-4">
       <div className="mb-3 flex items-center justify-between text-xs text-muted-foreground">
@@ -62,6 +74,27 @@ function PdfOnizleme({ dosya }: {dosya: DekontDosyasi;}) {
 }
 
 function GorselOnizleme({ dosya }: {dosya: DekontDosyasi;}) {
+  if (dosya.previewUrl) {
+    return (
+      <div className="rounded-lg border border-border bg-slate-900 p-4">
+        <div className="mb-3 flex items-center justify-between text-xs text-slate-300">
+          <span className="inline-flex items-center gap-1.5 font-medium text-white">
+            <ImageIcon className="h-3.5 w-3.5" aria-hidden="true" />
+            Görsel önizleme · {dosya.tur}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <ZoomIn className="h-3.5 w-3.5" aria-hidden="true" />
+            Yakınlaştır
+          </span>
+        </div>
+        <img
+          src={dosya.previewUrl}
+          alt={dosya.ad}
+          className="mx-auto max-h-[520px] max-w-full rounded-md bg-white object-contain" />
+        <p className="mt-3 text-center text-[10px] text-slate-400">{dosya.ad}</p>
+      </div>);
+
+  }
   return (
     <div className="rounded-lg border border-border bg-slate-900 p-4">
       <div className="mb-3 flex items-center justify-between text-xs text-slate-300">
@@ -111,8 +144,8 @@ export function DosyaOnizlemeModal({ dosya, acik, kapat }: DosyaOnizlemeModalPro
         {gorsel ? <GorselOnizleme dosya={dosya} /> : <PdfOnizleme dosya={dosya} />}
 
         <p className="text-xs text-muted-foreground">
-          Demo ortamında dosya içeriği simüle edilir. Gerçek sistemde dosya güvenli storage
-          üzerinden yetkili kullanıcıya açılır ve her görüntüleme audit log’a yazılır.
+          Demo ortamında önizleme tarayıcı oturumu içinde gösterilir. Gerçek sistemde dosya güvenli
+          storage üzerinde saklanır. Önizleme desteklenmezse demo simülasyon görünümü kullanılır.
         </p>
       </DialogContent>
     </Dialog>);

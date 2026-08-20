@@ -92,6 +92,8 @@ export interface DekontDosyasi {
   yontem: DekontYontemi;
   yuklemeZamani: string;
   sikistirildi?: boolean;
+  previewUrl?: string;
+  mimeType?: string;
 }
 
 export interface Dekont {

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Copy, QrCode, Smartphone } from 'lucide-react';
+import { Camera, Copy, FileText, ImageIcon, QrCode, Smartphone } from 'lucide-react';
 import { Button } from '../ui/Button';
 import {
   Dialog,
@@ -40,6 +40,37 @@ export function QrDekontPaneli({ kaynakEtiketi, odenecekTutar, dosyaAta, qrOlust
     setLink(`https://dekont.ktpgv.gov.ct.tr/y/${jeton}`);
     qrOlusturuldu();
   };
+
+  const yukle = (accept: string, capture?: 'environment') => {
+    dosyaSec(
+      'QR_LINK',
+      (dosya) => {
+        dosyaAta(dosya);
+        setBasvuruEkrani(false);
+      },
+      { accept, capture }
+    );
+  };
+
+  const secenekler = [
+  {
+    baslik: 'PDF seç',
+    aciklama: 'PDF dekont dosyası yükle',
+    ikon: FileText,
+    tikla: () => yukle('application/pdf,.pdf')
+  },
+  {
+    baslik: 'Galeriden fotoğraf seç',
+    aciklama: 'Telefon galerisinden dekont fotoğrafı seç',
+    ikon: ImageIcon,
+    tikla: () => yukle('image/jpeg,image/png,image/*')
+  },
+  {
+    baslik: 'Kamera ile fotoğraf çek',
+    aciklama: 'Telefon kamerası ile dekont fotoğrafı çek',
+    ikon: Camera,
+    tikla: () => yukle('image/*', 'environment')
+  }];
 
   return (
     <div className="rounded-lg border border-border bg-muted/30 p-4">
@@ -114,18 +145,30 @@ export function QrDekontPaneli({ kaynakEtiketi, odenecekTutar, dosyaAta, qrOlust
                 Ödenecek tutar: {odenecekTutar}
               </p>
             }
-            <Button
-              type="button"
-              className="w-full"
-              onClick={() =>
-              dosyaSec('QR_LINK', (dosya) => {
-                dosyaAta(dosya);
-                setBasvuruEkrani(false);
-              })
-              }>
-              
-              Dekont dosyası seç ve yükle
-            </Button>
+            <div className="grid gap-2">
+              {secenekler.map((secenek) => {
+              const Ikon = secenek.ikon;
+              return (
+                <button
+                  key={secenek.baslik}
+                  type="button"
+                  onClick={secenek.tikla}
+                  className="flex items-start gap-3 rounded-lg border border-border bg-card p-3 text-left transition-colors hover:bg-muted/50">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                    <Ikon className="h-4 w-4" aria-hidden="true" />
+                  </span>
+                  <span>
+                    <span className="block text-sm font-medium text-foreground">{secenek.baslik}</span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">{secenek.aciklama}</span>
+                  </span>
+                </button>);
+
+            })}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Demo ortamında dosya tarayıcı oturumu içinde tutulur. Gerçek sistemde Supabase Storage
+              üzerinde güvenli şekilde saklanacaktır.
+            </p>
           </div>
         </DialogContent>
       </Dialog>
