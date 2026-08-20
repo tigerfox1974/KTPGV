@@ -157,6 +157,11 @@ export function PatlatmaTakvimi() {
   const sonucNotuEtiketi = (kayit: AjandaKaydi) =>
   kayit.durum === 'İptal Edildi' ? 'İptal nedeni' : 'Açıklama';
 
+  const tarihEtiketi = (tarih: string) => {
+    const [yil, ay, gun] = tarih.split('-');
+    return yil && ay && gun ? `${gun}.${ay}.${yil}` : tarih;
+  };
+
   if (!kullanici) return null;
 
   const yapabilir = (kayit: AjandaKaydi) => ajandaIslemiYapilabilir(kayit);
@@ -370,6 +375,7 @@ export function PatlatmaTakvimi() {
           const yetersiz = krediYetersizMi(kayit);
           const yapildi = yapildiGosterilecekMi(kayit);
           const krediDusulmedi = krediDusulmediGosterilecekMi(kayit);
+          const ertelendi = kayit.durum === 'Ertelendi';
           const bekleyenPlan = sonucBekliyorMu(kayit);
           return (
             <article
@@ -389,6 +395,12 @@ export function PatlatmaTakvimi() {
                 <p className="text-sm font-medium text-foreground">
                   {kayit.tarih} · {kayit.saat}
                 </p>
+                {ertelendi &&
+              <p className="text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">Ertelendiği yeni tarih: </span>
+                    {tarihEtiketi(kayit.tarih)} · {kayit.saat}
+                  </p>
+              }
 
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
                   <dt className="text-muted-foreground">Planlanan patlatma</dt>
@@ -403,7 +415,15 @@ export function PatlatmaTakvimi() {
                       <dd className="text-right font-medium text-foreground">{gorunenDurum(kayit)}</dd>
                     </> : bekleyenPlan ?
                 <>
-                      <dt className="text-muted-foreground">Sonuç bekleyen planlı kredi</dt>
+                      {ertelendi &&
+                    <>
+                          <dt className="text-muted-foreground">Bu patlatma</dt>
+                          <dd className="text-right font-medium text-foreground">Ertelendi</dd>
+                          <dt className="text-muted-foreground">Durum açıklaması</dt>
+                          <dd className="text-right font-medium text-foreground">Yeni tarih ile sonuç bekleniyor</dd>
+                        </>
+                    }
+                      <dt className="text-muted-foreground">{ertelendi ? 'Sonuç bekleyen plan' : 'Sonuç bekleyen planlı kredi'}</dt>
                       <dd className="text-right font-medium text-foreground">{ozet.planlanan}</dd>
                     </> : null
                 }
@@ -421,7 +441,7 @@ export function PatlatmaTakvimi() {
 
                 {yetersiz && <BilgiRozeti metin="Kredi Yetersiz" ton="hata" />}
                 {yapildi && <BilgiRozeti metin="Kredi düşüldü" ton="olumlu" />}
-                {krediDusulmedi && <BilgiRozeti metin="Kredi düşülmedi" ton="uyari" />}
+                {(krediDusulmedi || ertelendi) && <BilgiRozeti metin="Kredi düşülmedi" ton="uyari" />}
                 {kayit.sonucNotu &&
               <p className="text-sm text-muted-foreground">
                     <span className="font-medium text-foreground">{sonucNotuEtiketi(kayit)}: </span>
