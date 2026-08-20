@@ -582,12 +582,16 @@ export function BentAlanlari({
     const birimKurus = Math.round(patlatmaBedeliTutar * 100);
     const dekontKurus = Math.round((krediDekontTutari ?? 0) * 100);
     const mahsupBakiyesiKurus = Math.round((krediOzeti?.mahsuplasmaBakiyesi ?? 0) * 100);
-    const toplamHesapKurus = krediYuklemeYontemi === 'TUTAR' ? dekontKurus + (mahsupKullan ? mahsupBakiyesiKurus : 0) : adet * birimKurus;
+    const dekontTekBasinaKredi = birimKurus > 0 ? Math.floor(dekontKurus / birimKurus) : 0;
+    const kalanKurus = birimKurus > 0 ? dekontKurus % birimKurus : 0;
+    const sonrakiKrediIcinEksikKurus = birimKurus > 0 && kalanKurus > 0 ? birimKurus - kalanKurus : 0;
+    const gerekliMahsupKurus = mahsupKullan && krediYuklemeYontemi === 'TUTAR' && sonrakiKrediIcinEksikKurus > 0 && sonrakiKrediIcinEksikKurus <= mahsupBakiyesiKurus ? sonrakiKrediIcinEksikKurus : 0;
+    const toplamHesapKurus = krediYuklemeYontemi === 'TUTAR' ? dekontKurus + gerekliMahsupKurus : adet * birimKurus;
     const tutardanKredi = birimKurus > 0 && toplamHesapKurus >= birimKurus ? Math.floor(toplamHesapKurus / birimKurus) : 0;
     const krediyeMahsupKurus = tutardanKredi * birimKurus;
     const mahsupKurus = mahsupKullan && krediOzeti ?
     krediYuklemeYontemi === 'TUTAR' ?
-    Math.min(mahsupBakiyesiKurus, Math.max(0, krediyeMahsupKurus - dekontKurus)) :
+    Math.min(gerekliMahsupKurus, Math.max(0, krediyeMahsupKurus - dekontKurus)) :
     Math.min(mahsupBakiyesiKurus, Math.max(0, adet * birimKurus)) :
     0;
     const mahsupTutari = mahsupKurus / 100;
@@ -595,7 +599,7 @@ export function BentAlanlari({
     const odenecekTutar = krediYuklemeYontemi === 'TUTAR' ? (krediDekontTutari ?? 0) : Math.max(0, adet * patlatmaBedeliTutar - mahsupTutari);
     const fazlaKurus = Math.max(0, dekontKurus + mahsupKurus - krediyeMahsupKurus);
     const fazlaOdemeTutar = fazlaKurus / 100;
-    const tutarYetersiz = krediYuklemeYontemi === 'TUTAR' && (krediDekontTutari ?? 0) > 0 && dekontKurus < birimKurus;
+    const tutarYetersiz = krediYuklemeYontemi === 'TUTAR' && (krediDekontTutari ?? 0) > 0 && toplamHesapKurus < birimKurus;
     const fazlaOdemeVar = krediYuklemeYontemi === 'TUTAR' && fazlaOdemeTutar > 0 && tutardanKredi > 0;
     return (
       <div className="space-y-4">
@@ -651,6 +655,9 @@ export function BentAlanlari({
             {mahsupKullan && krediYuklemeYontemi === 'TUTAR' && dekontKurus > 0 && dekontKurus % birimKurus === 0 &&
             <p className="mt-2 text-xs">Bu dekont tutarı tam kredi karşılıyor. Mahsup bakiyesi kullanılmasına gerek yoktur.</p>
             }
+            {mahsupKullan && krediYuklemeYontemi === 'TUTAR' && dekontKurus > 0 && dekontKurus % birimKurus !== 0 && gerekliMahsupKurus === 0 && dekontTekBasinaKredi > 0 &&
+            <p className="mt-2 text-xs">Bu dekont {dekontTekBasinaKredi} kredi karşılıyor. Mahsup bakiyesi bu işlemde kullanılmadı; çünkü ek kredi oluşturmaya gerek/yeterlilik yok.</p>
+            }
           </div>
         }
 
@@ -687,7 +694,7 @@ export function BentAlanlari({
             }
             {tutardanKredi > 0 &&
             <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-                {formatTL(krediDekontTutari ?? 0)} / {formatTL(patlatmaBedeliTutar)} = {tutardanKredi} tam kredi
+                {formatTL((dekontKurus + mahsupKurus) / 100)} / {formatTL(patlatmaBedeliTutar)} = {tutardanKredi} tam kredi
               </p>
             }
             {fazlaOdemeVar &&

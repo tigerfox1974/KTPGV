@@ -257,9 +257,9 @@ export function YeniIslem() {
   const krediDekontKurus = Math.round((krediDekontTutari ?? 0) * 100);
   const mahsupBakiyesiKurus = Math.round((ozet?.mahsuplasmaBakiyesi ?? 0) * 100);
   const temelKrediKurus = Math.round(sonuc.tutar * 100);
-  const toplamHesapKurus = krediYukleme && krediYuklemeYontemi === 'TUTAR' ?
-  krediDekontKurus + (mahsupKullan ? mahsupBakiyesiKurus : 0) :
-  temelKrediKurus;
+  const sonrakiKrediIcinEksikKurus = krediYuklemeBirimKurus > 0 ? krediYuklemeBirimKurus - krediDekontKurus % krediYuklemeBirimKurus : 0;
+  const gerekliMahsupKurus = mahsupKullan && krediYuklemeYontemi === 'TUTAR' && sonrakiKrediIcinEksikKurus > 0 && sonrakiKrediIcinEksikKurus <= mahsupBakiyesiKurus ? sonrakiKrediIcinEksikKurus : 0;
+  const toplamHesapKurus = krediYukleme && krediYuklemeYontemi === 'TUTAR' ? krediDekontKurus + gerekliMahsupKurus : temelKrediKurus;
   const krediDekonttanAdet =
   krediYuklemeBirimKurus > 0 && toplamHesapKurus >= krediYuklemeBirimKurus ?
   Math.floor(toplamHesapKurus / krediYuklemeBirimKurus) :
@@ -268,7 +268,7 @@ export function YeniIslem() {
   const krediyeMahsupKurus = krediYukleme ? (Number(form.krediAdedi) || 0) * krediYuklemeBirimKurus : temelKrediKurus;
   const mahsupKullanilanKurus = krediYukleme && mahsupKullan ?
   krediYuklemeYontemi === 'TUTAR' ?
-  Math.min(mahsupBakiyesiKurus, Math.max(0, krediyeMahsupKurus - krediDekontKurus)) :
+  Math.min(gerekliMahsupKurus, Math.max(0, krediyeMahsupKurus - krediDekontKurus)) :
   Math.min(mahsupBakiyesiKurus, krediyeMahsupKurus) :
   0;
   const krediyeMahsupEdilenTutar = krediyeMahsupKurus / 100;
