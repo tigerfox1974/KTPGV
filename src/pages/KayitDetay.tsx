@@ -69,7 +69,6 @@ export function KayitDetay() {
     islemBul,
     islemler,
     islemGorulebilir,
-    denetciMi,
     bau,
     auditKayitlari,
     auditEkle,
@@ -164,7 +163,7 @@ export function KayitDetay() {
           <Button
             onClick={() => {
               setMakbuzAcik(true);
-              auditEkle('Makbuz görüntülendi', islem.makbuzNo!);
+              auditEkle('Makbuz görüntülendi', islem.makbuzNo);
             }}>
             
                 <Receipt className="h-4 w-4" aria-hidden="true" />
@@ -253,54 +252,61 @@ export function KayitDetay() {
           </Bolum>
 
           <Bolum baslik="4. Dekont bilgisi">
-            {islem.dekont.dosya || islem.dekont.tarih ?
-            <div className="grid gap-4 lg:grid-cols-2">
+            {islem.dekont.dosya || islem.dekont.tarih ? (
+              <div className="grid gap-4 lg:grid-cols-2">
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                   <Satir etiket="Dekont no" deger={islem.dekont.dekontNo} mono />
                   <Satir etiket="Banka" deger={islem.dekont.banka} />
                   <Satir
-                  etiket="Dekont tarihi"
-                  deger={islem.dekont.tarih ? formatTarih(islem.dekont.tarih) : '—'} />
-                
+                    etiket="Dekont tarihi"
+                    deger={islem.dekont.tarih ? formatTarih(islem.dekont.tarih) : '—'}
+                  />
                   <Satir etiket="Ödenen tutar" deger={formatTL(islem.dekont.odenenTutar)} />
                   <Satir etiket="Ödeme yapan" deger={islem.dekont.odemeYapan} />
                 </dl>
-                {islem.dekont.dosya ?
-              <DosyaKarti
-                dosya={islem.dekont.dosya}
-                goruntule={() => {
-                  setOnizleme(islem.dekont.dosya);
-                  auditEkle('Dekont dosyası görüntülendi', islem.dekont.dosya!.ad);
-                }} /> :
 
-
-              <p className="text-sm text-muted-foreground">
+                {islem.dekont.dosya ? (
+                  <DosyaKarti
+                    dosya={islem.dekont.dosya}
+                    goruntule={() => {
+                      const dekontDosya = islem.dekont.dosya;
+                      if (!dekontDosya) return;
+                      setOnizleme(dekontDosya);
+                      auditEkle('Dekont dosyası görüntülendi', dekontDosya.ad);
+                    }}
+                  />
+                ) : (
+                  <p className="text-sm text-muted-foreground">
                     Bu kayıt için ayrı dekont dosyası yoktur.
                   </p>
-              }
-              </div> :
-
-            <p className="text-sm text-muted-foreground">
+                )}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
                 Bu kayıt ödeme doğurmaz. Ödeme ve dekont, işletmecinin patlatma kredisi yükleme
                 (EKRD) kaydındadır; kullanım için yeniden dekont istenmez.
               </p>
-            }
-            {islem.raporDosyasi &&
-            <div className="mt-4">
+            )}
+
+            {islem.raporDosyasi && (
+              <div className="mt-4">
                 <p className="text-sm font-medium text-foreground">Patlatma belge / rapor dosyası</p>
                 <div className="mt-2">
                   <DosyaKarti
-                  dosya={islem.raporDosyasi}
-                  goruntule={() => setOnizleme(islem.raporDosyasi!)} />
-                
+                    dosya={islem.raporDosyasi}
+                    goruntule={() => {
+                      const raporDosya = islem.raporDosyasi;
+                      if (raporDosya) setOnizleme(raporDosya);
+                    }}
+                  />
                 </div>
               </div>
-            }
+            )}
           </Bolum>
 
           <Bolum baslik="5. Makbuz / ödeme belgesi">
-            {islem.makbuzNo ?
-            <div className="space-y-3">
+            {islem.makbuzNo ? (
+              <div className="space-y-3">
                 <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
                   <Satir etiket="Makbuz no" deger={islem.makbuzNo} mono />
                   <Satir etiket="Makbuz tarihi" deger={formatTarih(islem.olusturmaTarihi)} />
@@ -309,13 +315,13 @@ export function KayitDetay() {
                 </dl>
                 <div className="flex flex-wrap gap-2">
                   <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setMakbuzAcik(true);
-                    auditEkle('Makbuz görüntülendi', islem.makbuzNo!);
-                  }}>
-                  
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setMakbuzAcik(true);
+                      auditEkle('Makbuz görüntülendi', islem.makbuzNo);
+                    }}
+                  >
                     <Receipt className="h-4 w-4" aria-hidden="true" />
                     Görüntüle
                   </Button>
@@ -324,18 +330,18 @@ export function KayitDetay() {
                     Yazdır
                   </Button>
                 </div>
-              </div> :
-            islem.eIslemTuru === 'KREDI_PLANLAMA' || islem.eIslemTuru === 'KREDI_GERCEKLESME' ?
-            <p className="text-sm text-muted-foreground">
+              </div>
+            ) : islem.eIslemTuru === 'KREDI_PLANLAMA' || islem.eIslemTuru === 'KREDI_GERCEKLESME' ? (
+              <p className="text-sm text-muted-foreground">
                 Bu patlatma kaydı, EKRD kredi yükleme kaydında önceden ödenmiş krediden karşılanır.
                 Bu nedenle her kullanım için ayrı makbuz üretilmez.
-              </p> :
-
-            <p className="text-sm text-muted-foreground">
+              </p>
+            ) : (
+              <p className="text-sm text-muted-foreground">
                 Bu kayda henüz makbuz üretilmemiştir. Makbuz üretimi Ödeme / Makbuz ekranından
                 yetkili kullanıcı tarafından yapılır; makbuz numarası sistem tarafından üretilir.
               </p>
-            }
+            )}
           </Bolum>
 
           <Bolum

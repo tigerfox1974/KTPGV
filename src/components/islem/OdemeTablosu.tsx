@@ -201,7 +201,10 @@ export function OdemeTablosu({
                       {islem.dekont.dosya ?
                       <button
                         type="button"
-                        onClick={() => dosyaGoruntule(islem.dekont.dosya!)}
+                        onClick={() => {
+                          const dosya = islem.dekont.dosya;
+                          if (dosya) dosyaGoruntule(dosya);
+                        }}
                         className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
                         
                           <Eye className="h-3 w-3" aria-hidden="true" />

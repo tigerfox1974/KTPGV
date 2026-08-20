@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarClock, CheckCircle2, MapPin, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
@@ -7,10 +7,6 @@ import { AjandaDurumRozeti, BilgiRozeti } from '../components/common/DurumRozeti
 import { KuralNotu } from '../components/common/KuralNotu';
 import { BosDurum } from '../components/common/BosDurum';
 import { Button } from '../components/ui/Button';
-import {
-  PatlatmaBaslangici,
-  PatlatmaYapildiModali } from
-'../components/tasocagi/PatlatmaYapildiModali';
 import { useApp } from '../contexts/AppContext';
 import { AjandaDurumu, AjandaKaydi } from '../types';
 import { formatTarih } from '../utils/currency';
@@ -33,7 +29,6 @@ export function Ajanda() {
     ajandaDurumGuncelle,
     auditEkle
   } = useApp();
-  const [raporBaslangici, setRaporBaslangici] = useState<PatlatmaBaslangici | null>(null);
 
   if (!kullanici) return null;
 
@@ -48,8 +43,8 @@ export function Ajanda() {
     toast.success('Ajanda durumu güncellendi', { description: `${kayitNo} · ${durum}` });
   };
 
-  /** Planlı E bendi patlatma kaydı, sonuç bekliyor mu? */
-  const raporIslenebilir = (kayit: AjandaKaydi) =>
+  /** E bendi patlatma kaydı, Ajanda ekranında doğrudan sonuç işlemeden Takvim akışına yönlendirilir. */
+  const patlatmaTakvimiYonlendirme = (kayit: AjandaKaydi) =>
   kayit.bent === 'E' &&
   !!kayit.isletmeciId &&
   !!kayit.tasOcagiId &&
@@ -58,6 +53,9 @@ export function Ajanda() {
   kayit.durum !== 'Yapılmadı' &&
   kayit.durum !== 'Yapıldı' &&
   kayit.durum !== 'Görev Tamamlandı';
+
+  const genelDurumButonlariGorunur = (kayit: AjandaKaydi) =>
+    !(kayit.bent === 'E' && !!kayit.isletmeciId && !!kayit.tasOcagiId && !kayit.gerceklesmeKayitNo);
 
   return (
     <div className="space-y-6">
@@ -71,9 +69,8 @@ export function Ajanda() {
       
 
       <KuralNotu baslik="Ajanda ve kredi düşüm kuralı">
-        Ajandaya düşenler: C, Ç, D, E patlatma planlama ve F. Ajandaya düşmeyenler: A, B ve E kredi
-        yükleme. Planlı patlatmada kredi düşülmez; kredi yalnızca kartın “Patlatma gerçekleşti /
-        rapor işle” işlemi ile düşer.
+        Patlatma planlama E bendi için ajandaya düşer; kredi yükleme değil. Kredi yalnızca Patlatma
+        Takvimi ekranında “Yapıldı” sonucunda düşer.
       </KuralNotu>
 
       {kullanici.sadeceGoruntule &&
@@ -144,39 +141,21 @@ export function Ajanda() {
                 </div>
           }
 
-              {ajandaIslemiYapilabilir(kayit) && raporIslenebilir(kayit) &&
+              {ajandaIslemiYapilabilir(kayit) && patlatmaTakvimiYonlendirme(kayit) &&
           <div className="mt-4 border-t border-border pt-4">
-                  <Button
-              size="sm"
-              onClick={() =>
-              setRaporBaslangici({
-                isletmeciId: kayit.isletmeciId!,
-                tasOcagiId: kayit.tasOcagiId!,
-                planKayitNo: kayit.kayitNo,
-                ajandaId: kayit.id,
-                tarih: kayit.tarih,
-                saat: kayit.saat,
-                adet: kayit.planlananAdet ?? 1
-              })
-              }>
-              
-                    <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-                    Patlatma Sonucunu İşle
-                  </Button>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Kredi düşümü yalnız “Yapıldı” sonucunda olur.{' '}
-                    <Link
-                to="/patlatma-takvimi"
-                className="font-medium text-primary hover:underline">
-                
-                      Patlatma Takvimi
-                    </Link>{' '}
-                    ekranından tek tıkla da işleyebilirsiniz.
+                  <p className="text-xs text-muted-foreground">
+                    Patlatma sonucunu Patlatma Takvimi ekranından işleyin.
                   </p>
+                  <Link to="/patlatma-takvimi" className="mt-2 inline-flex">
+                    <Button size="sm">
+                      <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                      Patlatma Takvimine Git
+                    </Button>
+                  </Link>
                 </div>
           }
 
-              {ajandaIslemiYapilabilir(kayit) &&
+              {ajandaIslemiYapilabilir(kayit) && genelDurumButonlariGorunur(kayit) &&
           <div className="mt-4 flex flex-wrap gap-1.5 border-t border-border pt-4">
                   {DURUMLAR.filter((d) => d !== kayit.durum).map((d) =>
             <Button
@@ -195,11 +174,6 @@ export function Ajanda() {
         </ul>
       }
 
-      <PatlatmaYapildiModali
-        acik={!!raporBaslangici}
-        kapat={() => setRaporBaslangici(null)}
-        baslangic={raporBaslangici} />
-      
     </div>);
 
 }

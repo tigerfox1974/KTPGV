@@ -13,7 +13,7 @@ export function Raporlar() {
   const { gorunurIslemler: islemler, krediOzeti, auditEkle, sigortalar, isletmeciler } = useApp();
   const [seciliRapor, setSeciliRapor] = useState(raporTanimlari[1].id);
 
-  const rapor = raporTanimlari.find((r) => r.id === seciliRapor)!;
+  const rapor = raporTanimlari.find((r) => r.id === seciliRapor) ?? raporTanimlari[0];
 
   const secildi = (id: string) => {
     setSeciliRapor(id);

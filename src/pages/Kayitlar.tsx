@@ -214,8 +214,10 @@ export function Kayitlar() {
                             <DosyaKarti
                               dosya={islem.dekont.dosya}
                               goruntule={() => {
-                                setOnizleme(islem.dekont.dosya);
-                                auditEkle('Dekont dosyası görüntülendi', islem.dekont.dosya!.ad);
+                                const dekontDosya = islem.dekont.dosya;
+                                if (!dekontDosya) return;
+                                setOnizleme(dekontDosya);
+                                auditEkle('Dekont dosyası görüntülendi', dekontDosya.ad);
                               }} /> :
 
 

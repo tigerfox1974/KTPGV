@@ -648,17 +648,19 @@ export function YeniIslem() {
                     <BilgiRozeti metin={plan.durum} ton="uyari" />
                     <Button
                 size="sm"
-                onClick={() =>
-                setRaporBaslangici({
-                  isletmeciId: plan.isletmeciId!,
-                  tasOcagiId: plan.tasOcagiId ?? '',
-                  planKayitNo: plan.kayitNo,
-                  ajandaId: plan.id,
-                  tarih: plan.tarih,
-                  saat: plan.saat,
-                  adet: plan.planlananAdet ?? 1
-                })
-                }>
+                onClick={() => {
+                  const isletmeciId = plan.isletmeciId;
+                  if (!isletmeciId) return;
+                  setRaporBaslangici({
+                    isletmeciId,
+                    tasOcagiId: plan.tasOcagiId ?? '',
+                    planKayitNo: plan.kayitNo,
+                    ajandaId: plan.id,
+                    tarih: plan.tarih,
+                    saat: plan.saat,
+                    adet: plan.planlananAdet ?? 1
+                  });
+                }}>
                 
                       Yapıldı
                     </Button>
