@@ -482,7 +482,7 @@ Kredi yükleme işleminde:
 Örnek kredi yükleme kaydı:
 
 - Kredi Yükleme No: `EKRD-2026-000015`
-- İşletmeci: Ahmet Kaya
+- İşletmeci: Ahmet Mehmet
 - 1 Patlatma Bedeli: `BAÜ x %10`
 - Yüklenen Kredi: 7
 - Toplam Tutar: `7 x 1 patlatma bedeli`
@@ -526,7 +526,7 @@ Yeterli kredi yoksa:
 Örnek kullanım kaydı:
 
 - Kullanım No: `EKUL-2026-000031`
-- İşletmeci: Ahmet Kaya
+- İşletmeci: Ahmet Mehmet
 - Taş Ocağı: Alfa Taş Ocağı
 - Patlatma tarihi: 20.08.2026
 - Saat: 10:00
@@ -541,7 +541,7 @@ Kredi, tek taş ocağına değil, işletmeci/sahip hesabına bağlı tutulacak.
 
 Örnek:
 
-İşletmeci: Ahmet Kaya  
+İşletmeci: Ahmet Mehmet
 Toplam kredi: 7
 
 Bağlı taş ocakları:
@@ -585,7 +585,7 @@ Patlatma kullanımı operasyonel ajanda işlemidir.
 Ajanda kartı örneği:
 
 - EKUL-2026-000031
-- İşletmeci: Ahmet Kaya
+- İşletmeci: Ahmet Mehmet
 - Taş Ocağı: Alfa Taş Ocağı
 - Tarih: 20.08.2026
 - Saat: 10:00

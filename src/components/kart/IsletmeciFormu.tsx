@@ -82,7 +82,7 @@ export function IsletmeciFormu({ acik, kapat, mevcut }: IsletmeciFormuProps) {
               id="im-ad"
               value={form.ad}
               onChange={(e) => guncelle('ad', e.target.value)}
-              placeholder="Örn. Ahmet Kaya veya Beyaz Taş Madencilik Ltd."
+              placeholder="Örn. Ahmet Mehmet veya Beyaz Taş Madencilik Ltd."
               className="mt-1.5" />
             
           </div>

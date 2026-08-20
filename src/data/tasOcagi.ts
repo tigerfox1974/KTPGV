@@ -3,12 +3,12 @@ import { Isletmeci, KrediHareketi, TasOcagi } from '../types';
 export const isletmeciler: Isletmeci[] = [
 {
   id: 'im-1',
-  ad: 'Ahmet Kaya',
+  ad: 'Ahmet Mehmet',
   tur: 'SAHIS',
   kimlikNo: '11223344556',
   telefon: '0533 220 14 05',
   adres: 'Değirmenlik, Lefkoşa',
-  yetkiliKisi: 'Ahmet Kaya',
+  yetkiliKisi: 'Ahmet Mehmet',
   aktif: true
 },
 {
@@ -31,7 +31,7 @@ export const tasOcaklari: TasOcagi[] = [
   ruhsatNo: 'RUH-2024-0118',
   bolge: 'Lefkoşa',
   adres: 'Değirmenlik yolu 4. km',
-  sorumluKisi: 'Ahmet Kaya',
+  sorumluKisi: 'Ahmet Mehmet',
   telefon: '0533 220 14 05',
   aktif: true,
   notlar: 'Hafta içi 09:00-17:00 patlatma yapılabilir.'
