@@ -136,8 +136,34 @@ export function YeniIslem() {
     [kullanici]
   );
 
-  const guncelle = <K extends keyof IslemFormu,>(alan: K, deger: IslemFormu[K]) =>
-  setForm((eski) => ({ ...eski, [alan]: deger }));
+  const guncelle = <K extends keyof IslemFormu,>(alan: K, deger: IslemFormu[K]) => {
+    if (alan === 'fAltTur') {
+      setDekont(BOS_DEKONT);
+      setDosya(null);
+      setForm((eski) => ({
+        ...eski,
+        fAltTur: deger as IslemFormu['fAltTur'],
+        sigortaSirketiId: deger === 'TRAFIK' ? eski.sigortaSirketiId : '',
+        notlar: ''
+      }));
+      return;
+    }
+    if (alan === 'eIslemTuru') {
+      setDekont(BOS_DEKONT);
+      setDosya(null);
+      setForm((eski) => ({
+        ...eski,
+        eIslemTuru: deger as IslemFormu['eIslemTuru'],
+        tasOcagiId: '',
+        operasyonTarihi: '',
+        operasyonSaati: '',
+        krediAdedi: '1',
+        notlar: ''
+      }));
+      return;
+    }
+    setForm((eski) => ({ ...eski, [alan]: deger }));
+  };
 
   const dekontGuncelle = <K extends keyof DekontFormu,>(alan: K, deger: DekontFormu[K]) =>
   setDekont((eski) => ({ ...eski, [alan]: deger }));
@@ -295,6 +321,64 @@ export function YeniIslem() {
     }
     return sonuc.gecerli;
   })();
+
+  const kaynakTamam = (() => {
+    if (!form.bent || !temelTamam) return false;
+    if (form.bent === 'F') {
+      if (!form.fAltTur) return false;
+      return !trafik || !!form.sigortaSirketiId;
+    }
+    if (form.bent === 'E') return !!form.eIslemTuru && !!form.isletmeciId;
+    return true;
+  })();
+
+  const raporTamam = (() => {
+    if (!raporBolumuVar) return true;
+    if (trafik) {
+      return trafikSatirlari.length > 0 && trafikSatirlari.every(
+        (s) =>
+        s.plaka.trim() !== '' &&
+        s.hasarDosyaNo.trim() !== '' &&
+        s.kazaTarihi !== '' &&
+        s.raporKonusu.trim() !== ''
+      );
+    }
+    return adliSatirlari.length > 0 && adliSatirlari.every(
+      (s) =>
+      s.basvuran.trim() !== '' &&
+      s.dosyaNo.trim() !== '' &&
+      s.raporKonusu.trim() !== '' &&
+      s.olayTarihi !== ''
+    );
+  })();
+
+  const operasyonTamam = (() => {
+    if (!operasyonGorunur) return true;
+    if (form.bent === 'C' || form.bent === 'Ç' || form.bent === 'F') {
+      return !!form.operasyonTarihi && !!form.operasyonSaati && form.yer.trim() !== '';
+    }
+    if (form.bent === 'D') return !!form.operasyonTarihi && form.yer.trim() !== '';
+    if (krediPlanlama) {
+      return !!form.tasOcagiId && !!form.operasyonTarihi && !!form.operasyonSaati;
+    }
+    return true;
+  })();
+
+  const hesaplamaBolumuGorunur =
+  !!form.bent &&
+  !krediGerceklesme &&
+  kaynakTamam &&
+  raporTamam &&
+  operasyonTamam;
+
+  const hesaplamaOlustu =
+  hesaplamaBolumuGorunur &&
+  bentTamam &&
+  (krediPlanlama || sonuc.gecerli && sonuc.tutar > 0);
+
+  const dekontBolumuGorunur = dekontGorunur && hesaplamaOlustu && sonuc.tutar > 0;
+  const notBolumuGorunur = !krediGerceklesme && hesaplamaOlustu;
+  const kayitBolumuGorunur = !krediGerceklesme && (krediPlanlama ? hesaplamaOlustu : dekontTamam);
 
   const kaydedilebilir =
   !!kullanici &&
@@ -695,7 +779,7 @@ export function YeniIslem() {
     });
   }
 
-  if (raporBolumuVar) {
+  if (raporBolumuVar && kaynakTamam) {
     bolumler.push({
       baslik: trafik ? 'Rapor Bilgisi' : 'Adli Rapor Bilgisi',
       aciklama:
@@ -704,7 +788,7 @@ export function YeniIslem() {
     });
   }
 
-  if (operasyonGorunur) {
+  if (operasyonGorunur && kaynakTamam) {
     bolumler.push({
       baslik: 'Operasyon Bilgisi',
       aciklama: 'Ajanda bu tarihten beslenir; dekont tarihinden bağımsızdır.',
@@ -712,7 +796,7 @@ export function YeniIslem() {
     });
   }
 
-  if (!krediGerceklesme) {
+  if (hesaplamaBolumuGorunur) {
     bolumler.push({
       baslik: 'Hesaplama Özeti',
       aciklama: krediPlanlama ?
@@ -721,13 +805,19 @@ export function YeniIslem() {
       icerik:
       <div className="space-y-4">
           <BentAlanlari bolum="hesaplama" {...bentAlanProps} />
-          {!krediPlanlama && <HesaplamaKutusu sonuc={sonuc} />}
+          {!krediPlanlama && sonuc.gecerli && sonuc.tutar > 0 ?
+        <HesaplamaKutusu sonuc={sonuc} /> :
+        !krediPlanlama &&
+        <p className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground">
+              Hesaplama için önce gerekli işlem bilgilerini girin.
+            </p>
+          }
         </div>
 
     });
   }
 
-  if (dekontGorunur) {
+  if (dekontBolumuGorunur) {
     bolumler.push({
       baslik: 'Ödeme / Dekont ve Dijital Dosya',
       aciklama: 'Dekont dosyası olmadan ödeme gerektiren kayıt oluşturulamaz.',
@@ -745,10 +835,10 @@ export function YeniIslem() {
     });
   }
 
-  if (!krediGerceklesme) {
+  if (notBolumuGorunur) {
     bolumler.push({
       baslik: 'Açıklama / Not',
-      aciklama: 'Serbest not — kayıt ve ajanda kartında görünür.',
+      aciklama: 'Varsa açıklama / görev notu — zorunlu değildir.',
       icerik:
       <div>
           <Label htmlFor="notlar" className="sr-only">
@@ -759,7 +849,7 @@ export function YeniIslem() {
           value={form.notlar}
           onChange={(e) => guncelle('notlar', e.target.value)}
           rows={3}
-          placeholder="Açıklama / görev notu" />
+          placeholder="Varsa açıklama / görev notu" />
         
         </div>
 
@@ -795,7 +885,7 @@ export function YeniIslem() {
             </Bolum>
           )}
 
-          {!krediGerceklesme &&
+          {kayitBolumuGorunur &&
           <Bolum
             sira={bolumler.length + 1}
             baslik="Kayıt"
@@ -847,24 +937,26 @@ export function YeniIslem() {
                   '—'}
                 </dd>
               </div>
+              {form.bent &&
               <div className="flex justify-between gap-2">
-                <dt className="text-muted-foreground">Kaynak</dt>
-                <dd className="max-w-[60%] truncate text-right text-foreground">
-                  {talepEdenAdi || '—'}
-                </dd>
-              </div>
+                  <dt className="text-muted-foreground">Kaynak</dt>
+                  <dd className="max-w-[60%] truncate text-right text-foreground">
+                    {talepEdenAdi || '—'}
+                  </dd>
+                </div>
+              }
               {raporBolumuVar &&
               <div className="flex justify-between gap-2">
                   <dt className="text-muted-foreground">Rapor sayısı</dt>
                   <dd className="text-foreground">{raporSayisi}</dd>
                 </div>
               }
+              {form.operasyonTarihi &&
               <div className="flex justify-between gap-2">
-                <dt className="text-muted-foreground">Operasyon tarihi</dt>
-                <dd className="text-foreground">
-                  {form.operasyonTarihi ? formatTarih(form.operasyonTarihi) : '—'}
-                </dd>
-              </div>
+                  <dt className="text-muted-foreground">Operasyon tarihi</dt>
+                  <dd className="text-foreground">{formatTarih(form.operasyonTarihi)}</dd>
+                </div>
+              }
               <div className="flex justify-between gap-2">
                 <dt className="text-muted-foreground">
                   {krediPlanlama ? 'Planlanan kredi' : 'Hesaplanan tutar'}
@@ -875,7 +967,7 @@ export function YeniIslem() {
                   formatTL(sonuc.tutar)}
                 </dd>
               </div>
-              {dekontGorunur &&
+              {(dekontBolumuGorunur || odenen > 0) &&
               <div className="flex justify-between gap-2">
                   <dt className="text-muted-foreground">Ödenen tutar</dt>
                   <dd
