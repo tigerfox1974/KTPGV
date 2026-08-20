@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BarChart3, FileDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '../components/common/PageHeader';
+import { KuralNotu } from '../components/common/KuralNotu';
 import { Button } from '../components/ui/Button';
 import { raporTanimlari } from '../data/raporlar';
 import { bentler } from '../data/bentler';
@@ -9,7 +10,7 @@ import { useApp } from '../contexts/AppContext';
 import { formatTL } from '../utils/currency';
 
 export function Raporlar() {
-  const { islemler, krediOzeti, auditEkle, sigortalar, isletmeciler } = useApp();
+  const { gorunurIslemler: islemler, krediOzeti, auditEkle, sigortalar, isletmeciler } = useApp();
   const [seciliRapor, setSeciliRapor] = useState(raporTanimlari[1].id);
 
   const rapor = raporTanimlari.find((r) => r.id === seciliRapor)!;
@@ -82,6 +83,11 @@ export function Raporlar() {
           </Button>
         } />
       
+
+      <KuralNotu>
+        Bu rapor, aktif kullanıcının rol, birim ve bent yetkisi kapsamındaki kayıtlar üzerinden
+        hazırlanmıştır.
+      </KuralNotu>
 
       <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
         <nav aria-label="Rapor listesi" className="rounded-xl border border-border bg-card p-2">

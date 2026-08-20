@@ -219,19 +219,14 @@ export function BentAlanlari({
                 <SelectValue placeholder="Lütfen işlem türü seçiniz" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="KREDI_YUKLEME">
-                  Patlatma kredisi yükleme / ödeme alma
-                </SelectItem>
-                <SelectItem value="KREDI_PLANLAMA">
-                  Patlatma planlama / bekleyen patlatma kaydı
-                </SelectItem>
-                <SelectItem value="KREDI_GERCEKLESME">
-                  Patlatma gerçekleşme raporu / kredi düşüm kaydı
-                </SelectItem>
+                <SelectItem value="KREDI_YUKLEME">Kredi Yükle</SelectItem>
+                <SelectItem value="KREDI_PLANLAMA">Patlatma Planla</SelectItem>
+                <SelectItem value="KREDI_GERCEKLESME">Patlatma Sonucunu İşle</SelectItem>
               </SelectContent>
             </Select>
             <p className="mt-1 text-xs text-muted-foreground">
-              Kredi düşümü planlama aşamasında değil, gerçekleşme raporu işlendiğinde yapılır.
+              Kredi düşümü planlama aşamasında değil, patlatma “Yapıldı” olarak işlendiğinde
+              yapılır.
             </p>
           </div>
         }
@@ -617,22 +612,22 @@ export function BentAlanlari({
         </div>
         <p className="mt-2 text-sm text-muted-foreground">
           {krediOzeti ?
-          `Kalan kullanılabilir kredi: ${krediOzeti.kalan} · Planlanan / rapor bekleyen: ${krediOzeti.planlanan} · Bu planda: ${planlanacak}` :
+          `Kalan kullanılabilir kredi: ${krediOzeti.kalan} · Planlanan / sonuç bekleyen: ${krediOzeti.planlanan} · Bu planda: ${planlanacak}` :
           'Kontrol için işletmeci seçilmelidir.'}
         </p>
         {krediOzeti && planlanacak > krediOzeti.kalan &&
         <p className="mt-2 text-sm text-rose-700">
-            Kullanılabilir kredi yetersiz. Plan kaydı açılabilir ancak gerçekleşme raporu
-            işlenebilmesi için kredi yükleme / ödeme doğrulama / makbuz süreci tamamlanmalıdır.
+            Kullanılabilir kredi yetersiz. Plan kaydı açılabilir ancak patlatma “Yapıldı” olarak
+            işlenmeden önce kredi yükleme / ödeme doğrulama / makbuz süreci tamamlanmalıdır.
           </p>
         }
       </div>
 
       <KuralNotu baslik="Kredi düşüm kuralı">
-        Planlama aşamasında kredi düşülmez, yalnızca “planlanan / rapor bekleyen” olarak izlenir.
-        Kredi düşümü, patlatmanın yapıldığına dair gerçekleşme raporu işlendiğinde yapılır. Bu işlem
-        Ajanda ekranındaki planlı patlatma kartındaki “Patlatma gerçekleşti / rapor işle” butonuyla
-        yürütülür. Planlama ve kullanım için yeniden ödeme veya dekont istenmez.
+        Planlama aşamasında kredi düşülmez, yalnızca “planlanan / sonuç bekleyen” olarak izlenir.
+        Kredi düşümü, patlatma “Yapıldı” olarak işlendiğinde yapılır. Bu işlem en pratik şekilde
+        Patlatma Takvimi ekranındaki kart üzerinden yürütülür. Planlama ve kullanım için yeniden
+        ödeme veya dekont istenmez.
       </KuralNotu>
     </div>);
 

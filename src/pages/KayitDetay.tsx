@@ -4,6 +4,7 @@ import { ArrowLeft, Check, Circle, Printer, Receipt } from 'lucide-react';
 import { PageHeader } from '../components/common/PageHeader';
 import { BosDurum } from '../components/common/BosDurum';
 import { KuralNotu } from '../components/common/KuralNotu';
+import { YetkisizUyari } from '../components/common/YetkiKapisi';
 import { BilgiRozeti, IslemDurumRozeti } from '../components/common/DurumRozeti';
 import { DosyaKarti } from '../components/islem/DosyaKarti';
 import { DosyaOnizlemeModal } from '../components/islem/DosyaOnizlemeModal';
@@ -67,6 +68,8 @@ export function KayitDetay() {
   const {
     islemBul,
     islemler,
+    islemGorulebilir,
+    denetciMi,
     bau,
     auditKayitlari,
     auditEkle,
@@ -88,6 +91,23 @@ export function KayitDetay() {
         <BosDurum
           baslik="Kayıt bulunamadı"
           aciklama="Aradığınız kayıt numarası sistemde bulunmuyor." />
+        
+        <Button variant="outline" onClick={() => navigate('/kayitlar')}>
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          Kayıtlara dön
+        </Button>
+      </div>);
+
+  }
+
+  // Adres elle yazılsa bile yetkisiz kaydın içeriği gösterilmez.
+  if (!islemGorulebilir(islem)) {
+    return (
+      <div className="space-y-6">
+        <PageHeader baslik="Kayıt Detayı" />
+        <YetkisizUyari
+          baslik="Bu kaydı görüntüleme yetkiniz yok"
+          aciklama="Kayıt yalnızca ilgili birim, yetkili bent ve rol kapsamındaki kullanıcılara gösterilir. Kayıt silinmemiştir." />
         
         <Button variant="outline" onClick={() => navigate('/kayitlar')}>
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
@@ -121,8 +141,8 @@ export function KayitDetay() {
   islem.eIslemTuru === 'KREDI_YUKLEME' ?
   'Patlatma kredisi yükleme (mali kayıt)' :
   islem.eIslemTuru === 'KREDI_PLANLAMA' ?
-  'Patlatma planlama (operasyonel kayıt)' :
-  'Patlatma gerçekleşme raporu (kredi düşüm kaydı)' :
+  'Patlatma planı (operasyonel kayıt)' :
+  'Patlatma sonucu — Yapıldı (kredi düşüm kaydı)' :
   islem.fAltTur ?
   trafik ?
   'Trafik polis raporu — TTRF ana kaydı' :
@@ -267,7 +287,7 @@ export function KayitDetay() {
             }
             {islem.raporDosyasi &&
             <div className="mt-4">
-                <p className="text-sm font-medium text-foreground">Gerçekleşme rapor dosyası</p>
+                <p className="text-sm font-medium text-foreground">Patlatma belge / rapor dosyası</p>
                 <div className="mt-2">
                   <DosyaKarti
                   dosya={islem.raporDosyasi}
@@ -490,7 +510,7 @@ export function KayitDetay() {
 
                     <div className="rounded-lg border border-border p-3">
                       <p className="text-sm font-medium text-foreground">
-                        Gerçekleşme / kredi düşüm kayıtları (EKGR)
+                        Yapılan patlatmalar (kredi düşüm kayıtları)
                       </p>
                       {bagliGerceklesmeler.length ?
                   <ul className="mt-1.5 space-y-1 text-xs">
@@ -503,7 +523,7 @@ export function KayitDetay() {
                                 {g.kayitNo}
                               </Link>{' '}
                               <span className="text-muted-foreground">
-                                {tasOcagiBul(g.tasOcagiId)?.ad} · Rapor {g.raporNo ?? '—'} · -
+                                {tasOcagiBul(g.tasOcagiId)?.ad} · Belge {g.raporNo ?? '—'} · -
                                 {g.krediAdedi} kredi
                               </span>
                             </li>
@@ -511,7 +531,7 @@ export function KayitDetay() {
                         </ul> :
 
                   <p className="mt-1 text-xs text-muted-foreground">
-                          Gerçekleşme raporu işlenmiş patlatma yok.
+                          Yapıldı olarak işlenmiş patlatma yok.
                         </p>
                   }
                     </div>

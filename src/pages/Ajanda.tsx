@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { CalendarClock, CheckCircle2, MapPin, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '../components/common/PageHeader';
@@ -7,16 +8,16 @@ import { KuralNotu } from '../components/common/KuralNotu';
 import { BosDurum } from '../components/common/BosDurum';
 import { Button } from '../components/ui/Button';
 import {
-  GerceklesmeBaslangici,
-  GerceklesmeRaporuFormu } from
-'../components/tasocagi/GerceklesmeRaporuFormu';
+  PatlatmaBaslangici,
+  PatlatmaYapildiModali } from
+'../components/tasocagi/PatlatmaYapildiModali';
 import { useApp } from '../contexts/AppContext';
 import { AjandaDurumu, AjandaKaydi } from '../types';
 import { formatTarih } from '../utils/currency';
 
 const DURUMLAR: AjandaDurumu[] = [
 'Planlandı',
-'Rapor Bekliyor',
+'Sonuç Bekliyor',
 'İşlem Başlatılabilir',
 'Görev Tamamlandı',
 'Ertelendi',
@@ -24,12 +25,19 @@ const DURUMLAR: AjandaDurumu[] = [
 
 
 export function Ajanda() {
-  const { kullanici, ajanda, ajandaDurumGuncelle, auditEkle } = useApp();
-  const [raporBaslangici, setRaporBaslangici] = useState<GerceklesmeBaslangici | null>(null);
+  const {
+    kullanici,
+    gorunurAjanda,
+    ajandaIslemiYapilabilir,
+    tumVeriGorebilir,
+    ajandaDurumGuncelle,
+    auditEkle
+  } = useApp();
+  const [raporBaslangici, setRaporBaslangici] = useState<PatlatmaBaslangici | null>(null);
 
   if (!kullanici) return null;
 
-  const siraliAjanda = [...ajanda].sort((a, b) => a.tarih.localeCompare(b.tarih));
+  const siraliAjanda = [...gorunurAjanda].sort((a, b) => a.tarih.localeCompare(b.tarih));
 
   const durumDegistir = (id: string, kayitNo: string, durum: AjandaDurumu) => {
     ajandaDurumGuncelle(id, durum);
@@ -40,20 +48,26 @@ export function Ajanda() {
     toast.success('Ajanda durumu güncellendi', { description: `${kayitNo} · ${durum}` });
   };
 
-  /** Planlı E bendi patlatma kaydı, gerçekleşme raporu bekliyor mu? */
+  /** Planlı E bendi patlatma kaydı, sonuç bekliyor mu? */
   const raporIslenebilir = (kayit: AjandaKaydi) =>
   kayit.bent === 'E' &&
   !!kayit.isletmeciId &&
   !!kayit.tasOcagiId &&
   !kayit.gerceklesmeKayitNo &&
   kayit.durum !== 'İptal Edildi' &&
+  kayit.durum !== 'Yapılmadı' &&
+  kayit.durum !== 'Yapıldı' &&
   kayit.durum !== 'Görev Tamamlandı';
 
   return (
     <div className="space-y-6">
       <PageHeader
         baslik="Ajanda"
-        aciklama="Operasyonel görev ve işlem takibi. Kartlardaki tarih operasyon tarihidir; dekont tarihi ajandaya yazılmaz." />
+        aciklama={
+        tumVeriGorebilir ?
+        'Operasyonel görev ve işlem takibi. Kartlardaki tarih operasyon tarihidir; dekont tarihi ajandaya yazılmaz.' :
+        `Yalnızca ${kullanici.birim} biriminin ve yetkili olduğunuz bentlerin görev kayıtları listelenir.`
+        } />
       
 
       <KuralNotu baslik="Ajanda ve kredi düşüm kuralı">
@@ -62,8 +76,17 @@ export function Ajanda() {
         rapor işle” işlemi ile düşer.
       </KuralNotu>
 
+      {kullanici.sadeceGoruntule &&
+      <KuralNotu baslik="Sadece görüntüleme" ton="uyari">
+          Bu kullanıcı ajanda durumunu değiştiremez ve patlatma sonucunu işleyemez.
+        </KuralNotu>
+      }
+
       {siraliAjanda.length === 0 ?
-      <BosDurum baslik="Ajandada kayıt yok" /> :
+      <BosDurum
+        baslik="Yetkiniz kapsamında görüntülenebilecek ajanda kaydı bulunmuyor"
+        aciklama="Ajanda yalnızca kendi biriminizin ve yetkili olduğunuz bentlerin operasyonel görevlerini gösterir." /> :
+
 
       <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {siraliAjanda.map((kayit) =>
@@ -121,7 +144,7 @@ export function Ajanda() {
                 </div>
           }
 
-              {kullanici.ajandaKullanabilir && raporIslenebilir(kayit) &&
+              {ajandaIslemiYapilabilir(kayit) && raporIslenebilir(kayit) &&
           <div className="mt-4 border-t border-border pt-4">
                   <Button
               size="sm"
@@ -138,15 +161,22 @@ export function Ajanda() {
               }>
               
                     <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-                    Patlatma gerçekleşti / rapor işle
+                    Patlatma Sonucunu İşle
                   </Button>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Kredi düşümü bu işlemle yapılır.
+                    Kredi düşümü yalnız “Yapıldı” sonucunda olur.{' '}
+                    <Link
+                to="/patlatma-takvimi"
+                className="font-medium text-primary hover:underline">
+                
+                      Patlatma Takvimi
+                    </Link>{' '}
+                    ekranından tek tıkla da işleyebilirsiniz.
                   </p>
                 </div>
           }
 
-              {kullanici.ajandaKullanabilir &&
+              {ajandaIslemiYapilabilir(kayit) &&
           <div className="mt-4 flex flex-wrap gap-1.5 border-t border-border pt-4">
                   {DURUMLAR.filter((d) => d !== kayit.durum).map((d) =>
             <Button
@@ -165,7 +195,7 @@ export function Ajanda() {
         </ul>
       }
 
-      <GerceklesmeRaporuFormu
+      <PatlatmaYapildiModali
         acik={!!raporBaslangici}
         kapat={() => setRaporBaslangici(null)}
         baslangic={raporBaslangici} />

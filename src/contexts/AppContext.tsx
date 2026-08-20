@@ -4,8 +4,10 @@ import {
   AjandaKaydi,
   AuditKaydi,
   BentKodu,
+  BilgiKaynagi,
   Birim,
   DekontDosyasi,
+  PatlatmaSonucu,
   Islem,
   Isletmeci,
   KrediHareketi,
@@ -29,6 +31,23 @@ import { maliYilArsivleri } from '../data/arsiv';
 import { sonrakiKayitNo, sonrakiMakbuzNo } from '../utils/numaralandirma';
 import { VARSAYILAN_BAU } from '../utils/hesaplama';
 import { formatTL } from '../utils/currency';
+import {
+  ajandaIslemiYapilabilirMi,
+  ajandaKaydiGorulebilirMi,
+  auditKaydiGorulebilirMi,
+  ekranGorulebilirMi,
+  islemDegistirilebilirMi,
+  islemGorulebilirMi,
+  kullaniciDenetciMi,
+  kullaniciMaliVeriGorebilir,
+  kullaniciMerkezAdminMi,
+  kullaniciTumVeriGorebilir,
+  makbuzUretilebilirMi,
+  maliKayitGorulebilirMi,
+  maliKayitMi,
+  odemeDogrulanabilirMi,
+  yonetimEkraniGorulebilirMi } from
+'../utils/yetki';
 
 export interface KrediOzeti {
   /** Ödemesi alınan toplam kredi */
@@ -53,10 +72,44 @@ export interface GerceklesmeGirdisi {
   tarih: string;
   saat: string;
   adet: number;
-  raporNo: string;
-  bildiren: string;
+  /** Varsa belge / bildirim no — zorunlu değildir. */
+  raporNo?: string;
+  bildiren?: string;
+  bilgiKaynagi: BilgiKaynagi;
   aciklama: string;
   raporDosyasi?: DekontDosyasi | null;
+}
+
+/** Patlatma planlama (EKPL) — kredi bu aşamada DÜŞMEZ. */
+export interface PlanGirdisi {
+  isletmeciId: string;
+  tasOcagiId: string;
+  tarih: string;
+  saat: string;
+  adet: number;
+  bilgiKaynagi: BilgiKaynagi;
+  belgeNo?: string;
+  aciklama?: string;
+  dosya?: DekontDosyasi | null;
+}
+
+export interface PlanSonucu {
+  basarili: boolean;
+  kayitNo?: string;
+  mesaj?: string;
+  krediYetersiz?: boolean;
+}
+
+/** Yapılmadı / Ertelendi / İptal — kredi düşülmez. */
+export interface SonucGirdisi {
+  ajandaId: string;
+  sonuc: Exclude<PatlatmaSonucu, 'YAPILDI'>;
+  bilgiKaynagi: BilgiKaynagi;
+  neden?: string;
+  aciklama?: string;
+  belgeNo?: string;
+  yeniTarih?: string;
+  yeniSaat?: string;
 }
 
 export interface GerceklesmeSonucu {
@@ -88,6 +141,27 @@ interface AppContextDegeri {
   birimAktiflikDegistir: (id: string, aktif: boolean) => void;
   birimKullanicilari: (birimId: string) => Kullanici[];
   yonetimYetkisi: boolean;
+  kullaniciYonetimiYetkisi: boolean;
+  birimYonetimiYetkisi: boolean;
+  /** Menü gizlemek yetmez; route/ekran erişimi de bu fonksiyonla korunur. */
+  ekranGorulebilir: (menuId: string) => boolean;
+  merkezAdminMi: boolean;
+  denetciMi: boolean;
+  tumVeriGorebilir: boolean;
+  maliVeriGorebilir: boolean;
+  /** Aktif kullanıcının görebileceği işlem kayıtları. */
+  gorunurIslemler: Islem[];
+  /** Aktif kullanıcının görebileceği mali kayıtlar (ödeme doğuran kayıtlar). */
+  gorunurMaliKayitlar: Islem[];
+  gorunurAjanda: AjandaKaydi[];
+  gorunurAuditKayitlari: AuditKaydi[];
+  islemGorulebilir: (islem: Islem) => boolean;
+  maliKayitGorulebilir: (islem: Islem) => boolean;
+  ajandaKaydiGorulebilir: (kayit: AjandaKaydi) => boolean;
+  islemDegistirilebilir: (islem: Islem) => boolean;
+  makbuzUretilebilir: (islem: Islem) => boolean;
+  odemeDogrulanabilir: (islem: Islem) => boolean;
+  ajandaIslemiYapilabilir: (kayit: AjandaKaydi) => boolean;
   islemBul: (kayitNo?: string) => Islem | undefined;
   bau: number;
   bauGuncelle: (deger: number) => void;
@@ -103,8 +177,12 @@ interface AppContextDegeri {
   krediHareketleri: KrediHareketi[];
   krediHareketiEkle: (hareket: KrediHareketi) => void;
   krediOzeti: (isletmeciId: string) => KrediOzeti;
-  /** Patlatmanın yapıldığına dair raporu işler; kredi düşümü SADECE burada yapılır. */
+  /** Patlatma planlar (EKPL). Kredi bu aşamada düşülmez. */
+  patlatmaPlanla: (girdi: PlanGirdisi) => PlanSonucu;
+  /** “Yapıldı” sonucunu işler; kredi düşümü SADECE burada yapılır (EKGR). */
   patlatmaGerceklesmeIsle: (girdi: GerceklesmeGirdisi) => GerceklesmeSonucu;
+  /** Yapılmadı / Ertelendi / İptal sonucunu işler; kredi düşülmez. */
+  patlatmaSonucIsle: (girdi: SonucGirdisi) => {basarili: boolean;mesaj?: string;};
   sigortalar: SigortaSirketi[];
   sigortaBul: (id?: string) => SigortaSirketi | undefined;
   sigortaKaydet: (sirket: SigortaSirketi) => void;
@@ -185,8 +263,6 @@ export function AppProvider({
   );
 
   const cikis = useCallback(() => setKullanici(null), []);
-
-  const yonetimYetkisi = !!kullanici?.menuler.includes('kullanici-yonetimi');
 
   const kullaniciKaydet = useCallback(
     (hedef: Kullanici) => {
@@ -280,9 +356,20 @@ export function AppProvider({
     [auditEkle]
   );
 
-  const islemEkle = useCallback((islem: Islem) => {
-    setIslemler((eski) => [islem, ...eski]);
-  }, []);
+  /** Yeni kayıtlar aktif kullanıcının birimi ve kimliği ile damgalanır. */
+  const islemEkle = useCallback(
+    (islem: Islem) => {
+      const damgali: Islem = {
+        ...islem,
+        birim: islem.birim || kullanici?.birim || '—',
+        birimId: islem.birimId ?? kullanici?.birimId,
+        olusturan: islem.olusturan || kullanici?.rol || 'Sistem',
+        olusturanKullaniciId: islem.olusturanKullaniciId ?? kullanici?.id
+      };
+      setIslemler((eski) => [damgali, ...eski]);
+    },
+    [kullanici]
+  );
 
   const islemBul = useCallback(
     (kayitNo?: string) => islemler.find((i) => i.kayitNo === kayitNo || i.id === kayitNo),
@@ -335,10 +422,16 @@ export function AppProvider({
 
   const ajandaEkle = useCallback(
     (kayit: AjandaKaydi) => {
-      setAjanda((eski) => [kayit, ...eski]);
+      const damgali: AjandaKaydi = {
+        ...kayit,
+        birim: kayit.birim || kullanici?.birim || '—',
+        birimId: kayit.birimId ?? kullanici?.birimId,
+        olusturanKullaniciId: kayit.olusturanKullaniciId ?? kullanici?.id
+      };
+      setAjanda((eski) => [damgali, ...eski]);
       auditEkle('Ajanda kaydı oluşturuldu', `${kayit.kayitNo} · ${kayit.tarih} ${kayit.saat}`);
     },
-    [auditEkle]
+    [auditEkle, kullanici]
   );
 
   const ajandaDurumGuncelle = useCallback((id: string, durum: AjandaDurumu) => {
@@ -381,23 +474,188 @@ export function AppProvider({
     [krediHareketleri, islemler]
   );
 
+  /**
+   * Patlatma planlama. Kredi DÜŞÜLMEZ; yalnızca “plan / sonuç bekliyor” hareketi oluşur.
+   * Kredi yetersizse plan yine kaydedilir, ancak kart “Kredi Yetersiz” uyarısı gösterir.
+   */
+  const patlatmaPlanla = useCallback(
+    (girdi: PlanGirdisi): PlanSonucu => {
+      if (girdi.adet <= 0) {
+        return { basarili: false, mesaj: 'Patlatma adedi sıfırdan büyük olmalıdır.' };
+      }
+      const ozet = krediOzeti(girdi.isletmeciId);
+      const isletmeciAdi = isletmeciler.find((i) => i.id === girdi.isletmeciId)?.ad ?? '—';
+      const ocakAdi = tasOcaklari.find((t) => t.id === girdi.tasOcagiId)?.ad ?? '—';
+      const kayitNo = sonrakiKayitNo(islemler, 'E', '', 'KREDI_PLANLAMA');
+      const krediYetersiz = girdi.adet > ozet.kalan;
+
+      const kayit: Islem = {
+        id: `is-${Date.now()}`,
+        kayitNo,
+        bent: 'E',
+        eIslemTuru: 'KREDI_PLANLAMA',
+        baslik: `Patlatma planı — ${ocakAdi}`,
+        talepEden: isletmeciAdi,
+        birim: kullanici?.birim ?? 'KTPGV Taş Ocağı Birimi',
+        birimId: kullanici?.birimId,
+        olusturan: kullanici?.rol ?? 'Sistem',
+        olusturanKullaniciId: kullanici?.id,
+        olusturmaTarihi: new Date().toISOString().slice(0, 10),
+        operasyonTarihi: girdi.tarih,
+        operasyonSaati: girdi.saat,
+        yer: ocakAdi,
+        tutar: 0,
+        hesaplamaAciklamasi: `Planlanan patlatma: ${girdi.adet}. Kredi planlama aşamasında düşülmez; sonuç “Yapıldı” olarak işlendiğinde düşer.`,
+        dekont: {
+          dekontNo: 'Ön ödemeli kredi',
+          banka: '—',
+          tarih: '',
+          odenenTutar: 0,
+          odemeYapan: isletmeciAdi,
+          dosya: null
+        },
+        makbuzNo: null,
+        durum: 'TAMAMLANDI',
+        isletmeciId: girdi.isletmeciId,
+        tasOcagiId: girdi.tasOcagiId,
+        krediAdedi: girdi.adet,
+        raporNo: girdi.belgeNo || undefined,
+        bilgiKaynagi: girdi.bilgiKaynagi,
+        raporDosyasi: girdi.dosya ?? null,
+        notlar: girdi.aciklama || undefined
+      };
+
+      setIslemler((eski) => [kayit, ...eski]);
+      setKrediHareketleri((eski) => [
+      {
+        id: `kh-${Date.now()}`,
+        isletmeciId: girdi.isletmeciId,
+        tip: 'PLAN',
+        adet: girdi.adet,
+        kayitNo,
+        tasOcagiId: girdi.tasOcagiId,
+        tarih: girdi.tarih,
+        aciklama: `${ocakAdi} — planlı patlatma, sonuç bekliyor. Kredi düşülmedi.`
+      },
+      ...eski]
+      );
+      setAjanda((eski) => [
+      {
+        id: `aj-${Date.now()}`,
+        kayitNo,
+        bent: 'E',
+        islemTuru: 'Patlatma planı',
+        baslik: `Patlatma — ${ocakAdi}`,
+        talepEden: isletmeciAdi,
+        birim: kullanici?.birim ?? 'KTPGV Taş Ocağı Birimi',
+        birimId: kullanici?.birimId,
+        olusturanKullaniciId: kullanici?.id,
+        tarih: girdi.tarih,
+        saat: girdi.saat,
+        yer: ocakAdi,
+        durum: 'Sonuç Bekliyor' as const,
+        odemeDurumu: krediYetersiz ?
+        `Ön ödemeli kredi · Kullanılabilir kredi yetersiz (${ozet.kalan})` :
+        `Ön ödemeli kredi · ${girdi.adet} kredi planlandı · Kalan ${ozet.kalan}`,
+        isletmeciId: girdi.isletmeciId,
+        tasOcagiId: girdi.tasOcagiId,
+        planlananAdet: girdi.adet,
+        bilgiKaynagi: girdi.bilgiKaynagi,
+        raporNo: girdi.belgeNo || undefined
+      },
+      ...eski]
+      );
+
+      auditEkle(
+        'Patlatma planlandı',
+        `${kayitNo} · ${ocakAdi} · ${girdi.adet} patlatma · ${girdi.tarih} ${girdi.saat}`
+      );
+      if (krediYetersiz) {
+        auditEkle(
+          'Kredi yetersiz uyarısı',
+          `${isletmeciAdi} · plan ${kayitNo} · talep ${girdi.adet} / kullanılabilir ${ozet.kalan}`
+        );
+      }
+
+      return { basarili: true, kayitNo, krediYetersiz };
+    },
+    [krediOzeti, islemler, isletmeciler, tasOcaklari, kullanici, auditEkle]
+  );
+
+  /** Yapılmadı / Ertelendi / İptal — kredi hareketine kullanım düşümü YAZILMAZ. */
+  const patlatmaSonucIsle = useCallback(
+    (girdi: SonucGirdisi) => {
+      const kayit = ajanda.find((a) => a.id === girdi.ajandaId);
+      if (!kayit) return { basarili: false, mesaj: 'Patlatma kaydı bulunamadı.' };
+
+      const durum: AjandaDurumu =
+      girdi.sonuc === 'YAPILMADI' ?
+      'Yapılmadı' :
+      girdi.sonuc === 'ERTELENDI' ?
+      'Ertelendi' :
+      'İptal Edildi';
+
+      const notParcalari = [girdi.neden, girdi.aciklama].filter(Boolean).join(' · ');
+
+      setAjanda((eski) =>
+      eski.map((a) =>
+      a.id === girdi.ajandaId ?
+      {
+        ...a,
+        durum,
+        tarih: girdi.yeniTarih || a.tarih,
+        saat: girdi.yeniSaat || a.saat,
+        bilgiKaynagi: girdi.bilgiKaynagi,
+        raporNo: girdi.belgeNo || a.raporNo,
+        sonucNotu: notParcalari || undefined,
+        odemeDurumu:
+        girdi.sonuc === 'ERTELENDI' ?
+        `Ertelendi · Yeni tarih ${girdi.yeniTarih || a.tarih} ${
+        girdi.yeniSaat || a.saat} · Kredi düşülmedi` :
+
+        `${durum} · Kredi düşülmedi`
+      } :
+      a
+      )
+      );
+
+      const eylem =
+      girdi.sonuc === 'YAPILMADI' ?
+      'Patlatma yapılmadı' :
+      girdi.sonuc === 'ERTELENDI' ?
+      'Patlatma ertelendi' :
+      'Patlatma iptal edildi';
+      auditEkle(
+        eylem,
+        `${kayit.kayitNo} · ${kayit.yer}${
+        girdi.sonuc === 'ERTELENDI' ?
+        ` · Yeni tarih ${girdi.yeniTarih} ${girdi.yeniSaat}` :
+        ''}${
+        notParcalari ? ` · ${notParcalari}` : ''} · Kredi düşülmedi`
+      );
+
+      return { basarili: true };
+    },
+    [ajanda, auditEkle]
+  );
+
   const patlatmaGerceklesmeIsle = useCallback(
     (girdi: GerceklesmeGirdisi): GerceklesmeSonucu => {
       const ozet = krediOzeti(girdi.isletmeciId);
       if (girdi.adet <= 0) {
-        return { basarili: false, mesaj: 'Gerçekleşen patlatma adedi sıfırdan büyük olmalıdır.' };
+        return { basarili: false, mesaj: 'Patlatma adedi sıfırdan büyük olmalıdır.' };
       }
       if (girdi.adet > ozet.kalan) {
         auditEkle(
           'Kredi yetersiz işlem engellendi',
-          `${isletmeciler.find((i) => i.id === girdi.isletmeciId)?.ad ?? '—'} · gerçekleşme raporu ${
+          `${isletmeciler.find((i) => i.id === girdi.isletmeciId)?.ad ?? '—'} · patlatma sonucu ${
           girdi.raporNo || '—'} · talep ${
           girdi.adet} / kullanılabilir ${ozet.kalan}`
         );
         return {
           basarili: false,
           mesaj:
-          'Kullanılabilir kredi yetersiz. Bu patlatma gerçekleşme raporu işlenmeden önce işletmeciye kredi yükleme / ödeme doğrulama / makbuz süreci tamamlanmalıdır.'
+          'Kullanılabilir kredi yetersiz. Bu patlatma yapıldı olarak işlenmeden önce işletmeciye kredi yükleme / ödeme doğrulama / makbuz süreci tamamlanmalıdır.'
         };
       }
 
@@ -410,16 +668,18 @@ export function AppProvider({
         kayitNo,
         bent: 'E',
         eIslemTuru: 'KREDI_GERCEKLESME',
-        baslik: `Patlatma gerçekleşme raporu — ${ocakAdi}`,
+        baslik: `Patlatma yapıldı — ${ocakAdi}`,
         talepEden: isletmeciAdi,
         birim: kullanici?.birim ?? 'KTPGV Taş Ocağı Birimi',
+        birimId: kullanici?.birimId,
         olusturan: kullanici?.rol ?? 'Sistem',
+        olusturanKullaniciId: kullanici?.id,
         olusturmaTarihi: new Date().toISOString().slice(0, 10),
         operasyonTarihi: girdi.tarih,
         operasyonSaati: girdi.saat,
         yer: ocakAdi,
         tutar: 0,
-        hesaplamaAciklamasi: `Gerçekleşme raporu işlendi. Önceki kullanılabilir kredi: ${ozet.kalan} · Düşülen: ${girdi.adet} · Kalan: ${ozet.kalan - girdi.adet}`,
+        hesaplamaAciklamasi: `Patlatma sonucu “Yapıldı” olarak işlendi. Önceki kullanılabilir kredi: ${ozet.kalan} · Düşülen: ${girdi.adet} · Kalan: ${ozet.kalan - girdi.adet}`,
         dekont: {
           dekontNo: 'Ön ödemeli kredi',
           banka: '—',
@@ -434,8 +694,10 @@ export function AppProvider({
         tasOcagiId: girdi.tasOcagiId,
         krediAdedi: girdi.adet,
         planKayitNo: girdi.planKayitNo,
-        raporNo: girdi.raporNo,
-        bildiren: girdi.bildiren,
+        raporNo: girdi.raporNo || undefined,
+        bildiren: girdi.bildiren || undefined,
+        bilgiKaynagi: girdi.bilgiKaynagi,
+        patlatmaSonucu: 'YAPILDI',
         raporDosyasi: girdi.raporDosyasi ?? null,
         notlar: girdi.aciklama || undefined
       };
@@ -453,7 +715,7 @@ export function AppProvider({
         raporNo: girdi.raporNo,
         bildiren: girdi.bildiren,
         tarih: girdi.tarih,
-        aciklama: `${ocakAdi} — patlatma gerçekleşme raporu işlendi, kredi düşüldü.`
+        aciklama: `${ocakAdi} — patlatma yapıldı olarak işlendi, kredi düşüldü.`
       },
       ...eski]
       );
@@ -464,10 +726,11 @@ export function AppProvider({
         a.id === girdi.ajandaId ?
         {
           ...a,
-          durum: 'Görev Tamamlandı' as const,
-          raporNo: girdi.raporNo,
+          durum: 'Yapıldı' as const,
+          raporNo: girdi.raporNo || a.raporNo,
+          bilgiKaynagi: girdi.bilgiKaynagi,
           gerceklesmeKayitNo: kayitNo,
-          odemeDurumu: `Gerçekleşme raporu işlendi · ${girdi.adet} kredi düşüldü · Kalan ${
+          odemeDurumu: `Patlatma yapıldı · ${girdi.adet} kredi düşüldü · Kalan ${
           ozet.kalan - girdi.adet}`
 
         } :
@@ -477,8 +740,8 @@ export function AppProvider({
       }
 
       auditEkle(
-        'Patlatma gerçekleşme raporu işlendi',
-        `${kayitNo} · ${ocakAdi} · Rapor ${girdi.raporNo || '—'}`
+        'Patlatma yapıldı olarak işlendi',
+        `${kayitNo} · ${ocakAdi} · Belge ${girdi.raporNo || '—'}`
       );
       auditEkle(
         'Taş ocağı kredi kullanıldı',
@@ -589,6 +852,72 @@ export function AppProvider({
     [kullanici]
   );
 
+  // --- Merkezi yetki katmanı ---------------------------------------------
+  const merkezAdminMi = kullaniciMerkezAdminMi(kullanici);
+  const denetciMi = kullaniciDenetciMi(kullanici);
+  const tumVeriGorebilir = kullaniciTumVeriGorebilir(kullanici);
+  const maliVeriGorebilir = kullaniciMaliVeriGorebilir(kullanici);
+
+  const ekranGorulebilir = useCallback(
+    (menuId: string) => ekranGorulebilirMi(kullanici, menuId),
+    [kullanici]
+  );
+  const kullaniciYonetimiYetkisi = yonetimEkraniGorulebilirMi(kullanici, 'kullanici-yonetimi');
+  const birimYonetimiYetkisi = yonetimEkraniGorulebilirMi(kullanici, 'birim-yonetimi');
+  const yonetimYetkisi = kullaniciYonetimiYetkisi || birimYonetimiYetkisi;
+
+  const islemGorulebilir = useCallback(
+    (islem: Islem) => islemGorulebilirMi(kullanici, islem),
+    [kullanici]
+  );
+  const maliKayitGorulebilir = useCallback(
+    (islem: Islem) => maliKayitGorulebilirMi(kullanici, islem),
+    [kullanici]
+  );
+  const ajandaKaydiGorulebilir = useCallback(
+    (kayit: AjandaKaydi) => ajandaKaydiGorulebilirMi(kullanici, kayit),
+    [kullanici]
+  );
+  const islemDegistirilebilir = useCallback(
+    (islem: Islem) => islemDegistirilebilirMi(kullanici, islem),
+    [kullanici]
+  );
+  const makbuzUretilebilir = useCallback(
+    (islem: Islem) => makbuzUretilebilirMi(kullanici, islem),
+    [kullanici]
+  );
+  const odemeDogrulanabilir = useCallback(
+    (islem: Islem) => odemeDogrulanabilirMi(kullanici, islem),
+    [kullanici]
+  );
+  const ajandaIslemiYapilabilir = useCallback(
+    (kayit: AjandaKaydi) => ajandaIslemiYapilabilirMi(kullanici, kayit),
+    [kullanici]
+  );
+
+  const gorunurIslemler = useMemo(
+    () => islemler.filter((i) => islemGorulebilirMi(kullanici, i)),
+    [islemler, kullanici]
+  );
+  const gorunurMaliKayitlar = useMemo(
+    () => gorunurIslemler.filter(maliKayitMi),
+    [gorunurIslemler]
+  );
+  const gorunurAjanda = useMemo(
+    () => ajanda.filter((a) => ajandaKaydiGorulebilirMi(kullanici, a)),
+    [ajanda, kullanici]
+  );
+  const gorunurAuditKayitlari = useMemo(() => {
+    const numaralar = new Set<string>();
+    gorunurIslemler.forEach((i) => {
+      numaralar.add(i.kayitNo);
+      if (i.makbuzNo) numaralar.add(i.makbuzNo);
+      i.altBasvurular?.forEach((alt) => numaralar.add(alt.no));
+      i.adliRaporlar?.forEach((r) => numaralar.add(r.no));
+    });
+    return auditKayitlari.filter((a) => auditKaydiGorulebilirMi(kullanici, a, numaralar));
+  }, [auditKayitlari, gorunurIslemler, kullanici]);
+
   const deger = useMemo<AppContextDegeri>(
     () => ({
       kullanici,
@@ -604,6 +933,24 @@ export function AppProvider({
       birimAktiflikDegistir,
       birimKullanicilari,
       yonetimYetkisi,
+      kullaniciYonetimiYetkisi,
+      birimYonetimiYetkisi,
+      ekranGorulebilir,
+      merkezAdminMi,
+      denetciMi,
+      tumVeriGorebilir,
+      maliVeriGorebilir,
+      gorunurIslemler,
+      gorunurMaliKayitlar,
+      gorunurAjanda,
+      gorunurAuditKayitlari,
+      islemGorulebilir,
+      maliKayitGorulebilir,
+      ajandaKaydiGorulebilir,
+      islemDegistirilebilir,
+      makbuzUretilebilir,
+      odemeDogrulanabilir,
+      ajandaIslemiYapilabilir,
       islemBul,
       bau,
       bauGuncelle,
@@ -619,7 +966,9 @@ export function AppProvider({
       krediHareketleri,
       krediHareketiEkle,
       krediOzeti,
+      patlatmaPlanla,
       patlatmaGerceklesmeIsle,
+      patlatmaSonucIsle,
       sigortalar,
       sigortaBul,
       sigortaKaydet,
@@ -649,6 +998,24 @@ export function AppProvider({
     birimAktiflikDegistir,
     birimKullanicilari,
     yonetimYetkisi,
+    kullaniciYonetimiYetkisi,
+    birimYonetimiYetkisi,
+    ekranGorulebilir,
+    merkezAdminMi,
+    denetciMi,
+    tumVeriGorebilir,
+    maliVeriGorebilir,
+    gorunurIslemler,
+    gorunurMaliKayitlar,
+    gorunurAjanda,
+    gorunurAuditKayitlari,
+    islemGorulebilir,
+    maliKayitGorulebilir,
+    ajandaKaydiGorulebilir,
+    islemDegistirilebilir,
+    makbuzUretilebilir,
+    odemeDogrulanabilir,
+    ajandaIslemiYapilabilir,
     islemBul,
     bau,
     bauGuncelle,
@@ -664,7 +1031,9 @@ export function AppProvider({
     krediHareketleri,
     krediHareketiEkle,
     krediOzeti,
+    patlatmaPlanla,
     patlatmaGerceklesmeIsle,
+    patlatmaSonucIsle,
     sigortalar,
     sigortaBul,
     sigortaKaydet,

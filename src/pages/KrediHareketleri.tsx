@@ -73,15 +73,15 @@ export function KrediHareketleri() {
           ikon={Clock} />
         
         <OzetKart
-          etiket="Planlanan / rapor bekleyen"
+          etiket="Sonuç bekleyen planlı"
           deger={`${ozet.planlanan}`}
           altMetin="Kredi henüz düşülmedi"
           ikon={CalendarClock} />
         
         <OzetKart
-          etiket="Gerçekleşmiş kullanılan"
+          etiket="Kullanılan kredi"
           deger={`${ozet.kullanilan}`}
-          altMetin="Gerçekleşme raporu işlenmiş"
+          altMetin="Patlatma yapıldı olarak işlenmiş"
           ikon={TrendingDown} />
         
         <OzetKart
@@ -119,8 +119,8 @@ export function KrediHareketleri() {
                         {h.tip === 'YUKLEME' ?
                     'Kredi yükleme' :
                     h.tip === 'PLAN' ?
-                    'Planlanan / rapor bekleyen' :
-                    'Gerçekleşmiş kullanım'}
+                    'Planlandı / sonuç bekliyor' :
+                    'Kullanım — patlatma yapıldı'}
                       </p>
                       <p className="text-xs text-muted-foreground">{h.aciklama}</p>
                       <span className="mt-1 inline-flex flex-wrap gap-1.5">
@@ -134,7 +134,7 @@ export function KrediHareketleri() {
                     <BilgiRozeti metin="Kredi düşülmedi" ton="uyari" />
                     }
                         {h.tip === 'KULLANIM' && h.raporNo &&
-                    <BilgiRozeti metin={`Rapor ${h.raporNo}`} ton="olumlu" />
+                    <BilgiRozeti metin={`Belge ${h.raporNo}`} ton="olumlu" />
                     }
                       </span>
                     </td>
@@ -172,10 +172,10 @@ export function KrediHareketleri() {
       </div>
 
       <KuralNotu baslik="Makbuz, kullanılabilirlik ve kredi düşümü">
-        Makbuz kredi yükleme kaydına kesilir; planlama ve gerçekleşme kayıtlarında yeniden ödeme ve
-        makbuz aranmaz. Yüklenen kredi, ödeme doğrulanana veya makbuz üretilene kadar kullanılamaz.
-        Kredi düşümü yalnızca patlatma gerçekleşme raporu işlendiğinde yapılır; planlı patlatmalar
-        “rapor bekliyor” olarak izlenir.
+        Makbuz kredi yükleme kaydına kesilir; planlama ve sonuç kayıtlarında yeniden ödeme ve makbuz
+        aranmaz. Yüklenen kredi, ödeme doğrulanana veya makbuz üretilene kadar kullanılamaz. Kredi
+        düşümü yalnızca patlatma “Yapıldı” olarak işlendiğinde yapılır; planlı patlatmalar “sonuç
+        bekliyor” olarak izlenir.
       </KuralNotu>
     </div>);
 

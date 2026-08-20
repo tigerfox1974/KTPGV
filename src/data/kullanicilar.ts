@@ -9,6 +9,7 @@ export const TUM_MENULER = [
 'isletmeciler',
 'tas-ocaklari',
 'kredi-hareketleri',
+'patlatma-takvimi',
 'ajanda',
 'raporlar',
 'kullanici-yonetimi',
@@ -165,6 +166,7 @@ export const kullanicilar: Kullanici[] = [
   'isletmeciler',
   'tas-ocaklari',
   'kredi-hareketleri',
+  'patlatma-takvimi',
   'ajanda',
   'raporlar',
   'kurallar'],
@@ -175,7 +177,7 @@ export const kullanicilar: Kullanici[] = [
   ajandaKullanabilir: true,
   bauGuncelleyebilir: false,
   aktif: true,
-  notlar: 'Patlatma gerçekleşme raporu işleme yetkisi vardır.'
+  notlar: 'Patlatma planlama ve sonuç işleme yetkisi vardır. Ana çalışma ekranı Patlatma Takvimi.'
 },
 {
   id: 'u-denetci',
@@ -195,6 +197,7 @@ export const kullanicilar: Kullanici[] = [
   'isletmeciler',
   'tas-ocaklari',
   'kredi-hareketleri',
+  'patlatma-takvimi',
   'ajanda',
   'raporlar',
   'arsiv',

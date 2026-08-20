@@ -20,13 +20,14 @@ import { DekontDosyasi } from '../types';
 import { formatTL, formatTarih } from '../utils/currency';
 
 export function Kayitlar() {
-  const { islemler, auditEkle, sigortaBul } = useApp();
+  const { gorunurIslemler, tumVeriGorebilir, auditEkle, sigortaBul } = useApp();
   const [arama, setArama] = useState('');
   const [bentFiltre, setBentFiltre] = useState('TUMU');
   const [acikSatir, setAcikSatir] = useState<string | null>(null);
   const [onizleme, setOnizleme] = useState<DekontDosyasi | null>(null);
 
-  const filtreli = islemler.filter((i) => {
+  // Arama ve bent filtresi yalnız kullanıcının yetkisi kapsamındaki kayıtlar üzerinde çalışır.
+  const filtreli = gorunurIslemler.filter((i) => {
     const bentUyum = bentFiltre === 'TUMU' || i.bent === bentFiltre;
     const metin = `${i.kayitNo} ${i.baslik} ${i.talepEden} ${i.dekont.dekontNo}`.toLowerCase();
     return bentUyum && metin.includes(arama.toLowerCase());
@@ -36,7 +37,11 @@ export function Kayitlar() {
     <div className="space-y-6">
       <PageHeader
         baslik="Kayıtlar"
-        aciklama="Tüm bentlerdeki işlem kayıtları. Kayıt numarasına tıklayarak detay sayfasını açabilirsiniz." />
+        aciklama={
+        tumVeriGorebilir ?
+        'Tüm bentlerdeki işlem kayıtları. Kayıt numarasına tıklayarak detay sayfasını açabilirsiniz.' :
+        'Rol, birim ve bent yetkiniz kapsamındaki işlem kayıtları listelenir.'
+        } />
       
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -68,7 +73,12 @@ export function Kayitlar() {
         </Select>
       </div>
 
-      {filtreli.length === 0 ?
+      {gorunurIslemler.length === 0 ?
+      <BosDurum
+        baslik="Yetkiniz kapsamında görüntülenebilecek kayıt bulunmuyor"
+        aciklama="Yalnızca kendi biriminize ve yetkili olduğunuz bentlere ait kayıtlar listelenir." /> :
+
+      filtreli.length === 0 ?
       <BosDurum baslik="Kayıt bulunamadı" aciklama="Arama veya filtre kriterlerini değiştirin." /> :
 
       <div className="overflow-hidden rounded-xl border border-border bg-card">
@@ -127,8 +137,8 @@ export function Kayitlar() {
                               {islem.eIslemTuru === 'KREDI_YUKLEME' ?
                           'Kredi yükleme' :
                           islem.eIslemTuru === 'KREDI_PLANLAMA' ?
-                          'Planlama' :
-                          'Gerçekleşme'}
+                          'Patlatma planı' :
+                          'Patlatma sonucu'}
                               )
                             </span>
                         }

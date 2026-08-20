@@ -58,7 +58,7 @@ function KrediYuklemeDetayi({ islem }: {islem: Islem;}) {
         </div>
 
         <div className="rounded-md border border-border bg-card p-3">
-          <p className="text-xs font-medium text-foreground">Bağlı gerçekleşmiş patlatmalar</p>
+          <p className="text-xs font-medium text-foreground">Bağlı yapılan patlatmalar</p>
           {gerceklesenler.length ?
           <ul className="mt-1.5 space-y-1 text-xs">
               {gerceklesenler.map((g) =>
@@ -71,7 +71,7 @@ function KrediYuklemeDetayi({ islem }: {islem: Islem;}) {
             )}
             </ul> :
 
-          <p className="mt-1 text-xs text-muted-foreground">Gerçekleşmiş patlatma yok.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Yapılan patlatma yok.</p>
           }
         </div>
 
@@ -92,8 +92,8 @@ function KrediYuklemeDetayi({ islem }: {islem: Islem;}) {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Bu patlatma kullanımları, EKRD kredi yükleme kaydında önceden ödenmiş krediden karşılanır.
-        Bu nedenle her kullanım için ayrı makbuz üretilmez.
+        Bu patlatma kullanımları, kredi yükleme kaydında önceden ödenmiş krediden karşılanır. Bu
+        nedenle her kullanım için ayrı makbuz üretilmez.
       </p>
     </div>);
 
@@ -101,8 +101,10 @@ function KrediYuklemeDetayi({ islem }: {islem: Islem;}) {
 
 interface OdemeTablosuProps {
   islemler: Islem[];
-  makbuzUretebilir: boolean;
-  sadeceGoruntule: boolean;
+  /** Kayıt bazlı makbuz üretme yetkisi (rol + birim + bent + kayıt durumu). */
+  makbuzUretilebilir: (islem: Islem) => boolean;
+  /** Kayıt bazlı ödeme doğrulama yetkisi. */
+  odemeDogrulanabilir: (islem: Islem) => boolean;
   dosyaGoruntule: (dosya: DekontDosyasi) => void;
   makbuzGoruntule: (islem: Islem) => void;
   makbuzUret: (islem: Islem) => void;
@@ -111,8 +113,8 @@ interface OdemeTablosuProps {
 
 export function OdemeTablosu({
   islemler,
-  makbuzUretebilir,
-  sadeceGoruntule,
+  makbuzUretilebilir,
+  odemeDogrulanabilir,
   dosyaGoruntule,
   makbuzGoruntule,
   makbuzUret,
@@ -224,7 +226,7 @@ export function OdemeTablosu({
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap justify-end gap-1.5">
-                        {islem.durum === 'ODEME_BEKLIYOR' && !sadeceGoruntule &&
+                        {odemeDogrulanabilir(islem) &&
                         <Button size="sm" variant="outline" onClick={() => odemeDogrula(islem)}>
                             <BadgeCheck className="h-4 w-4" aria-hidden="true" />
                             Ödemeyi doğrula
@@ -239,7 +241,7 @@ export function OdemeTablosu({
                         <Button
                           size="sm"
                           onClick={() => makbuzUret(islem)}
-                          disabled={!makbuzUretebilir || islem.durum === 'ODEME_BEKLIYOR'}>
+                          disabled={!makbuzUretilebilir(islem)}>
                           
                             <Receipt className="h-4 w-4" aria-hidden="true" />
                             Makbuz üret

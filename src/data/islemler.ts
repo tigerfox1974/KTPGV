@@ -224,7 +224,7 @@ export const baslangicIslemleri: Islem[] = [
   yer: 'Alfa Taş Ocağı — Lefkoşa',
   tutar: 0,
   hesaplamaAciklamasi:
-  'Patlatma planlama — kredi henüz düşülmedi. Kredi düşümü gerçekleşme raporu işlendiğinde yapılır.',
+  'Patlatma planı — kredi henüz düşülmedi. Kredi düşümü patlatma “Yapıldı” olarak işlendiğinde yapılır.',
   dekont: {
     dekontNo: 'EKRD-2026-000015',
     banka: '—',

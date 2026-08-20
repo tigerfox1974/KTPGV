@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '../components/common/PageHeader';
@@ -20,9 +21,9 @@ import { BentAlanlari, IslemFormu } from '../components/islem/BentAlanlari';
 import { BOS_DEKONT, DekontBolumu, DekontFormu } from '../components/islem/DekontBolumu';
 import { HesaplamaKutusu } from '../components/islem/HesaplamaKutusu';
 import {
-  GerceklesmeBaslangici,
-  GerceklesmeRaporuFormu } from
-'../components/tasocagi/GerceklesmeRaporuFormu';
+  PatlatmaBaslangici,
+  PatlatmaYapildiModali } from
+'../components/tasocagi/PatlatmaYapildiModali';
 import { bentler } from '../data/bentler';
 import { useApp } from '../contexts/AppContext';
 import { AdliRapor, BentKodu, DekontDosyasi, Islem, TrafikAltBasvuru } from '../types';
@@ -127,7 +128,8 @@ export function YeniIslem() {
   const [trafikSatirlari, setTrafikSatirlari] = useState<TrafikAltBasvuru[]>([]);
   const [adliSatirlari, setAdliSatirlari] = useState<AdliRapor[]>([]);
   const [sonKayit, setSonKayit] = useState<Islem | null>(null);
-  const [raporBaslangici, setRaporBaslangici] = useState<GerceklesmeBaslangici | null>(null);
+  const [raporBaslangici, setRaporBaslangici] = useState<PatlatmaBaslangici | null>(null);
+  const navigate = useNavigate();
 
   const kullanilabilirBentler = useMemo(
     () => bentler.filter((b) => kullanici?.bentler.includes(b.kod)),
@@ -355,7 +357,7 @@ export function YeniIslem() {
       gorevSuresi: bent === 'D' ? Number(form.gorevSuresi) : undefined,
       tutar: krediPlanlama ? 0 : sonuc.tutar,
       hesaplamaAciklamasi: krediPlanlama ?
-      'Patlatma planlama — kredi henüz düşülmedi. Kredi düşümü gerçekleşme raporu işlendiğinde yapılır.' :
+      'Patlatma planı — kredi henüz düşülmedi. Kredi düşümü patlatma “Yapıldı” olarak işlendiğinde yapılır.' :
       sonuc.satirlar.join(' · '),
       dekont: krediPlanlama ?
       {
@@ -428,12 +430,12 @@ export function YeniIslem() {
         tasOcagiId: form.tasOcagiId,
         tarih: form.operasyonTarihi,
         aciklama: `${
-        tasOcagiBul(form.tasOcagiId)?.ad} — planlı patlatma, gerçekleşme raporu bekliyor. Kredi düşülmedi.`
+        tasOcagiBul(form.tasOcagiId)?.ad} — planlı patlatma, sonuç bekliyor. Kredi düşülmedi.`
 
       });
       auditEkle(
-        'Taş ocağı patlatma planlandı',
-        `${kayitNo} · ${tasOcagiBul(form.tasOcagiId)?.ad} · ${form.krediAdedi} kredi rapor bekliyor`
+        'Patlatma planlandı',
+        `${kayitNo} · ${tasOcagiBul(form.tasOcagiId)?.ad} · ${form.krediAdedi} kredi sonuç bekliyor`
       );
     }
 
@@ -457,9 +459,9 @@ export function YeniIslem() {
         tarih: form.operasyonTarihi,
         saat: form.operasyonSaati || '09:00',
         yer: krediPlanlama ? tasOcagiBul(form.tasOcagiId)?.ad ?? '—' : form.yer.trim() || '—',
-        durum: krediPlanlama ? 'Rapor Bekliyor' : 'Planlandı',
+        durum: krediPlanlama ? 'Sonuç Bekliyor' : 'Planlandı',
         odemeDurumu: krediPlanlama ?
-        `Ön ödemeli kredi · ${form.krediAdedi} kredi planlandı, gerçekleşme raporu bekliyor` :
+        `Ön ödemeli kredi · ${form.krediAdedi} kredi planlandı, sonuç bekliyor` :
         `Ödeme alındı · Makbuz bekliyor · ${formatTL(yeni.tutar)}`,
         isletmeciId: krediPlanlama ? form.isletmeciId : undefined,
         tasOcagiId: krediPlanlama ? form.tasOcagiId : undefined,
@@ -612,13 +614,20 @@ export function YeniIslem() {
 
   if (krediGerceklesme) {
     bolumler.push({
-      baslik: 'Patlatma Gerçekleşme Raporu',
-      aciklama: 'Kredi düşümü yalnızca gerçekleşme raporu işlendiğinde yapılır.',
+      baslik: 'Patlatma Sonucunu İşle',
+      aciklama: 'Kredi düşümü yalnızca sonuç “Yapıldı” olarak işlendiğinde yapılır.',
       icerik:
       <div className="space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
+            <p className="text-sm text-foreground">
+              Patlatma sonucu en pratik şekilde Patlatma Takvimi ekranındaki kart üzerinden işlenir.
+            </p>
+            <Button variant="outline" size="sm" onClick={() => navigate('/patlatma-takvimi')}>
+              Patlatma Takvimine Git
+            </Button>
+          </div>
           <p className="text-sm text-muted-foreground">
-            Rapor bekleyen planlı patlatmalar aşağıda listelenir. Bu işlem ayrıca Ajanda ekranındaki
-            planlı patlatma kartından da yapılabilir.
+            Detaylı işlem için sonuç bekleyen planlı patlatmalar aşağıda listelenir.
           </p>
           {bekleyenPlanlar.length ?
         <ul className="space-y-2">
@@ -651,7 +660,7 @@ export function YeniIslem() {
                 })
                 }>
                 
-                      Patlatma gerçekleşti / rapor işle
+                      Yapıldı
                     </Button>
                   </div>
                 </li>
@@ -659,8 +668,8 @@ export function YeniIslem() {
             </ul> :
 
         <p className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-              Rapor bekleyen planlı patlatma bulunmuyor. Önce “Patlatma planlama / bekleyen patlatma
-              kaydı” işlem türü ile plan oluşturun.
+              Sonuç bekleyen planlı patlatma bulunmuyor. Önce “Patlatma Planla” işlem türü ile plan
+              oluşturun.
             </p>
         }
           <Button
@@ -677,7 +686,7 @@ export function YeniIslem() {
           }
           disabled={!form.isletmeciId}>
           
-            Plan kaydı olmadan gerçekleşme raporu işle
+            Plan kaydı olmadan sonuç işle
           </Button>
         </div>
 
@@ -770,7 +779,7 @@ export function YeniIslem() {
           <span>
             <strong className="font-mono">{sonKayit.kayitNo}</strong> kaydı oluşturuldu.
             {sonKayit.eIslemTuru === 'KREDI_PLANLAMA' ?
-          ' Kredi düşümü, gerçekleşme raporu işlendiğinde yapılacak.' :
+          ' Kredi düşümü, patlatma “Yapıldı” olarak işlendiğinde yapılacak.' :
           ' Makbuz süreci Ödeme / Makbuz ekranından yürütülür.'}
           </span>
         </div>
@@ -891,14 +900,14 @@ export function YeniIslem() {
 
           {(krediPlanlama || krediGerceklesme) &&
           <KuralNotu baslik="Ödeme / dekont">
-              Patlatma planlama ve gerçekleşme kayıtlarında ödeme yeniden alınmaz; ödeme ve dekont
-              işletmecinin kredi yükleme kaydında (EKRD serisi) bulunur.
+              Patlatma planlama ve sonuç kayıtlarında ödeme yeniden alınmaz; ödeme ve dekont
+              işletmecinin kredi yükleme kaydında bulunur.
             </KuralNotu>
           }
         </aside>
       </div>
 
-      <GerceklesmeRaporuFormu
+      <PatlatmaYapildiModali
         acik={!!raporBaslangici}
         kapat={() => setRaporBaslangici(null)}
         baslangic={raporBaslangici} />

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { MapPin, Mountain, Pencil, Phone, Plus, User } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { MapPin, Mountain, Pencil, Phone, Plus, User, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '../components/common/PageHeader';
 import { AktiflikRozeti, BilgiRozeti } from '../components/common/DurumRozeti';
@@ -23,8 +23,13 @@ export function TasOcagiIsletmecileri() {
   } = useApp();
   const [formAcik, setFormAcik] = useState(false);
   const [duzenlenen, setDuzenlenen] = useState<Isletmeci | null>(null);
+  const navigate = useNavigate();
 
-  const duzenleyebilir = !!kullanici && !kullanici.sadeceGoruntule;
+  // İşletmeci kartlarını Merkez Admin ve Taş Ocağı yetkilisi düzenleyebilir; Denetçi yalnız görür.
+  const duzenleyebilir =
+  !!kullanici &&
+  !kullanici.sadeceGoruntule && (
+  kullanici.rolKodu === 'MERKEZ_ADMIN' || kullanici.rolKodu === 'TAS_OCAGI');
 
   const ac = (isletmeci: Isletmeci | null) => {
     setDuzenlenen(isletmeci);
@@ -54,7 +59,7 @@ export function TasOcagiIsletmecileri() {
       <KuralNotu baslik="Ortak kredi ve kredi düşüm kuralı">
         Aynı işletmeciye bağlı farklı taş ocaklarında yapılan patlatmalar aynı ortak krediden düşer.
         Yüklenen kredi, ödeme doğrulanana veya makbuz üretilene kadar kullanılabilir sayılmaz. Kredi
-        düşümü planlama aşamasında değil, patlatma gerçekleşme raporu işlendiğinde yapılır.
+        düşümü planlama aşamasında değil, patlatma “Yapıldı” olarak işlendiğinde yapılır.
       </KuralNotu>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -114,17 +119,40 @@ export function TasOcagiIsletmecileri() {
                   <p className="font-heading text-lg font-semibold text-amber-700">
                     {ozet.planlanan}
                   </p>
-                  <p className="text-xs text-muted-foreground">Planlanan / rapor bekleyen</p>
+                  <p className="text-xs text-muted-foreground">Sonuç bekleyen planlı</p>
                 </div>
                 <div>
                   <p className="font-heading text-lg font-semibold">{ozet.kullanilan}</p>
-                  <p className="text-xs text-muted-foreground">Gerçekleşmiş kullanılan</p>
+                  <p className="text-xs text-muted-foreground">Kullanılan kredi</p>
                 </div>
                 <div>
                   <p className="font-heading text-lg font-semibold text-primary">{ozet.kalan}</p>
                   <p className="text-xs text-muted-foreground">Kalan kredi</p>
                 </div>
               </div>
+
+              {ozet.planlanan > ozet.kalan &&
+              <p
+                role="alert"
+                className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                
+                  Kredi yetersiz: sonuç bekleyen planlı patlatmalar ({ozet.planlanan}) kalan
+                  krediden ({ozet.kalan}) fazla. Patlatmalar “Yapıldı” olarak işlenmeden önce kredi
+                  yükleme / ödeme doğrulama / makbuz süreci tamamlanmalıdır.
+                </p>
+              }
+
+              {duzenleyebilir &&
+              <div className="mt-3 flex flex-wrap gap-2">
+                  <Button size="sm" onClick={() => navigate('/yeni-islem')}>
+                    <Wallet className="h-4 w-4" aria-hidden="true" />
+                    Kredi Yükle
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => navigate('/patlatma-takvimi')}>
+                    Patlatma Takvimi
+                  </Button>
+                </div>
+              }
 
               <div className="mt-4">
                 <div className="flex items-center justify-between gap-2">

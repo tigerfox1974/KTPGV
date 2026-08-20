@@ -21,9 +21,11 @@ const ISLEM_STILLERI: Record<IslemDurumu, string> = {
 
 const AJANDA_STILLERI: Record<AjandaDurumu, string> = {
   'Planlandı': 'bg-sky-50 text-sky-700 border-sky-200',
-  'Rapor Bekliyor': 'bg-amber-50 text-amber-700 border-amber-200',
+  'Sonuç Bekliyor': 'bg-amber-50 text-amber-700 border-amber-200',
   'İşlem Başlatılabilir': 'bg-indigo-50 text-indigo-700 border-indigo-200',
   'Görev Tamamlandı': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  'Yapıldı': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  'Yapılmadı': 'bg-slate-100 text-slate-700 border-slate-200',
   'Ertelendi': 'bg-amber-50 text-amber-700 border-amber-200',
   'İptal Edildi': 'bg-rose-50 text-rose-700 border-rose-200'
 };

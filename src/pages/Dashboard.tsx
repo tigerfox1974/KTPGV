@@ -10,7 +10,15 @@ import { formatTL, formatTarih } from '../utils/currency';
 import { bentler } from '../data/bentler';
 
 export function Dashboard() {
-  const { kullanici, islemler, ajanda, krediOzeti, bau, isletmeciler } = useApp();
+  const {
+    kullanici,
+    gorunurIslemler: islemler,
+    gorunurAjanda: ajanda,
+    tumVeriGorebilir,
+    krediOzeti,
+    bau,
+    isletmeciler
+  } = useApp();
   if (!kullanici) return null;
 
   const toplamGelir = islemler.reduce((t, i) => t + i.tutar, 0);
@@ -19,11 +27,14 @@ export function Dashboard() {
   const yaklasanGorevler = ajanda.
   filter((a) => a.durum === 'Planlandı' || a.durum === 'İşlem Başlatılabilir').
   slice(0, 5);
-  const kalanKrediToplami = isletmeciler.reduce((t, i) => t + krediOzeti(i.id).kalan, 0);
-  const bekleyenKrediToplami = isletmeciler.reduce(
-    (t, i) => t + krediOzeti(i.id).dogrulamaBekleyen,
-    0
-  );
+  // Kredi özeti yalnız E bendi kapsamındaki kullanıcılara anlamlıdır.
+  const krediKapsami = tumVeriGorebilir || kullanici.bentler.includes('E');
+  const kalanKrediToplami = krediKapsami ?
+  isletmeciler.reduce((t, i) => t + krediOzeti(i.id).kalan, 0) :
+  0;
+  const bekleyenKrediToplami = krediKapsami ?
+  isletmeciler.reduce((t, i) => t + krediOzeti(i.id).dogrulamaBekleyen, 0) :
+  0;
 
   const bentDagilimi = bentler.map((b) => {
     const kayitlar = islemler.filter((i) => i.bent === b.kod);
@@ -59,6 +70,13 @@ export function Dashboard() {
           ikon={CalendarDays} />
         
       </div>
+
+      {!tumVeriGorebilir &&
+      <KuralNotu baslik="Veri kapsamı">
+          Gösterilen özetler kullanıcı yetki kapsamına göre filtrelenmiştir: {kullanici.birim} birimi
+          ve yetkili bentler ({kullanici.bentler.join(', ') || '—'}).
+        </KuralNotu>
+      }
 
       {kullanici.sadeceGoruntule &&
       <KuralNotu baslik="Denetçi yetkisi" ton="uyari">

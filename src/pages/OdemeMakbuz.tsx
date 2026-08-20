@@ -10,22 +10,31 @@ import { useApp } from '../contexts/AppContext';
 import { DekontDosyasi, Islem } from '../types';
 
 export function OdemeMakbuz() {
-  const { kullanici, islemler, makbuzUret, odemeDogrula, auditEkle } = useApp();
+  const {
+    kullanici,
+    gorunurMaliKayitlar,
+    makbuzUretilebilir,
+    odemeDogrulanabilir,
+    maliVeriGorebilir,
+    makbuzUret,
+    odemeDogrula,
+    auditEkle
+  } = useApp();
   const [makbuzIslem, setMakbuzIslem] = useState<Islem | null>(null);
   const [onizleme, setOnizleme] = useState<DekontDosyasi | null>(null);
 
   if (!kullanici) return null;
 
   const uret = (islem: Islem) => {
-    if (!kullanici.makbuzUretebilir) {
-      toast.error('Makbuz üretme yetkiniz yok', {
-        description:
-        'Makbuz yalnızca Merkez Admin, Vakıf Muhasebe ve yetki verilmiş birimlerce üretilir.'
-      });
-      return;
-    }
     if (islem.makbuzNo) {
       toast.error('Bu kayda zaten makbuz üretilmiş', { description: islem.makbuzNo });
+      return;
+    }
+    if (!makbuzUretilebilir(islem)) {
+      toast.error('Makbuz üretme yetkiniz yok', {
+        description:
+        'Makbuz yalnızca Merkez Admin, Vakıf Muhasebe ve yetki verilmiş birimlerce, kendi kapsamındaki mali kayıtlar için üretilir.'
+      });
       return;
     }
     const no = makbuzUret(islem.id);
@@ -38,6 +47,12 @@ export function OdemeMakbuz() {
   };
 
   const dogrula = (islem: Islem) => {
+    if (!odemeDogrulanabilir(islem)) {
+      toast.error('Ödeme doğrulama yetkiniz yok', {
+        description: 'Bu kayıt için ödeme doğrulaması Merkez Admin veya Vakıf Muhasebe tarafından yapılır.'
+      });
+      return;
+    }
     odemeDogrula(islem.id);
     auditEkle('Ödeme doğrulandı', islem.kayitNo);
     toast.success('Ödeme doğrulandı', {
@@ -58,11 +73,9 @@ export function OdemeMakbuz() {
     auditEkle('Dekont dosyası görüntülendi', dosya.ad);
   };
 
-  // Ödeme / Makbuz ekranı yalnız MALİ kayıtları gösterir.
-  // E bendinde yalnız EKRD kredi yükleme mali kayıttır; EKPL ve EKGR operasyon kayıtlarıdır.
-  const maliKayitlar = islemler.filter(
-    (i) => !i.eIslemTuru || i.eIslemTuru === 'KREDI_YUKLEME'
-  );
+  // Ödeme / Makbuz ekranı yalnız MALİ kayıtları gösterir (E bendinde yalnız EKRD).
+  // Ardından kullanıcının rol / birim / bent kapsamı uygulanır.
+  const maliKayitlar = gorunurMaliKayitlar;
 
   const gruplar = [
   {
@@ -96,10 +109,16 @@ export function OdemeMakbuz() {
       
 
       <KuralNotu baslik="Bu ekranda hangi kayıtlar görünür?">
-        A, B, C, Ç, D, F / Adli, F / Trafik ana TTRF ve E / EKRD patlatma kredisi yükleme kayıtları
-        listelenir. Patlatma planlama (EKPL) ve patlatma gerçekleşme (EKGR) kayıtları ödeme doğuran
-        kayıtlar olmadığı için burada ana satır olarak görünmez; bunlar Ajanda, Kredi Hareketleri ve
+        A, B, C, Ç, D, F / Adli, F / Trafik ana TTRF ve E patlatma kredisi yükleme kayıtları
+        listelenir. Patlatma planlama ve patlatma sonucu kayıtları ödeme doğuran kayıtlar olmadığı
+        için burada ana satır olarak görünmez; bunlar Patlatma Takvimi, Ajanda, Kredi Hareketleri ve
         taş ocağı kartlarında izlenir.
+      </KuralNotu>
+
+      <KuralNotu baslik="Veri kapsamı">
+        {maliVeriGorebilir ?
+        `${kullanici.rol} tüm mali kayıtları görüntüleyebilir.` :
+        `${kullanici.rol} yalnızca kendi birimine (${kullanici.birim}) ve yetkili olduğu bentlere ait mali kayıtları görüntüleyebilir. Diğer birimlerin kayıtları silinmez, yalnızca bu kullanıcıya gösterilmez.`}
       </KuralNotu>
 
       <KuralNotu baslik="Makbuz yetkisi">
@@ -124,8 +143,8 @@ export function OdemeMakbuz() {
         <TabsContent key={grup.id} value={grup.id}>
             <OdemeTablosu
             islemler={grup.kayitlar}
-            makbuzUretebilir={kullanici.makbuzUretebilir}
-            sadeceGoruntule={kullanici.sadeceGoruntule}
+            makbuzUretilebilir={makbuzUretilebilir}
+            odemeDogrulanabilir={odemeDogrulanabilir}
             dosyaGoruntule={dosyaGoruntule}
             makbuzGoruntule={goruntule}
             makbuzUret={uret}

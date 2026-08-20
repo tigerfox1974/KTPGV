@@ -15,7 +15,11 @@ export function SigortaSirketleri() {
   const [formAcik, setFormAcik] = useState(false);
   const [duzenlenen, setDuzenlenen] = useState<SigortaSirketi | null>(null);
 
-  const duzenleyebilir = !!kullanici && !kullanici.sadeceGoruntule;
+  // Sigorta kartlarını Merkez Admin ve PGM Trafik Müdürlüğü düzenleyebilir; Denetçi yalnız görür.
+  const duzenleyebilir =
+  !!kullanici &&
+  !kullanici.sadeceGoruntule && (
+  kullanici.rolKodu === 'MERKEZ_ADMIN' || kullanici.rolKodu === 'PGM_TRAFIK');
 
   const ac = (sirket: SigortaSirketi | null) => {
     setDuzenlenen(sirket);

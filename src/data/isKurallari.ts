@@ -19,7 +19,7 @@ export const isKurallari: KuralGrubu[] = [
   'Aynı işletmeciye bağlı tüm taş ocakları ortak krediden kullanır.',
   'Patlatma planlama ajandaya düşer, kredi yükleme ajandaya düşmez.',
   'Dekont tarihi mali tarihtir; operasyon tarihi ajanda tarihidir.',
-  'Kredi düşümü planlama aşamasında değil, patlatma gerçekleşme raporu işlendiğinde yapılır.']
+  'Kredi düşümü planlama aşamasında değil, patlatma “Yapıldı” olarak işlendiğinde yapılır.']
 
 },
 {
@@ -27,10 +27,28 @@ export const isKurallari: KuralGrubu[] = [
   kurallar: [
   'Kredi yükleme (EKRD): ödeme alınır, dekont ve makbuz süreci işler; ödeme doğrulanınca veya makbuz kesilince kredi kullanılabilir olur.',
   'Patlatma planlama (EKPL): plan kaydı açılır, kredi düşülmez; kredi “planlanan / rapor bekleyen” olarak izlenir.',
-  'Patlatma gerçekleşme raporu (EKGR): patlatmanın yapıldığına dair rapor işlenir ve kredi bu aşamada düşer.',
-  'Gerçekleşme raporu işlenirken kullanılabilir kredi yetersizse kayıt tamamlanmaz; kredi yükleme / ödeme doğrulama / makbuz süreci gerekir.',
-  'Gerçekleşme raporu işlendiğinde ajanda kaydı “Görev Tamamlandı” olur ve audit log’a kredi düşüm hareketi yazılır.',
-  'Planlama ve gerçekleşme kayıtlarında yeniden ödeme, dekont veya makbuz istenmez.']
+  'Patlatma sonucu (EKGR): patlatmanın yapıldığı bilgisi işlenir ve kredi bu aşamada düşer.',
+  'Patlatma bilgisi sözlü, telefonla, yazılı veya görevli personel bildirimiyle gelebilir; belge ve dosya zorunlu değildir, bilgi kaynağı ise kayda geçer.',
+  'Sonuç işlenirken kullanılabilir kredi yetersizse kayıt tamamlanmaz; kredi yükleme / ödeme doğrulama / makbuz süreci gerekir.',
+  'Yapıldı sonucunda ajanda kaydı “Yapıldı” olur ve audit log’a kredi düşüm hareketi yazılır.',
+  'Yapılmadı, ertelendi ve iptal sonuçlarında kredi düşülmez; ertelemede kart yeni tarih ve saate taşınır.',
+  'Patlatmaların günlük takibi Patlatma Takvimi ekranından yapılır; sonuç kart üzerinden tek tıkla işlenir.',
+  'Planlama ve sonuç kayıtlarında yeniden ödeme, dekont veya makbuz istenmez.']
+
+},
+{
+  baslik: 'Veri Görünürlüğü ve Yetki',
+  kurallar: [
+  'Menü görünürlüğü ile veri görünürlüğü ayrıdır; menüyü gizlemek yeterli değildir, ekran ve kayıt erişimi de korunur.',
+  'Merkez Admin tüm kayıtları görür ve tüm işlemleri yapabilir.',
+  'Denetçi tüm kayıtları görür ancak hiçbir kaydı oluşturamaz veya değiştiremez.',
+  'Vakıf Muhasebe / Mali İşler tüm mali kayıtları görür; operasyonel kayıtları değiştiremez.',
+  'Birim kullanıcıları yalnız kendi birimine ve yetkili olduğu bentlere ait kayıtları görür.',
+  'PGM Trafik Müdürlüğü F / Trafik kayıtlarını görür; ayrıca yetki verilmedikçe F / Adli kayıtları görmez.',
+  'Kayıt detayına adres elle yazılarak yetkisiz erişim yapılamaz.',
+  'Yetki filtresi veriyi silmez; Merkez Admin ile giriş yapıldığında tüm veri yine görünür.',
+  'Makbuz üretme, ödeme doğrulama ve ajanda işlemleri yalnız kullanıcının kapsamındaki kayıtlarda aktiftir.',
+  'Audit Log’da hedef kayıt kullanıcıya görünmüyorsa audit satırı da görünmez.']
 
 },
 {
@@ -51,7 +69,7 @@ export const isKurallari: KuralGrubu[] = [
   kurallar: [
   'Ödeme / Makbuz ekranında yalnız ödeme doğuran mali kayıtlar ana satır olarak görünür.',
   'A, B, C, Ç, D, F / Adli, F / Trafik ana TTRF ve E / EKRD kredi yükleme kayıtları listelenir.',
-  'EKPL patlatma planlama ve EKGR patlatma gerçekleşme kayıtları ana satır olarak görünmez.',
+  'Patlatma planlama ve patlatma sonucu kayıtları ana satır olarak görünmez.',
   'EKRD kayıt detayında bağlı planlı ve gerçekleşmiş patlatmalar ile kredi hareketleri gösterilir.']
 
 },

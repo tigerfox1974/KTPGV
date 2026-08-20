@@ -206,7 +206,7 @@ export function KullaniciFormu({ acik, kapat, mevcut }: KullaniciFormuProps) {
               <YetkiAnahtari
                 id="ky-ajanda"
                 etiket="Ajanda kullanabilir"
-                aciklama="Patlatma gerçekleşme raporu işleme dahil."
+                aciklama="Patlatma planlama ve sonuç işleme dahil."
                 deger={form.ajandaKullanabilir}
                 degistir={(d) => guncelle('ajandaKullanabilir', d)} />
               

@@ -3,7 +3,7 @@ import { Pencil, Plus, Power, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '../components/common/PageHeader';
 import { KuralNotu } from '../components/common/KuralNotu';
-import { BosDurum } from '../components/common/BosDurum';
+import { YetkisizUyari } from '../components/common/YetkiKapisi';
 import { BilgiRozeti } from '../components/common/DurumRozeti';
 import { BirimFormu } from '../components/yonetim/BirimFormu';
 import { Button } from '../components/ui/Button';
@@ -18,21 +18,19 @@ export function BirimYonetimi() {
     birimBul,
     birimKullanicilari,
     birimAktiflikDegistir,
-    yonetimYetkisi
+    birimYonetimiYetkisi
   } = useApp();
   const [formAcik, setFormAcik] = useState(false);
   const [duzenlenen, setDuzenlenen] = useState<Birim | null>(null);
 
   if (!kullanici) return null;
 
-  if (!yonetimYetkisi) {
+  // Menüden gizlemek yetmez: adres elle yazılsa bile içerik gösterilmez.
+  if (!birimYonetimiYetkisi) {
     return (
       <div className="space-y-6">
         <PageHeader baslik="Birim Yönetimi" />
-        <BosDurum
-          baslik="Bu ekran için yetkiniz bulunmuyor"
-          aciklama="Birim yönetimi yalnızca Merkez Admin ve yetkilendirilmiş üst kullanıcılar tarafından görülebilir." />
-        
+        <YetkisizUyari aciklama="Birim yönetimi yalnızca Merkez Admin ve birim yönetimi yetkisi verilmiş üst kullanıcılar tarafından kullanılabilir." />
       </div>);
 
   }

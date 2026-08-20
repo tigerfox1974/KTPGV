@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { PageHeader } from '../components/common/PageHeader';
 import { KuralNotu } from '../components/common/KuralNotu';
 import { BosDurum } from '../components/common/BosDurum';
+import { YetkisizUyari } from '../components/common/YetkiKapisi';
 import { BilgiRozeti } from '../components/common/DurumRozeti';
 import { KullaniciFormu } from '../components/yonetim/KullaniciFormu';
 import { Button } from '../components/ui/Button';
@@ -19,7 +20,7 @@ export function KullaniciYonetimi() {
     kullaniciAktiflikDegistir,
     sifreSifirla,
     birimBul,
-    yonetimYetkisi
+    kullaniciYonetimiYetkisi
   } = useApp();
   const [arama, setArama] = useState('');
   const [formAcik, setFormAcik] = useState(false);
@@ -27,14 +28,12 @@ export function KullaniciYonetimi() {
 
   if (!kullanici) return null;
 
-  if (!yonetimYetkisi) {
+  // Menüden gizlemek yetmez: adres elle yazılsa bile içerik gösterilmez.
+  if (!kullaniciYonetimiYetkisi) {
     return (
       <div className="space-y-6">
         <PageHeader baslik="Kullanıcı Yönetimi" />
-        <BosDurum
-          baslik="Bu ekran için yetkiniz bulunmuyor"
-          aciklama="Kullanıcı yönetimi yalnızca Merkez Admin ve yetkilendirilmiş üst kullanıcılar tarafından görülebilir." />
-        
+        <YetkisizUyari aciklama="Kullanıcı yönetimi yalnızca Merkez Admin ve kullanıcı yönetimi yetkisi verilmiş üst kullanıcılar tarafından kullanılabilir." />
       </div>);
 
   }

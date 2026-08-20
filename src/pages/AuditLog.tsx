@@ -7,10 +7,10 @@ import { Input } from '../components/ui/Input';
 import { useApp } from '../contexts/AppContext';
 
 export function AuditLog() {
-  const { auditKayitlari } = useApp();
+  const { gorunurAuditKayitlari, tumVeriGorebilir } = useApp();
   const [arama, setArama] = useState('');
 
-  const filtreli = auditKayitlari.filter((k) =>
+  const filtreli = gorunurAuditKayitlari.filter((k) =>
   `${k.kullanici} ${k.eylem} ${k.hedef}`.toLowerCase().includes(arama.toLowerCase())
   );
 
@@ -25,6 +25,13 @@ export function AuditLog() {
         Kayıt sonrası dekont silme, makbuz üretme ve kredi hareketleri gibi kritik işlemler audit
         log’a yazılır ve geri alınamaz.
       </KuralNotu>
+
+      {!tumVeriGorebilir &&
+      <KuralNotu baslik="Görünürlük kapsamı" ton="uyari">
+          Yalnızca kendi işlemleriniz ve görüntüleme yetkiniz olan kayıtlarla ilişkili audit
+          hareketleri listelenir. Tüm denetim izini Merkez Admin ve Denetçi görebilir.
+        </KuralNotu>
+      }
 
       <div className="relative sm:max-w-sm">
         <Search

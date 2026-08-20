@@ -16,6 +16,7 @@ export function TasOcagiKartlari() {
     kullanici,
     krediHareketleri,
     krediOzeti,
+    gorunurAjanda: ajanda,
     tasOcaklari,
     isletmeciBul,
     isletmeciler,
@@ -24,7 +25,11 @@ export function TasOcagiKartlari() {
   const [formAcik, setFormAcik] = useState(false);
   const [duzenlenen, setDuzenlenen] = useState<TasOcagi | null>(null);
 
-  const duzenleyebilir = !!kullanici && !kullanici.sadeceGoruntule;
+  // Taş ocağı kartlarını Merkez Admin ve Taş Ocağı yetkilisi düzenleyebilir; Denetçi yalnız görür.
+  const duzenleyebilir =
+  !!kullanici &&
+  !kullanici.sadeceGoruntule && (
+  kullanici.rolKodu === 'MERKEZ_ADMIN' || kullanici.rolKodu === 'TAS_OCAGI');
   const isletmeciVar = isletmeciler.length > 0;
 
   const ac = (ocak: TasOcagi | null) => {
@@ -75,6 +80,19 @@ export function TasOcagiKartlari() {
             (h) => h.tip === 'PLAN' && !raporlananPlanlar.includes(h.kayitNo)
           );
           const kullanilanKredi = kullanimlar.reduce((t, h) => t + h.adet, 0);
+          const ocakAjandasi = ajanda.filter((a) => a.tasOcagiId === ocak.id);
+          const sonucBekleyen = ocakAjandasi.filter(
+            (a) =>
+            !a.gerceklesmeKayitNo && (
+            a.durum === 'Planlandı' || a.durum === 'Sonuç Bekliyor' || a.durum === 'Ertelendi')
+          ).length;
+          const yapilmayan = ocakAjandasi.filter(
+            (a) => a.durum === 'Yapılmadı' || a.durum === 'İptal Edildi'
+          ).length;
+          const sonPatlatma = kullanimlar.
+          map((h) => h.tarih).
+          sort().
+          slice(-1)[0];
           return (
             <article
               key={ocak.id}
@@ -108,7 +126,7 @@ export function TasOcagiKartlari() {
                 <div className="mt-4 space-y-3 rounded-lg bg-muted/50 p-3">
                   <div>
                     <p className="text-xs font-medium text-foreground">
-                      Planlanan patlatmalar (rapor bekliyor)
+                      Planlanan patlatmalar (sonuç bekliyor)
                     </p>
                     {planlar.length ?
                   <ul className="mt-1.5 space-y-1 text-xs">
@@ -123,13 +141,15 @@ export function TasOcagiKartlari() {
                       </ul> :
 
                   <p className="mt-1 text-xs text-muted-foreground">
-                        Rapor bekleyen planlı patlatma yok.
+                        Sonuç bekleyen planlı patlatma yok.
                       </p>
                   }
                   </div>
 
                   <div>
-                    <p className="text-xs font-medium text-foreground">Gerçekleşen patlatmalar</p>
+                    <p className="text-xs font-medium text-foreground">
+                      Yapılan patlatmalar
+                    </p>
                     {kullanimlar.length ?
                   <ul className="mt-1.5 space-y-1 text-xs">
                         {kullanimlar.map((k) =>
@@ -144,12 +164,20 @@ export function TasOcagiKartlari() {
                       </ul> :
 
                   <p className="mt-1 text-xs text-muted-foreground">
-                        Gerçekleşme raporu işlenmiş patlatma yok.
+                        Yapıldı olarak işlenmiş patlatma yok.
                       </p>
                   }
                   </div>
 
                   <dl className="grid grid-cols-2 gap-2 border-t border-border pt-2 text-xs">
+                    <dt className="text-muted-foreground">Sonuç bekleyen</dt>
+                    <dd className="text-right font-medium text-foreground">{sonucBekleyen}</dd>
+                    <dt className="text-muted-foreground">Yapılmadı / iptal</dt>
+                    <dd className="text-right font-medium text-foreground">{yapilmayan}</dd>
+                    <dt className="text-muted-foreground">Son patlatma tarihi</dt>
+                    <dd className="text-right font-medium text-foreground">
+                      {sonPatlatma ? formatTarih(sonPatlatma) : '—'}
+                    </dd>
                     <dt className="text-muted-foreground">Bu ocakta kullanılan kredi</dt>
                     <dd className="text-right font-medium text-foreground">
                       {kullanilanKredi} kredi

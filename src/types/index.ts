@@ -10,6 +10,15 @@ export type FAltTur = 'ADLI' | 'TRAFIK';
  */
 export type EIslemTuru = 'KREDI_YUKLEME' | 'KREDI_PLANLAMA' | 'KREDI_GERCEKLESME';
 
+/**
+ * Patlatma bilgisi yazılı raporla gelmek zorunda değildir; sözlü, telefonla veya
+ * görevli personel bildirimiyle de gelebilir. Bilgi kaynağı bu nedenle kayıt altına alınır.
+ */
+export type BilgiKaynagi = 'SOZLU' | 'TELEFON' | 'YAZILI' | 'PERSONEL' | 'DIGER';
+
+/** Patlatma kartının kullanıcıya gösterilen sade sonucu. */
+export type PatlatmaSonucu = 'YAPILDI' | 'YAPILMADI' | 'ERTELENDI' | 'IPTAL';
+
 export interface Bent {
   kod: BentKodu;
   baslik: string;
@@ -130,7 +139,11 @@ export interface Islem {
   baslik: string;
   talepEden: string;
   birim: string;
+  /** Kaydı oluşturan birimin kart kimliği — veri görünürlüğü bu alandan süzülür. */
+  birimId?: string;
   olusturan: string;
+  /** Kaydı oluşturan kullanıcının kimliği. */
+  olusturanKullaniciId?: string;
   olusturmaTarihi: string;
   /** Operasyon (görev/denetim/rapor/patlatma) tarihi — ajanda bu tarihten beslenir. */
   operasyonTarihi?: string;
@@ -153,10 +166,14 @@ export interface Islem {
   krediAdedi?: number;
   /** Gerçekleşme kaydının bağlı olduğu plan kaydı (EKPL). */
   planKayitNo?: string;
-  /** Patlatmanın yapıldığına dair gelen rapor / belge no. */
+  /** Varsa belge / bildirim no. */
   raporNo?: string;
-  /** Raporu bildiren kişi / birim. */
+  /** Bilgiyi bildiren kişi / birim. */
   bildiren?: string;
+  /** Bilginin geliş şekli (sözlü, telefon, yazılı, personel, diğer). */
+  bilgiKaynagi?: BilgiKaynagi;
+  /** Patlatma sonucu — yalnız E bendi sonuç kayıtlarında dolar. */
+  patlatmaSonucu?: PatlatmaSonucu;
   raporDosyasi?: DekontDosyasi | null;
   notlar?: string;
 }
@@ -221,11 +238,17 @@ export interface KrediHareketi {
   aciklama: string;
 }
 
+/**
+ * Sade kullanıcı dili: “Rapor Bekliyor” yerine “Sonuç Bekliyor”, E bendi tamamlanan
+ * patlatmalar için “Yapıldı” / “Yapılmadı” kullanılır.
+ */
 export type AjandaDurumu =
 'Planlandı' |
-'Rapor Bekliyor' |
+'Sonuç Bekliyor' |
 'İşlem Başlatılabilir' |
 'Görev Tamamlandı' |
+'Yapıldı' |
+'Yapılmadı' |
 'Ertelendi' |
 'İptal Edildi';
 
@@ -237,6 +260,10 @@ export interface AjandaKaydi {
   baslik: string;
   talepEden: string;
   birim: string;
+  /** Kaydı oluşturan birimin kart kimliği. */
+  birimId?: string;
+  /** Kaydı oluşturan kullanıcının kimliği. */
+  olusturanKullaniciId?: string;
   /** Operasyon tarihi — dekont tarihi asla ajanda tarihi olarak kullanılmaz. */
   tarih: string;
   saat: string;
@@ -247,8 +274,14 @@ export interface AjandaKaydi {
   isletmeciId?: string;
   tasOcagiId?: string;
   planlananAdet?: number;
+  /** Varsa belge / bildirim no. */
   raporNo?: string;
+  /** Bilginin geliş şekli. */
+  bilgiKaynagi?: BilgiKaynagi;
+  /** Sonucu işlenen patlatmanın kredi düşüm kaydı (EKGR). */
   gerceklesmeKayitNo?: string;
+  /** Yapılmadı / ertelendi / iptal nedeni ve açıklaması. */
+  sonucNotu?: string;
 }
 
 export interface AuditKaydi {
