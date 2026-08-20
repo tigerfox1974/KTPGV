@@ -255,19 +255,44 @@ export function YeniIslem() {
   );
 
   const krediDekontKurus = Math.round((krediDekontTutari ?? 0) * 100);
+  const mahsupBakiyesiKurus = Math.round((ozet?.mahsuplasmaBakiyesi ?? 0) * 100);
+  const temelKrediKurus = Math.round(sonuc.tutar * 100);
+  const toplamHesapKurus = krediYukleme && krediYuklemeYontemi === 'TUTAR' ?
+  krediDekontKurus + (mahsupKullan ? mahsupBakiyesiKurus : 0) :
+  temelKrediKurus;
   const krediDekonttanAdet =
-  krediYuklemeBirimKurus > 0 && krediDekontKurus >= krediYuklemeBirimKurus ?
-  Math.floor(krediDekontKurus / krediYuklemeBirimKurus) :
+  krediYuklemeBirimKurus > 0 && toplamHesapKurus >= krediYuklemeBirimKurus ?
+  Math.floor(toplamHesapKurus / krediYuklemeBirimKurus) :
   0;
   const krediDekontTutariGecerli = krediYuklemeYontemi !== 'TUTAR' || krediDekonttanAdet > 0;
-  const krediyeMahsupEdilenTutar = krediYukleme ? (Number(form.krediAdedi) || 0) * patlatmaBedeli(bau) : sonuc.tutar;
-  const mahsupKullanilanTutar = krediYukleme && mahsupKullan && ozet ? Math.min(ozet.mahsuplasmaBakiyesi, krediyeMahsupEdilenTutar) : 0;
-  const beklenenOdemeTutari = krediYuklemeYontemi === 'TUTAR' && krediYukleme ?
-  krediDekontTutari ?? 0 :
-  Math.max(0, sonuc.tutar - mahsupKullanilanTutar);
-  const fazlaOdemeTutar = krediYuklemeYontemi === 'TUTAR' && krediYukleme ?
-  Math.max(0, (krediDekontTutari ?? 0) - krediyeMahsupEdilenTutar) :
+  const krediyeMahsupKurus = krediYukleme ? (Number(form.krediAdedi) || 0) * krediYuklemeBirimKurus : temelKrediKurus;
+  const mahsupKullanilanKurus = krediYukleme && mahsupKullan ?
+  krediYuklemeYontemi === 'TUTAR' ?
+  Math.min(mahsupBakiyesiKurus, Math.max(0, krediyeMahsupKurus - krediDekontKurus)) :
+  Math.min(mahsupBakiyesiKurus, krediyeMahsupKurus) :
   0;
+  const krediyeMahsupEdilenTutar = krediyeMahsupKurus / 100;
+  const mahsupKullanilanTutar = mahsupKullanilanKurus / 100;
+  const beklenenOdemeTutari = krediYuklemeYontemi === 'TUTAR' && krediYukleme ? krediDekontTutari ?? 0 : Math.max(0, (krediyeMahsupKurus - mahsupKullanilanKurus) / 100);
+  const fazlaOdemeTutar = krediYuklemeYontemi === 'TUTAR' && krediYukleme ?
+  Math.max(0, (krediDekontKurus + mahsupKullanilanKurus - krediyeMahsupKurus) / 100) :
+  0;
+
+  useEffect(() => {
+    if (!krediYukleme) return;
+    if (krediYuklemeYontemi === 'TUTAR') {
+      const sonrakiAdet = krediDekonttanAdet > 0 ? String(krediDekonttanAdet) : '';
+      if (form.krediAdedi !== sonrakiAdet) setForm((eski) => ({ ...eski, krediAdedi: sonrakiAdet }));
+      const sonrakiOdeme = krediDekonttanAdet > 0 ? krediDekontTutari : null;
+      if ((dekont.odenenTutar ?? null) !== (sonrakiOdeme ?? null)) {
+        setDekont((eski) => ({ ...eski, odenenTutar: sonrakiOdeme }));
+      }
+      return;
+    }
+    if (sonuc.gecerli && sonuc.tutar > 0 && (dekont.odenenTutar ?? null) !== beklenenOdemeTutari) {
+      setDekont((eski) => ({ ...eski, odenenTutar: beklenenOdemeTutari }));
+    }
+  }, [krediYukleme, krediYuklemeYontemi, krediDekonttanAdet, krediDekontTutari, form.krediAdedi, dekont.odenenTutar, sonuc.gecerli, sonuc.tutar, beklenenOdemeTutari]);
 
   const kayitNoOnizleme = form.bent ?
   sonrakiKayitNo(islemler, form.bent as BentKodu, form.fAltTur, form.eIslemTuru) :
@@ -540,6 +565,7 @@ export function YeniIslem() {
       fazlaOdemeTutar: krediYukleme && fazlaOdemeTutar > 0 ? fazlaOdemeTutar : undefined,
       fazlaOdemeDurumu: krediYukleme && fazlaOdemeTutar > 0 ? fazlaOdemeDurumu as FazlaOdemeDurumu : undefined,
       mahsupKullanilanTutar: krediYukleme && mahsupKullanilanTutar > 0 ? mahsupKullanilanTutar : undefined,
+      mahsupKaynakKayitNo: krediYukleme && mahsupKullanilanTutar > 0 ? islemler.find((i) => i.isletmeciId === form.isletmeciId && i.fazlaOdemeDurumu === 'MAHSUP_BAKIYESI' && (i.fazlaOdemeTutar ?? 0) > 0)?.kayitNo : undefined,
       notlar: form.notlar.trim() || undefined
     };
 
@@ -577,7 +603,7 @@ export function YeniIslem() {
         );
       }
       if (mahsupKullanilanTutar > 0) {
-        auditEkle('Fazla ödeme mahsup edildi', `${kayitNo} · ${formatTL(mahsupKullanilanTutar)}`);
+        auditEkle('Mahsup bakiyesi kredi yüklemede kullanıldı', `${isletmeci?.ad ?? '—'} · ${kayitNo} · Kullanılan tutar ${formatTL(mahsupKullanilanTutar)}`);
       }
     }
 

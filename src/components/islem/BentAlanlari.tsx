@@ -581,12 +581,19 @@ export function BentAlanlari({
     const adet = Number(form.krediAdedi) || 0;
     const birimKurus = Math.round(patlatmaBedeliTutar * 100);
     const dekontKurus = Math.round((krediDekontTutari ?? 0) * 100);
-    const tutardanKredi = birimKurus > 0 && dekontKurus >= birimKurus ? Math.floor(dekontKurus / birimKurus) : 0;
-    const mahsupKurus = mahsupKullan && krediOzeti ? Math.min(Math.round(krediOzeti.mahsuplasmaBakiyesi * 100), Math.max(0, patlatmaBedeliTutar * adet * 100)) : 0;
-    const mahsupTutari = mahsupKurus / 100;
-    const odenecekTutar = Math.max(0, patlatmaBedeliTutar * adet - mahsupTutari);
+    const mahsupBakiyesiKurus = Math.round((krediOzeti?.mahsuplasmaBakiyesi ?? 0) * 100);
+    const toplamHesapKurus = krediYuklemeYontemi === 'TUTAR' ? dekontKurus + (mahsupKullan ? mahsupBakiyesiKurus : 0) : adet * birimKurus;
+    const tutardanKredi = birimKurus > 0 && toplamHesapKurus >= birimKurus ? Math.floor(toplamHesapKurus / birimKurus) : 0;
     const krediyeMahsupKurus = tutardanKredi * birimKurus;
-    const fazlaKurus = Math.max(0, dekontKurus - krediyeMahsupKurus);
+    const mahsupKurus = mahsupKullan && krediOzeti ?
+    krediYuklemeYontemi === 'TUTAR' ?
+    Math.min(mahsupBakiyesiKurus, Math.max(0, krediyeMahsupKurus - dekontKurus)) :
+    Math.min(mahsupBakiyesiKurus, Math.max(0, adet * birimKurus)) :
+    0;
+    const mahsupTutari = mahsupKurus / 100;
+    const kalanMahsupTutari = Math.max(0, (mahsupBakiyesiKurus - mahsupKurus) / 100);
+    const odenecekTutar = krediYuklemeYontemi === 'TUTAR' ? (krediDekontTutari ?? 0) : Math.max(0, adet * patlatmaBedeliTutar - mahsupTutari);
+    const fazlaKurus = Math.max(0, dekontKurus + mahsupKurus - krediyeMahsupKurus);
     const fazlaOdemeTutar = fazlaKurus / 100;
     const tutarYetersiz = krediYuklemeYontemi === 'TUTAR' && (krediDekontTutari ?? 0) > 0 && dekontKurus < birimKurus;
     const fazlaOdemeVar = krediYuklemeYontemi === 'TUTAR' && fazlaOdemeTutar > 0 && tutardanKredi > 0;
@@ -613,9 +620,10 @@ export function BentAlanlari({
           </button>
         </div>
 
-        {krediOzeti && krediOzeti.mahsuplasmaBakiyesi > 0 && krediYuklemeYontemi === 'ADET' &&
+        {krediOzeti && krediOzeti.mahsuplasmaBakiyesi > 0 &&
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
             <p className="font-medium">Bu işletmecinin mahsuplaşma bakiyesi: {formatTL(krediOzeti.mahsuplasmaBakiyesi)}</p>
+          <p className="mt-1 text-xs">Bu tutar patlatma kredisi değildir; sonraki kredi yükleme ödemesinde TL indirimi olarak kullanılabilir.</p>
             <div className="mt-2 flex flex-wrap gap-2">
               <button
                 type="button"
@@ -631,11 +639,17 @@ export function BentAlanlari({
               </button>
             </div>
             {mahsupKullan &&
-            <dl className="mt-2 grid gap-1 text-xs sm:grid-cols-3">
-                <div><dt>Kredi yükleme tutarı</dt><dd className="font-medium">{formatTL(patlatmaBedeliTutar * adet)}</dd></div>
+            <dl className="mt-2 grid gap-1 text-xs sm:grid-cols-4">
+                {krediYuklemeYontemi === 'TUTAR' && <div><dt>Dekonttaki yeni ödeme</dt><dd className="font-medium">{formatTL(krediDekontTutari ?? 0)}</dd></div>}
+                <div><dt>Kredi yükleme tutarı</dt><dd className="font-medium">{formatTL(krediYuklemeYontemi === 'TUTAR' ? krediyeMahsupKurus / 100 : patlatmaBedeliTutar * adet)}</dd></div>
                 <div><dt>Kullanılan mahsup</dt><dd className="font-medium">{formatTL(mahsupTutari)}</dd></div>
                 <div><dt>Ödenmesi gereken</dt><dd className="font-medium">{formatTL(odenecekTutar)}</dd></div>
+                <div><dt>Kalan mahsup bakiyesi</dt><dd className="font-medium">{formatTL(kalanMahsupTutari)}</dd></div>
               </dl>
+            }
+            {!mahsupKullan && <p className="mt-2 text-xs">Mahsup bakiyesi bu işlemde kullanılmadı.</p>}
+            {mahsupKullan && krediYuklemeYontemi === 'TUTAR' && dekontKurus > 0 && dekontKurus % birimKurus === 0 &&
+            <p className="mt-2 text-xs">Bu dekont tutarı tam kredi karşılıyor. Mahsup bakiyesi kullanılmasına gerek yoktur.</p>
             }
           </div>
         }
@@ -656,7 +670,7 @@ export function BentAlanlari({
             </p>
           </div> :
         <div className="space-y-2 sm:max-w-sm">
-            <Label htmlFor="kredi-dekont-tutari">Dekonttaki ödeme tutarı</Label>
+            <Label htmlFor="kredi-dekont-tutari">Dekonttaki yeni ödeme tutarı</Label>
             <ParaInput
               id="kredi-dekont-tutari"
               value={krediDekontTutari}
@@ -664,7 +678,7 @@ export function BentAlanlari({
               placeholder="Örn. 21.267,90 TL"
               className="mt-1.5" />
             <p className="text-xs text-muted-foreground">
-              Bu alan kredi adedini hesaplamak içindir. Kayıt aşamasında dekont bilgileri ayrıca doğrulanır.
+              Bu alan yeni yatırılan dekont tutarıdır. Seçilirse mahsuplaşma bakiyesi ayrıca hesaba eklenir.
             </p>
             {tutarYetersiz &&
             <p className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
@@ -680,10 +694,13 @@ export function BentAlanlari({
             <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
                 <p className="font-medium">Bu dekont tutarı tam kredi bedeline bölünmüyor.</p>
                 <dl className="grid gap-1 sm:grid-cols-2">
-                  <div><dt>Dekont tutarı</dt><dd className="font-medium">{formatTL(krediDekontTutari ?? 0)}</dd></div>
+                  <div><dt>Dekonttaki yeni ödeme tutarı</dt><dd className="font-medium">{formatTL(krediDekontTutari ?? 0)}</dd></div>
+                  <div><dt>Kullanılan mahsup</dt><dd className="font-medium">{formatTL(mahsupTutari)}</dd></div>
+                  <div><dt>Hesaplamaya giren toplam</dt><dd className="font-medium">{formatTL((dekontKurus + mahsupKurus) / 100)}</dd></div>
                   <div><dt>1 kredi bedeli</dt><dd className="font-medium">{formatTL(patlatmaBedeliTutar)}</dd></div>
                   <div><dt>Tam karşılanan kredi</dt><dd className="font-medium">{tutardanKredi}</dd></div>
                   <div><dt>Krediye mahsup edilen</dt><dd className="font-medium">{formatTL(krediyeMahsupKurus / 100)}</dd></div>
+                  <div><dt>Kalan mahsup bakiyesi</dt><dd className="font-medium">{formatTL(kalanMahsupTutari)}</dd></div>
                   <div><dt>Fazla ödeme</dt><dd className="font-medium">{formatTL(fazlaOdemeTutar)}</dd></div>
                 </dl>
                 <p>Fazla ödeme patlatma kredisi değildir. Kayıt oluşturulabilir; ancak fazla ödeme için iade veya mahsup kararı alınmalıdır.</p>

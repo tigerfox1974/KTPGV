@@ -523,10 +523,12 @@ export function AppProvider({
       reduce((t, h) => t + h.adet, 0);
       const kullanilabilir = yuklenen - dogrulamaBekleyen;
       const ilgiliIslemler = islemler.filter((i) => i.isletmeciId === isletmeciId);
-      const mahsuplasmaBakiyesi = ilgiliIslemler.reduce((t, i) => {
+      const mahsupBakiyesiToplam = ilgiliIslemler.reduce((t, i) => {
         if (i.fazlaOdemeDurumu === 'MAHSUP_BAKIYESI') return t + (i.fazlaOdemeTutar ?? 0);
         return t;
       }, 0);
+      const kullanilanMahsup = ilgiliIslemler.reduce((t, i) => t + (i.mahsupKullanilanTutar ?? 0), 0);
+      const mahsuplasmaBakiyesi = Math.max(0, mahsupBakiyesiToplam - kullanilanMahsup);
       const iadeBekleyenTutar = ilgiliIslemler.reduce((t, i) => {
         if (i.fazlaOdemeDurumu === 'IADE_BEKLIYOR') return t + (i.fazlaOdemeTutar ?? 0);
         return t;
