@@ -8,9 +8,11 @@ import {
   Gavel,
   LayoutDashboard,
   Mountain,
+  Network,
   Receipt,
   ScrollText,
   ShieldCheck,
+  UserCog,
   Users,
   Wallet } from
 'lucide-react';
@@ -35,6 +37,8 @@ export const menuler: MenuOgesi[] = [
 { id: 'kredi-hareketleri', etiket: 'Taş Ocağı Kredi Hareketleri', yol: '/kredi-hareketleri', ikon: Wallet, grup: 'Kartlar' },
 { id: 'ajanda', etiket: 'Ajanda', yol: '/ajanda', ikon: CalendarDays, grup: 'Takip' },
 { id: 'raporlar', etiket: 'Raporlar', yol: '/raporlar', ikon: BarChart3, grup: 'Takip' },
+{ id: 'kullanici-yonetimi', etiket: 'Kullanıcı Yönetimi', yol: '/kullanici-yonetimi', ikon: UserCog, grup: 'Yönetim' },
+{ id: 'birim-yonetimi', etiket: 'Birim Yönetimi', yol: '/birim-yonetimi', ikon: Network, grup: 'Yönetim' },
 { id: 'yetkiler', etiket: 'Kullanıcı / Rol / Birim Yetkileri', yol: '/yetkiler', ikon: ShieldCheck, grup: 'Yönetim' },
 { id: 'arsiv', etiket: 'Mali Yıl Arşiv', yol: '/mali-yil-arsiv', ikon: Archive, grup: 'Yönetim' },
 { id: 'audit', etiket: 'Audit Log', yol: '/audit-log', ikon: ScrollText, grup: 'Yönetim' },

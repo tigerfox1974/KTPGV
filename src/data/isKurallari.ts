@@ -34,6 +34,28 @@ export const isKurallari: KuralGrubu[] = [
 
 },
 {
+  baslik: 'Kullanıcı ve Birim Yönetimi',
+  kurallar: [
+  'Giriş kullanıcı adı ve şifre iledir; e-posta ile giriş modeli yoktur.',
+  'Kullanıcı adı ve şifre boş olamaz; aynı kullanıcı adıyla ikinci kullanıcı oluşturulamaz.',
+  'Pasif kullanıcı giriş yapamaz ancak listede pasif etiketiyle görünür.',
+  'Kullanıcı ve birim silinmez, pasife alınır.',
+  'Pasif birim listeden kaybolmaz; yeni kullanıcı atamalarında seçilemez.',
+  'Atanmış kullanıcısı olan birim pasife alınırken uyarı gösterilir.',
+  'Kullanıcı ve birim yönetimi yalnız Merkez Admin ve yetkilendirilmiş üst kullanıcılarda açıktır.',
+  'Yetkiler ekranı bilgilendirme amaçlıdır; düzenleme Kullanıcı Yönetimi ve Birim Yönetimi ekranlarından yapılır.']
+
+},
+{
+  baslik: 'Ödeme / Makbuz Ekranı Kapsamı',
+  kurallar: [
+  'Ödeme / Makbuz ekranında yalnız ödeme doğuran mali kayıtlar ana satır olarak görünür.',
+  'A, B, C, Ç, D, F / Adli, F / Trafik ana TTRF ve E / EKRD kredi yükleme kayıtları listelenir.',
+  'EKPL patlatma planlama ve EKGR patlatma gerçekleşme kayıtları ana satır olarak görünmez.',
+  'EKRD kayıt detayında bağlı planlı ve gerçekleşmiş patlatmalar ile kredi hareketleri gösterilir.']
+
+},
+{
   baslik: 'Temel İlke',
   kurallar: [
   'Ödeme/dekont süreci tamamlanmadan işlem kaydı oluşturulmaz.',

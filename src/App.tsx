@@ -9,6 +9,7 @@ import { Giris } from './pages/Giris';
 import { Dashboard } from './pages/Dashboard';
 import { YeniIslem } from './pages/YeniIslem';
 import { Kayitlar } from './pages/Kayitlar';
+import { KayitDetay } from './pages/KayitDetay';
 import { OdemeMakbuz } from './pages/OdemeMakbuz';
 import { SigortaSirketleri } from './pages/SigortaSirketleri';
 import { TasOcagiIsletmecileri } from './pages/TasOcagiIsletmecileri';
@@ -16,6 +17,8 @@ import { TasOcagiKartlari } from './pages/TasOcagiKartlari';
 import { KrediHareketleri } from './pages/KrediHareketleri';
 import { Ajanda } from './pages/Ajanda';
 import { Raporlar } from './pages/Raporlar';
+import { KullaniciYonetimi } from './pages/KullaniciYonetimi';
+import { BirimYonetimi } from './pages/BirimYonetimi';
 import { Yetkiler } from './pages/Yetkiler';
 import { MaliYilArsiv } from './pages/MaliYilArsiv';
 import { AuditLog } from './pages/AuditLog';
@@ -32,6 +35,7 @@ function Yonlendirici() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/yeni-islem" element={<YeniIslem />} />
         <Route path="/kayitlar" element={<Kayitlar />} />
+        <Route path="/kayitlar/:kayitNo" element={<KayitDetay />} />
         <Route path="/odeme-makbuz" element={<OdemeMakbuz />} />
         <Route path="/sigorta-sirketleri" element={<SigortaSirketleri />} />
         <Route path="/tas-ocagi-isletmecileri" element={<TasOcagiIsletmecileri />} />
@@ -39,6 +43,8 @@ function Yonlendirici() {
         <Route path="/kredi-hareketleri" element={<KrediHareketleri />} />
         <Route path="/ajanda" element={<Ajanda />} />
         <Route path="/raporlar" element={<Raporlar />} />
+        <Route path="/kullanici-yonetimi" element={<KullaniciYonetimi />} />
+        <Route path="/birim-yonetimi" element={<BirimYonetimi />} />
         <Route path="/yetkiler" element={<Yetkiler />} />
         <Route path="/mali-yil-arsiv" element={<MaliYilArsiv />} />
         <Route path="/audit-log" element={<AuditLog />} />

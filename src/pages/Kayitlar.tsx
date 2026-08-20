@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowUpRight, ChevronDown, ChevronRight, Search } from 'lucide-react';
 import { PageHeader } from '../components/common/PageHeader';
 import { BosDurum } from '../components/common/BosDurum';
 import { IslemDurumRozeti } from '../components/common/DurumRozeti';
@@ -35,7 +36,7 @@ export function Kayitlar() {
     <div className="space-y-6">
       <PageHeader
         baslik="Kayıtlar"
-        aciklama="Tüm bentlerdeki işlem kayıtları. Trafik kayıtlarında alt başvurular satır detayında açılır." />
+        aciklama="Tüm bentlerdeki işlem kayıtları. Kayıt numarasına tıklayarak detay sayfasını açabilirsiniz." />
       
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -91,19 +92,27 @@ export function Kayitlar() {
                   <React.Fragment key={islem.id}>
                       <tr className="hover:bg-muted/40">
                         <td className="px-4 py-3">
-                          <button
-                          type="button"
-                          onClick={() => setAcikSatir(acik ? null : islem.id)}
-                          className="flex items-center gap-1.5 font-mono text-xs font-medium text-primary"
-                          aria-expanded={acik}>
-                          
-                            {acik ?
-                          <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" /> :
+                          <div className="flex items-center gap-1.5">
+                            <button
+                            type="button"
+                            onClick={() => setAcikSatir(acik ? null : islem.id)}
+                            className="rounded p-0.5 text-muted-foreground hover:bg-muted"
+                            aria-expanded={acik}
+                            aria-label={acik ? 'Özeti kapat' : 'Özeti aç'}>
+                            
+                              {acik ?
+                            <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" /> :
 
-                          <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
-                          }
-                            {islem.kayitNo}
-                          </button>
+                            <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+                            }
+                            </button>
+                            <Link
+                            to={`/kayitlar/${islem.kayitNo}`}
+                            className="font-mono text-xs font-medium text-primary hover:underline">
+                            
+                              {islem.kayitNo}
+                            </Link>
+                          </div>
                         </td>
                         <td className="px-4 py-3">
                           {islem.bent}
@@ -114,7 +123,13 @@ export function Kayitlar() {
                         }
                           {islem.eIslemTuru &&
                         <span className="ml-1 text-xs text-muted-foreground">
-                              ({islem.eIslemTuru === 'KREDI_YUKLEME' ? 'Kredi' : 'Kullanım'})
+                              (
+                              {islem.eIslemTuru === 'KREDI_YUKLEME' ?
+                          'Kredi yükleme' :
+                          islem.eIslemTuru === 'KREDI_PLANLAMA' ?
+                          'Planlama' :
+                          'Gerçekleşme'}
+                              )
                             </span>
                         }
                         </td>
@@ -130,7 +145,16 @@ export function Kayitlar() {
                           {islem.makbuzNo ?? <span className="text-muted-foreground">—</span>}
                         </td>
                         <td className="px-4 py-3">
-                          <IslemDurumRozeti durum={islem.durum} />
+                          <div className="flex items-center justify-between gap-2">
+                            <IslemDurumRozeti durum={islem.durum} />
+                            <Link
+                            to={`/kayitlar/${islem.kayitNo}`}
+                            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+                            
+                              Detay
+                              <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                       {acik &&

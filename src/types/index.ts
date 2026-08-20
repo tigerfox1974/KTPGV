@@ -36,6 +36,8 @@ export interface Kullanici {
   rol: string;
   rolKodu: RolKodu;
   birim: string;
+  /** Bağlı olduğu birim kartı. */
+  birimId?: string;
   bentler: BentKodu[];
   menuler: string[];
   makbuzUretebilir: boolean;
@@ -43,6 +45,33 @@ export interface Kullanici {
   raporGorebilir: boolean;
   ajandaKullanabilir: boolean;
   bauGuncelleyebilir: boolean;
+  /** Pasif kullanıcı giriş yapamaz; listeden kaybolmaz. */
+  aktif: boolean;
+  notlar?: string;
+}
+
+export type BirimTuru =
+'MERKEZ' |
+'MUDURLUK' |
+'SUBE' |
+'KARAKOL' |
+'MALI_ISLER' |
+'DENETIM' |
+'DIGER';
+
+export interface Birim {
+  id: string;
+  ad: string;
+  kod: string;
+  tur: BirimTuru;
+  /** Bağlı olduğu üst birim. */
+  ustBirimId?: string;
+  bentler: BentKodu[];
+  makbuzUretebilir: boolean;
+  raporGorebilir: boolean;
+  ajandaKullanabilir: boolean;
+  aktif: boolean;
+  aciklama: string;
 }
 
 export type DekontYontemi = 'PERSONEL' | 'QR_LINK';

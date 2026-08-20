@@ -58,42 +58,49 @@ export function OdemeMakbuz() {
     auditEkle('Dekont dosyası görüntülendi', dosya.ad);
   };
 
+  // Ödeme / Makbuz ekranı yalnız MALİ kayıtları gösterir.
+  // E bendinde yalnız EKRD kredi yükleme mali kayıttır; EKPL ve EKGR operasyon kayıtlarıdır.
+  const maliKayitlar = islemler.filter(
+    (i) => !i.eIslemTuru || i.eIslemTuru === 'KREDI_YUKLEME'
+  );
+
   const gruplar = [
   {
     id: 'makbuz-bekleyen',
     etiket: 'Makbuz bekleyenler',
-    kayitlar: islemler.filter(
-      (i) =>
-      !i.makbuzNo &&
-      i.durum !== 'ODEME_BEKLIYOR' &&
-      i.eIslemTuru !== 'KREDI_PLANLAMA' &&
-      i.eIslemTuru !== 'KREDI_GERCEKLESME'
-    )
+    kayitlar: maliKayitlar.filter((i) => !i.makbuzNo && i.durum !== 'ODEME_BEKLIYOR')
   },
   {
     id: 'odeme-bekleyen',
     etiket: 'Ödeme doğrulama bekleyenler',
-    kayitlar: islemler.filter((i) => i.durum === 'ODEME_BEKLIYOR')
+    kayitlar: maliKayitlar.filter((i) => i.durum === 'ODEME_BEKLIYOR')
   },
   {
     id: 'makbuz-kesilen',
     etiket: 'Makbuz kesilenler',
-    kayitlar: islemler.filter((i) => !!i.makbuzNo)
+    kayitlar: maliKayitlar.filter((i) => !!i.makbuzNo)
   },
   {
     id: 'baslatilabilir',
     etiket: 'İşlem başlatılabilir',
-    kayitlar: islemler.filter((i) => i.durum === 'ISLEM_BASLATILABILIR')
+    kayitlar: maliKayitlar.filter((i) => i.durum === 'ISLEM_BASLATILABILIR')
   },
-  { id: 'tumu', etiket: 'Tümü', kayitlar: islemler }];
+  { id: 'tumu', etiket: 'Tüm mali kayıtlar', kayitlar: maliKayitlar }];
 
 
   return (
     <div className="space-y-6">
       <PageHeader
         baslik="Ödeme / Makbuz"
-        aciklama="Ana mali işlem merkezi. Trafik kayıtlarında tek ana TTRF satırı görünür, alt başvurular açılır detayda listelenir." />
+        aciklama="Ana mali işlem merkezi. Yalnız ödeme doğuran kayıtlar listelenir; trafikte tek ana TTRF satırı görünür." />
       
+
+      <KuralNotu baslik="Bu ekranda hangi kayıtlar görünür?">
+        A, B, C, Ç, D, F / Adli, F / Trafik ana TTRF ve E / EKRD patlatma kredisi yükleme kayıtları
+        listelenir. Patlatma planlama (EKPL) ve patlatma gerçekleşme (EKGR) kayıtları ödeme doğuran
+        kayıtlar olmadığı için burada ana satır olarak görünmez; bunlar Ajanda, Kredi Hareketleri ve
+        taş ocağı kartlarında izlenir.
+      </KuralNotu>
 
       <KuralNotu baslik="Makbuz yetkisi">
         {kullanici.makbuzUretebilir ?

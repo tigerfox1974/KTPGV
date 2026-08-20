@@ -1,8 +1,10 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Check, Minus } from 'lucide-react';
 import { PageHeader } from '../components/common/PageHeader';
 import { KuralNotu } from '../components/common/KuralNotu';
-import { kullanicilar, yetkiMatrisi } from '../data/kullanicilar';
+import { Button } from '../components/ui/Button';
+import { yetkiMatrisi } from '../data/kullanicilar';
 import { bentler } from '../data/bentler';
 import { menuler } from '../data/menuler';
 import { useApp } from '../contexts/AppContext';
@@ -16,13 +18,25 @@ function Isaret({ dogru }: {dogru: boolean;}) {
 }
 
 export function Yetkiler() {
-  const { kullanici } = useApp();
+  const { kullanici, kullanicilar, yonetimYetkisi } = useApp();
 
   return (
     <div className="space-y-6">
       <PageHeader
         baslik="Kullanıcı / Rol / Birim Yetkileri"
-        aciklama="Kullanıcının rolü ve birimi; işlem yapabileceği bentleri, görebileceği kayıtları ve makbuz yetkisini belirler." />
+        aciklama="Bilgilendirme ve yetki matrisi ekranı. Düzenleme işlemleri Kullanıcı Yönetimi ve Birim Yönetimi ekranlarından yapılır."
+        eylem={
+        yonetimYetkisi ?
+        <>
+              <Link to="/kullanici-yonetimi">
+                <Button variant="outline">Kullanıcı Yönetimi</Button>
+              </Link>
+              <Link to="/birim-yonetimi">
+                <Button variant="outline">Birim Yönetimi</Button>
+              </Link>
+            </> :
+        undefined
+        } />
       
 
       <KuralNotu baslik="Aktif oturum">
@@ -56,8 +70,11 @@ export function Yetkiler() {
               {kullanicilar.map((k) =>
               <tr key={k.id} className="hover:bg-muted/40">
                   <td className="px-4 py-3">
-                    <p className="font-medium text-foreground">{k.rol}</p>
-                    <p className="font-mono text-xs text-muted-foreground">{k.kullaniciAdi} / 1234</p>
+                    <p className="font-medium text-foreground">
+                      {k.rol}
+                      {!k.aktif && <span className="ml-1 text-xs text-rose-700">· Pasif</span>}
+                    </p>
+                    <p className="font-mono text-xs text-muted-foreground">{k.kullaniciAdi}</p>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{k.birim}</td>
                   {bentler.map((b) =>

@@ -3,27 +3,27 @@ import { LogIn, ShieldCheck } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Label } from '../components/ui/Label';
-import { kullanicilar } from '../data/kullanicilar';
 import { useApp } from '../contexts/AppContext';
 
 export function Giris() {
-  const { giris } = useApp();
+  const { giris, kullanicilar } = useApp();
   const [kullaniciAdi, setKullaniciAdi] = useState('');
   const [sifre, setSifre] = useState('');
   const [hata, setHata] = useState<string | null>(null);
 
   const gonder = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!giris(kullaniciAdi, sifre)) {
-      setHata('Kullanıcı adı veya şifre hatalı.');
+    const sonuc = giris(kullaniciAdi, sifre);
+    if (!sonuc.basarili) {
+      setHata(sonuc.mesaj ?? 'Kullanıcı adı veya şifre hatalı.');
       return;
     }
     setHata(null);
   };
 
-  const demoSec = (ad: string) => {
+  const demoSec = (ad: string, kullaniciSifresi: string) => {
     setKullaniciAdi(ad);
-    setSifre('1234');
+    setSifre(kullaniciSifresi);
     setHata(null);
   };
 
@@ -114,20 +114,23 @@ export function Giris() {
           <div className="mt-6 rounded-xl border border-border bg-card p-5">
             <p className="text-sm font-medium text-foreground">Demo kullanıcıları</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Tümünün şifresi 1234. Seçmek için tıklayın.
+              Seçmek için tıklayın. Pasif kullanıcılar giriş yapamaz.
             </p>
             <ul className="mt-3 space-y-1.5">
               {kullanicilar.map((k) =>
               <li key={k.id}>
                   <button
                   type="button"
-                  onClick={() => demoSec(k.kullaniciAdi)}
+                  onClick={() => demoSec(k.kullaniciAdi, k.sifre)}
                   className="flex w-full items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-left text-sm transition-colors hover:border-primary/40 hover:bg-primary/5">
                   
                     <span className="font-mono text-xs text-muted-foreground">
-                      {k.kullaniciAdi} / 1234
+                      {k.kullaniciAdi} / {k.sifre}
                     </span>
-                    <span className="truncate font-medium text-foreground">{k.rol}</span>
+                    <span className="truncate font-medium text-foreground">
+                      {k.rol}
+                      {!k.aktif && <span className="ml-1 text-xs text-rose-700">· Pasif</span>}
+                    </span>
                   </button>
                 </li>
               )}

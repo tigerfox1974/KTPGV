@@ -4,6 +4,7 @@ import {
   AjandaKaydi,
   AuditKaydi,
   BentKodu,
+  Birim,
   DekontDosyasi,
   Islem,
   Isletmeci,
@@ -13,7 +14,8 @@ import {
   SigortaSirketi,
   TasOcagi } from
 '../types';
-import { kullanicilar } from '../data/kullanicilar';
+import { kullanicilar as baslangicKullanicilari } from '../data/kullanicilar';
+import { baslangicBirimleri } from '../data/birimler';
 import { baslangicIslemleri } from '../data/islemler';
 import { baslangicAjandasi } from '../data/ajanda';
 import { baslangicAuditKayitlari } from '../data/auditLog';
@@ -67,10 +69,26 @@ export interface GerceklesmeSonucu {
 
 const DOGRULANMIS_DURUMLAR = ['ODEME_DOGRULANDI', 'ISLEM_BASLATILABILIR', 'TAMAMLANDI'];
 
+export interface GirisSonucu {
+  basarili: boolean;
+  mesaj?: string;
+}
+
 interface AppContextDegeri {
   kullanici: Kullanici | null;
-  giris: (kullaniciAdi: string, sifre: string) => boolean;
+  giris: (kullaniciAdi: string, sifre: string) => GirisSonucu;
   cikis: () => void;
+  kullanicilar: Kullanici[];
+  kullaniciKaydet: (kullanici: Kullanici) => {basarili: boolean;mesaj?: string;};
+  kullaniciAktiflikDegistir: (id: string, aktif: boolean) => void;
+  sifreSifirla: (id: string, yeniSifre: string) => void;
+  birimler: Birim[];
+  birimBul: (id?: string) => Birim | undefined;
+  birimKaydet: (birim: Birim) => {basarili: boolean;mesaj?: string;};
+  birimAktiflikDegistir: (id: string, aktif: boolean) => void;
+  birimKullanicilari: (birimId: string) => Kullanici[];
+  yonetimYetkisi: boolean;
+  islemBul: (kayitNo?: string) => Islem | undefined;
   bau: number;
   bauGuncelle: (deger: number) => void;
   islemler: Islem[];
@@ -121,6 +139,8 @@ export function AppProvider({
 
 }: {children: React.ReactNode;baslangicKullanicisi?: Kullanici | null;}) {
   const [kullanici, setKullanici] = useState<Kullanici | null>(baslangicKullanicisi);
+  const [kullanicilar, setKullanicilar] = useState<Kullanici[]>(baslangicKullanicilari);
+  const [birimler, setBirimler] = useState<Birim[]>(baslangicBirimleri);
   const [bau, setBau] = useState(VARSAYILAN_BAU);
   const [islemler, setIslemler] = useState<Islem[]>(baslangicIslemleri);
   const [ajanda, setAjanda] = useState<AjandaKaydi[]>(baslangicAjandasi);
@@ -146,19 +166,111 @@ export function AppProvider({
   );
 
   const giris = useCallback(
-    (kullaniciAdi: string, sifre: string) => {
+    (kullaniciAdi: string, sifre: string): GirisSonucu => {
       const bulunan = kullanicilar.find(
         (k) => k.kullaniciAdi === kullaniciAdi.trim().toLowerCase() && k.sifre === sifre
       );
-      if (!bulunan) return false;
+      if (!bulunan) return { basarili: false, mesaj: 'Kullanıcı adı veya şifre hatalı.' };
+      if (!bulunan.aktif) {
+        return {
+          basarili: false,
+          mesaj: 'Bu kullanıcı pasif durumdadır ve giriş yapamaz. Merkez Admin ile iletişime geçin.'
+        };
+      }
       setKullanici(bulunan);
       auditYaz(bulunan.adSoyad, 'Giriş yapıldı', `${bulunan.kullaniciAdi} · ${bulunan.birim}`);
-      return true;
+      return { basarili: true };
     },
-    [auditYaz]
+    [auditYaz, kullanicilar]
   );
 
   const cikis = useCallback(() => setKullanici(null), []);
+
+  const yonetimYetkisi = !!kullanici?.menuler.includes('kullanici-yonetimi');
+
+  const kullaniciKaydet = useCallback(
+    (hedef: Kullanici) => {
+      const ad = hedef.kullaniciAdi.trim().toLowerCase();
+      if (!ad) return { basarili: false, mesaj: 'Kullanıcı adı boş olamaz.' };
+      if (!hedef.sifre.trim()) return { basarili: false, mesaj: 'Şifre boş olamaz.' };
+      if (kullanicilar.some((k) => k.kullaniciAdi === ad && k.id !== hedef.id)) {
+        return { basarili: false, mesaj: 'Bu kullanıcı adı zaten kullanılıyor.' };
+      }
+      const kayit = { ...hedef, kullaniciAdi: ad };
+      const yeniMi = !kullanicilar.some((k) => k.id === hedef.id);
+      setKullanicilar((eski) =>
+      yeniMi ? [kayit, ...eski] : eski.map((k) => k.id === kayit.id ? kayit : k)
+      );
+      if (kullanici?.id === kayit.id) setKullanici(kayit);
+      auditEkle(
+        yeniMi ? 'Kullanıcı oluşturuldu' : 'Kullanıcı güncellendi',
+        `${kayit.kullaniciAdi} · ${kayit.rol} · ${kayit.birim} · ${kayit.aktif ? 'Aktif' : 'Pasif'}`
+      );
+      return { basarili: true };
+    },
+    [kullanicilar, kullanici, auditEkle]
+  );
+
+  const kullaniciAktiflikDegistir = useCallback(
+    (id: string, aktif: boolean) => {
+      const hedef = kullanicilar.find((k) => k.id === id);
+      setKullanicilar((eski) => eski.map((k) => k.id === id ? { ...k, aktif } : k));
+      auditEkle(
+        aktif ? 'Kullanıcı aktife alındı' : 'Kullanıcı pasife alındı',
+        `${hedef?.kullaniciAdi ?? id} · ${hedef?.rol ?? ''}`
+      );
+    },
+    [kullanicilar, auditEkle]
+  );
+
+  const sifreSifirla = useCallback(
+    (id: string, yeniSifre: string) => {
+      const hedef = kullanicilar.find((k) => k.id === id);
+      setKullanicilar((eski) => eski.map((k) => k.id === id ? { ...k, sifre: yeniSifre } : k));
+      auditEkle('Kullanıcı şifresi sıfırlandı', `${hedef?.kullaniciAdi ?? id}`);
+    },
+    [kullanicilar, auditEkle]
+  );
+
+  const birimBul = useCallback((id?: string) => birimler.find((b) => b.id === id), [birimler]);
+
+  const birimKullanicilari = useCallback(
+    (birimId: string) => kullanicilar.filter((k) => k.birimId === birimId),
+    [kullanicilar]
+  );
+
+  const birimKaydet = useCallback(
+    (birim: Birim) => {
+      if (!birim.ad.trim()) return { basarili: false, mesaj: 'Birim adı boş olamaz.' };
+      if (!birim.kod.trim()) return { basarili: false, mesaj: 'Birim kodu boş olamaz.' };
+      if (birimler.some((b) => b.kod.toUpperCase() === birim.kod.trim().toUpperCase() && b.id !== birim.id)) {
+        return { basarili: false, mesaj: 'Bu birim kodu zaten kullanılıyor.' };
+      }
+      const kayit = { ...birim, ad: birim.ad.trim(), kod: birim.kod.trim().toUpperCase() };
+      const yeniMi = !birimler.some((b) => b.id === birim.id);
+      setBirimler((eski) =>
+      yeniMi ? [kayit, ...eski] : eski.map((b) => b.id === kayit.id ? kayit : b)
+      );
+      auditEkle(
+        yeniMi ? 'Birim oluşturuldu' : 'Birim güncellendi',
+        `${kayit.ad} (${kayit.kod}) · ${kayit.aktif ? 'Aktif' : 'Pasif'}`
+      );
+      return { basarili: true };
+    },
+    [birimler, auditEkle]
+  );
+
+  const birimAktiflikDegistir = useCallback(
+    (id: string, aktif: boolean) => {
+      const hedef = birimler.find((b) => b.id === id);
+      setBirimler((eski) => eski.map((b) => b.id === id ? { ...b, aktif } : b));
+      auditEkle(
+        aktif ? 'Birim aktife alındı' : 'Birim pasife alındı',
+        `${hedef?.ad ?? id} · Bağlı kullanıcı: ${kullanicilar.filter((k) => k.birimId === id).length}`
+      );
+    },
+    [birimler, kullanicilar, auditEkle]
+  );
 
   const bauGuncelle = useCallback(
     (deger: number) => {
@@ -171,6 +283,11 @@ export function AppProvider({
   const islemEkle = useCallback((islem: Islem) => {
     setIslemler((eski) => [islem, ...eski]);
   }, []);
+
+  const islemBul = useCallback(
+    (kayitNo?: string) => islemler.find((i) => i.kayitNo === kayitNo || i.id === kayitNo),
+    [islemler]
+  );
 
   const makbuzUret = useCallback(
     (islemId: string) => {
@@ -477,6 +594,17 @@ export function AppProvider({
       kullanici,
       giris,
       cikis,
+      kullanicilar,
+      kullaniciKaydet,
+      kullaniciAktiflikDegistir,
+      sifreSifirla,
+      birimler,
+      birimBul,
+      birimKaydet,
+      birimAktiflikDegistir,
+      birimKullanicilari,
+      yonetimYetkisi,
+      islemBul,
       bau,
       bauGuncelle,
       islemler,
@@ -511,6 +639,17 @@ export function AppProvider({
     kullanici,
     giris,
     cikis,
+    kullanicilar,
+    kullaniciKaydet,
+    kullaniciAktiflikDegistir,
+    sifreSifirla,
+    birimler,
+    birimBul,
+    birimKaydet,
+    birimAktiflikDegistir,
+    birimKullanicilari,
+    yonetimYetkisi,
+    islemBul,
     bau,
     bauGuncelle,
     islemler,

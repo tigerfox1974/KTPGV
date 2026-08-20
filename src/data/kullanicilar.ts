@@ -1,6 +1,6 @@
-import { Kullanici } from '../types';
+import { Kullanici, RolKodu } from '../types';
 
-const TUM_MENULER = [
+export const TUM_MENULER = [
 'dashboard',
 'yeni-islem',
 'kayitlar',
@@ -11,10 +11,25 @@ const TUM_MENULER = [
 'kredi-hareketleri',
 'ajanda',
 'raporlar',
+'kullanici-yonetimi',
+'birim-yonetimi',
 'yetkiler',
 'arsiv',
 'audit',
 'kurallar'];
+
+
+/** Kullanıcı ve birim yönetimi ekranlarına erişebilen menü kimlikleri. */
+export const YONETIM_MENULERI = ['kullanici-yonetimi', 'birim-yonetimi'];
+
+export const roller: {kod: RolKodu;ad: string;}[] = [
+{ kod: 'MERKEZ_ADMIN', ad: 'Merkez Admin' },
+{ kod: 'VAKIF_MUHASEBE', ad: 'Vakıf Muhasebe' },
+{ kod: 'PGM_TRAFIK', ad: 'PGM Trafik Müdürlüğü' },
+{ kod: 'ITFAIYE', ad: 'İtfaiye Birimi' },
+{ kod: 'KARAKOL', ad: 'İlçe / Karakol Kullanıcısı' },
+{ kod: 'TAS_OCAGI', ad: 'Taş Ocağı İşlemleri Yetkilisi' },
+{ kod: 'DENETCI', ad: 'Denetçi' }];
 
 
 export const kullanicilar: Kullanici[] = [
@@ -26,13 +41,16 @@ export const kullanicilar: Kullanici[] = [
   rol: 'Merkez Admin',
   rolKodu: 'MERKEZ_ADMIN',
   birim: 'KTPGV Merkez',
+  birimId: 'br-merkez',
   bentler: ['A', 'B', 'C', 'Ç', 'D', 'E', 'F'],
   menuler: TUM_MENULER,
   makbuzUretebilir: true,
   sadeceGoruntule: false,
   raporGorebilir: true,
   ajandaKullanabilir: true,
-  bauGuncelleyebilir: true
+  bauGuncelleyebilir: true,
+  aktif: true,
+  notlar: 'Sistem yöneticisi. Kullanıcı ve birim yönetimi yalnız bu rolde açıktır.'
 },
 {
   id: 'u-vakif',
@@ -42,6 +60,7 @@ export const kullanicilar: Kullanici[] = [
   rol: 'Vakıf Muhasebe',
   rolKodu: 'VAKIF_MUHASEBE',
   birim: 'KTPGV Mali İşler',
+  birimId: 'br-mali',
   bentler: ['A', 'B'],
   menuler: [
   'dashboard',
@@ -58,7 +77,9 @@ export const kullanicilar: Kullanici[] = [
   sadeceGoruntule: false,
   raporGorebilir: true,
   ajandaKullanabilir: false,
-  bauGuncelleyebilir: false
+  bauGuncelleyebilir: false,
+  aktif: true,
+  notlar: 'Ödeme doğrulama ve makbuz üretimi.'
 },
 {
   id: 'u-trafik',
@@ -68,6 +89,7 @@ export const kullanicilar: Kullanici[] = [
   rol: 'PGM Trafik Müdürlüğü',
   rolKodu: 'PGM_TRAFIK',
   birim: 'PGM Trafik Müdürlüğü',
+  birimId: 'br-trafik',
   bentler: ['F'],
   menuler: [
   'dashboard',
@@ -83,7 +105,9 @@ export const kullanicilar: Kullanici[] = [
   sadeceGoruntule: false,
   raporGorebilir: true,
   ajandaKullanabilir: true,
-  bauGuncelleyebilir: false
+  bauGuncelleyebilir: false,
+  aktif: true,
+  notlar: 'Trafik raporları yalnız sigorta şirketi kartına bağlı açılır.'
 },
 {
   id: 'u-itfaiye',
@@ -93,13 +117,16 @@ export const kullanicilar: Kullanici[] = [
   rol: 'İtfaiye Birimi',
   rolKodu: 'ITFAIYE',
   birim: 'PGM İtfaiye Müdürlüğü',
+  birimId: 'br-itfaiye',
   bentler: ['C', 'Ç'],
   menuler: ['dashboard', 'yeni-islem', 'kayitlar', 'odeme-makbuz', 'ajanda', 'raporlar', 'kurallar'],
   makbuzUretebilir: true,
   sadeceGoruntule: false,
   raporGorebilir: true,
   ajandaKullanabilir: true,
-  bauGuncelleyebilir: false
+  bauGuncelleyebilir: false,
+  aktif: true,
+  notlar: ''
 },
 {
   id: 'u-karakol',
@@ -109,13 +136,16 @@ export const kullanicilar: Kullanici[] = [
   rol: 'İlçe / Karakol Kullanıcısı',
   rolKodu: 'KARAKOL',
   birim: 'Gazimağusa İlçe Karakolu',
+  birimId: 'br-karakol-mgs',
   bentler: ['D', 'F'],
   menuler: ['dashboard', 'yeni-islem', 'kayitlar', 'ajanda', 'kurallar'],
   makbuzUretebilir: false,
   sadeceGoruntule: false,
   raporGorebilir: false,
   ajandaKullanabilir: true,
-  bauGuncelleyebilir: false
+  bauGuncelleyebilir: false,
+  aktif: true,
+  notlar: 'Makbuz merkezde üretilir.'
 },
 {
   id: 'u-tasocagi',
@@ -125,6 +155,7 @@ export const kullanicilar: Kullanici[] = [
   rol: 'Taş Ocağı İşlemleri Yetkilisi',
   rolKodu: 'TAS_OCAGI',
   birim: 'KTPGV Taş Ocağı Birimi',
+  birimId: 'br-tasocagi',
   bentler: ['E'],
   menuler: [
   'dashboard',
@@ -142,7 +173,9 @@ export const kullanicilar: Kullanici[] = [
   sadeceGoruntule: false,
   raporGorebilir: true,
   ajandaKullanabilir: true,
-  bauGuncelleyebilir: false
+  bauGuncelleyebilir: false,
+  aktif: true,
+  notlar: 'Patlatma gerçekleşme raporu işleme yetkisi vardır.'
 },
 {
   id: 'u-denetci',
@@ -152,6 +185,7 @@ export const kullanicilar: Kullanici[] = [
   rol: 'Denetçi',
   rolKodu: 'DENETCI',
   birim: 'Denetim',
+  birimId: 'br-denetim',
   bentler: [],
   menuler: [
   'dashboard',
@@ -171,12 +205,14 @@ export const kullanicilar: Kullanici[] = [
   sadeceGoruntule: true,
   raporGorebilir: true,
   ajandaKullanabilir: false,
-  bauGuncelleyebilir: false
+  bauGuncelleyebilir: false,
+  aktif: true,
+  notlar: 'Sadece görüntüleme.'
 }];
 
 
 export const yetkiMatrisi: {rol: string;kapsam: string;}[] = [
-{ rol: 'Merkez Admin', kapsam: 'Tüm ekranlar, tüm bentler, tüm makbuzlar, BAÜ sistem ayarı' },
+{ rol: 'Merkez Admin', kapsam: 'Tüm ekranlar, tüm bentler, tüm makbuzlar, BAÜ sistem ayarı, kullanıcı ve birim yönetimi' },
 { rol: 'Vakıf Muhasebe', kapsam: 'Ödeme, dekont, makbuz, rapor' },
 { rol: 'PGM Trafik Müdürlüğü', kapsam: 'F / Trafik Raporu' },
 { rol: 'İtfaiye Birimi', kapsam: 'C ve Ç bentleri' },
