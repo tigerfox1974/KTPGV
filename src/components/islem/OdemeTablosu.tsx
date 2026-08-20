@@ -111,6 +111,19 @@ interface OdemeTablosuProps {
   odemeDogrula: (islem: Islem) => void;
 }
 
+function bentEtiketi(islem: Islem): string {
+  if (islem.bent === 'E' && islem.eIslemTuru === 'KREDI_YUKLEME') return 'E / Kredi Yükleme';
+  if (islem.bent === 'F' && islem.fAltTur === 'TRAFIK') return 'F / Trafik';
+  if (islem.bent === 'F' && islem.fAltTur === 'ADLI') return 'F / Adli';
+  return islem.bent;
+}
+
+function odemeDurumuEtiketi(islem: Islem): string | null {
+  if (islem.durum === 'ODEME_BEKLIYOR') return 'Ödeme doğrulama bekliyor';
+  if (!islem.makbuzNo && islem.durum !== 'ODEME_BEKLIYOR') return 'Makbuz aşamasında';
+  return null;
+}
+
 export function OdemeTablosu({
   islemler,
   makbuzUretilebilir,
@@ -132,14 +145,14 @@ export function OdemeTablosu({
         <table className="w-full min-w-[1040px] text-sm">
           <thead className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
-              <th scope="col" className="px-4 py-3 font-medium">Kayıt No</th>
-              <th scope="col" className="px-4 py-3 font-medium">Bent</th>
+              <th scope="col" className="whitespace-nowrap px-4 py-3 font-medium">Kayıt No</th>
+              <th scope="col" className="whitespace-nowrap px-4 py-3 font-medium">Bent</th>
               <th scope="col" className="px-4 py-3 font-medium">Talep eden / Ödeme yapan</th>
-              <th scope="col" className="px-4 py-3 text-right font-medium">Tutar</th>
-              <th scope="col" className="px-4 py-3 font-medium">Dekont</th>
-              <th scope="col" className="px-4 py-3 font-medium">Ödeme durumu</th>
-              <th scope="col" className="px-4 py-3 font-medium">Makbuz</th>
-              <th scope="col" className="px-4 py-3 text-right font-medium">İşlem</th>
+              <th scope="col" className="whitespace-nowrap px-4 py-3 text-right font-medium">Tutar</th>
+              <th scope="col" className="whitespace-nowrap px-4 py-3 font-medium">Dekont</th>
+              <th scope="col" className="whitespace-nowrap px-4 py-3 font-medium">Ödeme durumu</th>
+              <th scope="col" className="whitespace-nowrap px-4 py-3 font-medium">Makbuz</th>
+              <th scope="col" className="whitespace-nowrap px-4 py-3 text-right font-medium">İşlem</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -147,10 +160,11 @@ export function OdemeTablosu({
               const acik = acikSatir === islem.id;
               const krediYukleme = islem.eIslemTuru === 'KREDI_YUKLEME';
               const detayVar = !!islem.altBasvurular || krediYukleme;
+              const odemeDurumu = odemeDurumuEtiketi(islem);
               return (
                 <React.Fragment key={islem.id}>
                   <tr className="hover:bg-muted/40">
-                    <td className="px-4 py-3">
+                    <td className="whitespace-nowrap px-4 py-3">
                       <div className="flex items-center gap-1.5">
                         {detayVar &&
                         <button
@@ -169,7 +183,7 @@ export function OdemeTablosu({
                         }
                         <Link
                           to={`/kayitlar/${islem.kayitNo}`}
-                          className="font-mono text-xs font-medium text-primary hover:underline">
+                          className="whitespace-nowrap font-mono text-xs font-medium text-primary hover:underline">
                           
                           {islem.kayitNo}
                         </Link>
@@ -180,19 +194,16 @@ export function OdemeTablosu({
                         </p>
                       }
                     </td>
-                    <td className="px-4 py-3">
-                      {islem.bent}
-                      {islem.eIslemTuru === 'KREDI_YUKLEME' &&
-                      <p className="text-[11px] text-muted-foreground">Kredi yükleme</p>
-                      }
+                    <td className="whitespace-nowrap px-4 py-3">
+                      {bentEtiketi(islem)}
                     </td>
                     <td className="px-4 py-3">
                       <p className="font-medium text-foreground">{islem.talepEden}</p>
                       <p className="text-xs text-muted-foreground">{islem.dekont.odemeYapan}</p>
                     </td>
-                    <td className="px-4 py-3 text-right font-medium">{formatTL(islem.tutar)}</td>
-                    <td className="px-4 py-3">
-                      <p className="font-mono text-xs">{islem.dekont.dekontNo}</p>
+                    <td className="whitespace-nowrap px-4 py-3 text-right font-medium">{formatTL(islem.tutar)}</td>
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <p className="whitespace-nowrap font-mono text-xs">{islem.dekont.dekontNo}</p>
                       {islem.dekont.tarih &&
                       <p className="text-[11px] text-muted-foreground">
                           {formatTarih(islem.dekont.tarih)}
@@ -214,21 +225,21 @@ export function OdemeTablosu({
                       <span className="text-xs text-muted-foreground">Ön ödemeli kredi</span>
                       }
                     </td>
-                    <td className="px-4 py-3">
-                      <IslemDurumRozeti durum={islem.durum} />
+                    <td className="whitespace-nowrap px-4 py-3">
+                      {odemeDurumu ? <BilgiRozeti metin={odemeDurumu} ton="notr" /> : <IslemDurumRozeti durum={islem.durum} />}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="whitespace-nowrap px-4 py-3">
                       {islem.makbuzNo ?
                       <div className="space-y-1">
-                          <p className="font-mono text-xs">{islem.makbuzNo}</p>
+                          <p className="whitespace-nowrap font-mono text-xs">{islem.makbuzNo}</p>
                           <BilgiRozeti metin={islem.makbuzUreten ?? 'Üretildi'} ton="olumlu" />
                         </div> :
 
                       <BilgiRozeti metin="Makbuz bekliyor" ton="uyari" />
                       }
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap justify-end gap-1.5">
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <div className="flex flex-nowrap justify-end gap-1.5">
                         {odemeDogrulanabilir(islem) &&
                         <Button size="sm" variant="outline" onClick={() => odemeDogrula(islem)}>
                             <BadgeCheck className="h-4 w-4" aria-hidden="true" />

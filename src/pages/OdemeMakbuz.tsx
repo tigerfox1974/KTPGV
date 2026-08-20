@@ -105,14 +105,13 @@ export function OdemeMakbuz() {
     <div className="space-y-6">
       <PageHeader
         baslik="Ödeme / Makbuz"
-        aciklama="Ana mali işlem merkezi. Yalnız ödeme doğuran kayıtlar listelenir; trafikte tek ana TTRF satırı görünür." />
+        aciklama="Bu ekranda yalnız ödeme doğuran kayıtlar listelenir. E bendi için sadece kredi yükleme kayıtları görünür; patlatma planlama ve patlatma sonucu kayıtları Patlatma Takvimi, Ajanda, Kredi Hareketleri ve taş ocağı kartlarında izlenir." />
       
 
       <KuralNotu baslik="Bu ekranda hangi kayıtlar görünür?">
-        A, B, C, Ç, D, F / Adli, F / Trafik ana TTRF ve E patlatma kredisi yükleme kayıtları
-        listelenir. Patlatma planlama ve patlatma sonucu kayıtları ödeme doğuran kayıtlar olmadığı
-        için burada ana satır olarak görünmez; bunlar Patlatma Takvimi, Ajanda, Kredi Hareketleri ve
-        taş ocağı kartlarında izlenir.
+        Bu ekranda yalnız ödeme doğuran kayıtlar listelenir. E bendi için sadece kredi yükleme
+        kayıtları görünür; patlatma planlama ve patlatma sonucu kayıtları Patlatma Takvimi, Ajanda,
+        Kredi Hareketleri ve taş ocağı kartlarında izlenir.
       </KuralNotu>
 
       <KuralNotu baslik="Veri kapsamı">
