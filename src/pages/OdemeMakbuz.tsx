@@ -105,7 +105,7 @@ export function OdemeMakbuz() {
     <div className="space-y-6">
       <PageHeader
         baslik="Ödeme / Makbuz"
-        aciklama="Bu ekranda yalnız ödeme doğuran kayıtlar listelenir. E bendi için sadece kredi yükleme kayıtları görünür; patlatma planlama ve patlatma sonucu kayıtları Patlatma Takvimi, Ajanda, Kredi Hareketleri ve taş ocağı kartlarında izlenir." />
+        aciklama="Ana mali işlem merkezi." />
       
 
       <KuralNotu baslik="Bu ekranda hangi kayıtlar görünür?">

@@ -124,6 +124,10 @@ function odemeDurumuEtiketi(islem: Islem): string | null {
   return null;
 }
 
+function makbuzEtiketi(islem: Islem): string {
+  return islem.durum === 'ODEME_BEKLIYOR' ? 'Ödeme doğrulanınca' : 'Makbuz bekliyor';
+}
+
 export function OdemeTablosu({
   islemler,
   makbuzUretilebilir,
@@ -142,12 +146,12 @@ export function OdemeTablosu({
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1040px] text-sm">
+        <table className="w-full min-w-[1120px] text-sm">
           <thead className="border-b border-border bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               <th scope="col" className="whitespace-nowrap px-4 py-3 font-medium">Kayıt No</th>
               <th scope="col" className="whitespace-nowrap px-4 py-3 font-medium">Bent</th>
-              <th scope="col" className="px-4 py-3 font-medium">Talep eden / Ödeme yapan</th>
+              <th scope="col" className="min-w-[220px] px-4 py-3 font-medium">Talep eden / Ödeme yapan</th>
               <th scope="col" className="whitespace-nowrap px-4 py-3 text-right font-medium">Tutar</th>
               <th scope="col" className="whitespace-nowrap px-4 py-3 font-medium">Dekont</th>
               <th scope="col" className="whitespace-nowrap px-4 py-3 font-medium">Ödeme durumu</th>
@@ -197,7 +201,7 @@ export function OdemeTablosu({
                     <td className="whitespace-nowrap px-4 py-3">
                       {bentEtiketi(islem)}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="min-w-[220px] px-4 py-3">
                       <p className="font-medium text-foreground">{islem.talepEden}</p>
                       <p className="text-xs text-muted-foreground">{islem.dekont.odemeYapan}</p>
                     </td>
@@ -235,25 +239,26 @@ export function OdemeTablosu({
                           <BilgiRozeti metin={islem.makbuzUreten ?? 'Üretildi'} ton="olumlu" />
                         </div> :
 
-                      <BilgiRozeti metin="Makbuz bekliyor" ton="uyari" />
+                      <BilgiRozeti metin={makbuzEtiketi(islem)} ton="uyari" />
                       }
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
                       <div className="flex flex-nowrap justify-end gap-1.5">
                         {odemeDogrulanabilir(islem) &&
-                        <Button size="sm" variant="outline" onClick={() => odemeDogrula(islem)}>
+                        <Button size="sm" variant="outline" className="whitespace-nowrap" onClick={() => odemeDogrula(islem)}>
                             <BadgeCheck className="h-4 w-4" aria-hidden="true" />
                             Ödemeyi doğrula
                           </Button>
                         }
                         {islem.makbuzNo ?
-                        <Button size="sm" variant="outline" onClick={() => makbuzGoruntule(islem)}>
+                        <Button size="sm" variant="outline" className="whitespace-nowrap" onClick={() => makbuzGoruntule(islem)}>
                             <Receipt className="h-4 w-4" aria-hidden="true" />
                             Makbuzu görüntüle
                           </Button> :
 
                         <Button
                           size="sm"
+                          className="whitespace-nowrap"
                           onClick={() => makbuzUret(islem)}
                           disabled={!makbuzUretilebilir(islem)}>
                           
