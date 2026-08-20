@@ -540,6 +540,11 @@ export function BentAlanlari({
           Ücret hesabında polis sayısı tam kişi, görev süresi tam saat girilir. 1,5 / 1.5 / 2,5
           gibi değerler kabul edilmez.
         </p>
+        {form.polisSayisi === '1' && form.gorevSuresi === '1' &&
+        <p className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
+            Başlangıç hesabı: 1 polis × 1 saat
+          </p>
+        }
       </div>);
 
   }

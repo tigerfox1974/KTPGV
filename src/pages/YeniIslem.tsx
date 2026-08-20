@@ -74,6 +74,7 @@ const BOS_ADLI: AdliRapor = {
 /** Bent seçildiğinde gelen en düşük geçerli değerler — placeholder değil, gerçek form değeri. */
 function bentVarsayilanlari(bent: BentKodu): Partial<IslemFormu> {
   if (bent === 'C' || bent === 'Ç') return { adet: '1' };
+  if (bent === 'D') return { polisSayisi: '1', gorevSuresi: '1' };
   if (bent === 'E') return { krediAdedi: '1' };
   return {};
 }
@@ -627,7 +628,7 @@ export function YeniIslem() {
         <div className="sm:max-w-sm">
           <Label htmlFor="bent">Bent</Label>
           <Select
-          value={form.bent || undefined}
+          value={form.bent}
           onValueChange={(v) => {
             const yeniBent = v as BentKodu;
             setForm({ ...BOS_FORM, bent: yeniBent, ...bentVarsayilanlari(yeniBent) });
@@ -881,14 +882,27 @@ export function YeniIslem() {
       
 
       {sonKayit &&
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+        <div className="flex items-center gap-3">
           <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
           <span>
-            <strong className="font-mono">{sonKayit.kayitNo}</strong> kaydı oluşturuldu.
+              Kayıt oluşturuldu: <strong className="font-mono">{sonKayit.kayitNo}</strong>.
             {sonKayit.eIslemTuru === 'KREDI_PLANLAMA' ?
           ' Kredi düşümü, patlatma “Yapıldı” olarak işlendiğinde yapılacak.' :
           ' Makbuz süreci Ödeme / Makbuz ekranından yürütülür.'}
           </span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" variant="outline" onClick={() => navigate(`/kayitlar/${sonKayit.kayitNo}`)}>
+            Kaydı Gör
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => {
+            setSonKayit(null);
+            sifirla();
+          }}>
+            Yeni İşlem
+          </Button>
+        </div>
         </div>
       }
 
@@ -981,7 +995,7 @@ export function YeniIslem() {
                 <dd className="font-medium text-foreground">
                   {krediPlanlama ?
                   `${Number(form.krediAdedi) || 0} kredi` :
-                  form.bent === 'D' && !hesaplamaOlustu ? '—' : formatTL(sonuc.tutar)}
+                  formatTL(sonuc.tutar)}
                 </dd>
               </div>
               {(dekontBolumuGorunur || odenen > 0) &&
