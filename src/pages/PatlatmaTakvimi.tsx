@@ -145,6 +145,12 @@ export function PatlatmaTakvimi() {
   ).length;
   const kalanKrediToplami = isletmeciler.reduce((t, i) => t + krediOzeti(i.id).kalan, 0);
 
+  const yapildiGosterilecekMi = (kayit: AjandaKaydi) =>
+  !!kayit.gerceklesmeKayitNo || kayit.durum === 'Yapıldı' || kayit.durum === 'Görev Tamamlandı';
+
+  const gorunenDurum = (kayit: AjandaKaydi) =>
+  yapildiGosterilecekMi(kayit) ? 'Yapıldı' : kayit.durum;
+
   if (!kullanici) return null;
 
   const yapabilir = (kayit: AjandaKaydi) => ajandaIslemiYapilabilir(kayit);
@@ -205,10 +211,10 @@ export function PatlatmaTakvimi() {
         <OzetKart etiket="Sonuç bekleyen" deger={String(bekleyenSayisi)} ikon={CalendarClock} />
         <OzetKart etiket="Yapıldı" deger={String(yapilanSayisi)} ikon={CheckCircle2} />
         <OzetKart
-          etiket="Toplam kalan kredi"
+          etiket="Kullanılabilir kredi"
           deger={String(kalanKrediToplami)}
           ikon={Wallet}
-          altMetin="İşletmeci hesaplarındaki ortak kredi" />
+          altMetin="İşletmeci hesaplarındaki kullanılabilir kredi. Sonuç bekleyen planlar ayrıca izlenir." />
         
       </div>
 
@@ -356,6 +362,7 @@ export function PatlatmaTakvimi() {
           {filtreli.map((kayit) => {
           const ozet = krediOzeti(kayit.isletmeciId ?? '');
           const yetersiz = krediYetersizMi(kayit);
+          const yapildi = yapildiGosterilecekMi(kayit);
           return (
             <article
               key={kayit.id}
@@ -368,7 +375,7 @@ export function PatlatmaTakvimi() {
                     </h3>
                     <p className="text-sm text-muted-foreground">İşletmeci: {kayit.talepEden}</p>
                   </div>
-                  <AjandaDurumRozeti durum={kayit.durum} />
+                  <AjandaDurumRozeti durum={gorunenDurum(kayit)} />
                 </div>
 
                 <p className="text-sm font-medium text-foreground">
@@ -382,8 +389,16 @@ export function PatlatmaTakvimi() {
                   </dd>
                   <dt className="text-muted-foreground">Kalan kredi</dt>
                   <dd className="text-right font-medium text-foreground">{ozet.kalan}</dd>
-                  <dt className="text-muted-foreground">Sonuç bekleyen kredi</dt>
-                  <dd className="text-right font-medium text-foreground">{ozet.planlanan}</dd>
+                  {yapildi ?
+                <>
+                      <dt className="text-muted-foreground">Bu patlatma</dt>
+                      <dd className="text-right font-medium text-foreground">Yapıldı</dd>
+                    </> :
+                <>
+                      <dt className="text-muted-foreground">Sonuç bekleyen planlı kredi</dt>
+                      <dd className="text-right font-medium text-foreground">{ozet.planlanan}</dd>
+                    </>
+                }
                   <dt className="text-muted-foreground">Bilgi kaynağı</dt>
                   <dd className="text-right font-medium text-foreground">
                     {bilgiKaynagiEtiketi(kayit.bilgiKaynagi)}
@@ -397,6 +412,7 @@ export function PatlatmaTakvimi() {
                 </dl>
 
                 {yetersiz && <BilgiRozeti metin="Kredi Yetersiz" ton="hata" />}
+                {yapildi && <BilgiRozeti metin="Kredi düşüldü" ton="olumlu" />}
                 {kayit.sonucNotu &&
               <p className="text-sm text-muted-foreground">{kayit.sonucNotu}</p>
               }
@@ -404,10 +420,18 @@ export function PatlatmaTakvimi() {
                 <div className="mt-auto space-y-2 border-t border-border pt-3">
                   {sonuclanabilir(kayit) && kartButonlari(kayit)}
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-mono text-[11px] text-muted-foreground">
-                      {kayit.kayitNo}
-                      {kayit.gerceklesmeKayitNo ? ` → ${kayit.gerceklesmeKayitNo}` : ''}
-                    </span>
+                    <div className="space-y-0.5 text-[11px] text-muted-foreground">
+                      <div>
+                        <span>Plan kaydı: </span>
+                        <span className="font-mono">{kayit.kayitNo}</span>
+                      </div>
+                      {kayit.gerceklesmeKayitNo &&
+                    <div>
+                          <span>Sonuç kaydı: </span>
+                          <span className="font-mono">{kayit.gerceklesmeKayitNo}</span>
+                        </div>
+                    }
+                    </div>
                     <Link
                     to={`/kayitlar/${kayit.kayitNo}`}
                     className="text-sm font-medium text-primary hover:underline">
@@ -449,7 +473,7 @@ export function PatlatmaTakvimi() {
                     <td className="px-4 py-3 text-foreground">{ozet.kalan}</td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col items-start gap-1">
-                        <AjandaDurumRozeti durum={kayit.durum} />
+                        <AjandaDurumRozeti durum={gorunenDurum(kayit)} />
                         {krediYetersizMi(kayit) &&
                       <BilgiRozeti metin="Kredi Yetersiz" ton="hata" />
                       }
