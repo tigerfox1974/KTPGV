@@ -25,11 +25,12 @@ function qrDeseni(kaynak: string): boolean[] {
 
 interface QrDekontPaneliProps {
   kaynakEtiketi: string;
+  odenecekTutar?: string;
   dosyaAta: (dosya: DekontDosyasi) => void;
   qrOlusturuldu: () => void;
 }
 
-export function QrDekontPaneli({ kaynakEtiketi, dosyaAta, qrOlusturuldu }: QrDekontPaneliProps) {
+export function QrDekontPaneli({ kaynakEtiketi, odenecekTutar, dosyaAta, qrOlusturuldu }: QrDekontPaneliProps) {
   const [link, setLink] = useState<string | null>(null);
   const [basvuruEkrani, setBasvuruEkrani] = useState(false);
   const desen = useMemo(() => qrDeseni(link ?? ''), [link]);
@@ -108,6 +109,11 @@ export function QrDekontPaneli({ kaynakEtiketi, dosyaAta, qrOlusturuldu }: QrDek
               Bu ekran başvuru sahibinin telefonunda açılan yükleme sayfasını temsil eder. Başvuru
               sahibi yalnızca dosya yükler; kayıt veya makbuz bilgisi göremez.
             </p>
+            {odenecekTutar &&
+            <p className="rounded-lg border border-border bg-muted/30 p-3 text-sm font-medium text-foreground">
+                Ödenecek tutar: {odenecekTutar}
+              </p>
+            }
             <Button
               type="button"
               className="w-full"

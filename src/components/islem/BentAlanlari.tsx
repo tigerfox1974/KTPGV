@@ -160,6 +160,10 @@ function KrediOzetKutusu({ ozet }: {ozet: KrediOzeti;}) {
 
 }
 
+function pozitifTamSayiMi(deger: string): boolean {
+  return /^\d+$/.test(deger) && Number(deger) > 0;
+}
+
 export function BentAlanlari({
   bolum,
   form,
@@ -363,7 +367,7 @@ export function BentAlanlari({
               id="etkinlik-adi"
               value={form.etkinlikAdi}
               onChange={(e) => guncelle('etkinlikAdi', e.target.value)}
-              placeholder="Örn. Girne Zeytin Festivali kortej yürüyüşü"
+              placeholder="Örn. Maraton yol kapama ve güvenlik tedbiri"
               className="mt-1.5" />
             
           </div>
@@ -373,6 +377,10 @@ export function BentAlanlari({
             tarihEtiketi="Görev tarihi"
             saatEtiketi="Başlama saati"
             yerEtiketi="Görev yeri" />
+          <p className="text-xs text-muted-foreground">
+            Başlama saati 13:30 gibi olabilir. Ücret hesabında polis sayısı tam kişi, görev süresi
+            tam saat girilir; 4,5 polis veya 1,5 saat kabul edilmez.
+          </p>
           
         </div>);
 
@@ -490,6 +498,8 @@ export function BentAlanlari({
   }
 
   if (bent === 'D') {
+    const polisHatasi = form.polisSayisi !== '' && !pozitifTamSayiMi(form.polisSayisi);
+    const sureHatasi = form.gorevSuresi !== '' && !pozitifTamSayiMi(form.gorevSuresi);
     return (
       <div className="space-y-3">
         <div className="grid gap-4 sm:max-w-xl sm:grid-cols-2">
@@ -502,7 +512,11 @@ export function BentAlanlari({
               step={1}
               value={form.polisSayisi}
               onChange={(e) => guncelle('polisSayisi', e.target.value)}
+              aria-invalid={polisHatasi}
               className="mt-1.5" />
+            {polisHatasi &&
+            <p className="mt-1 text-xs text-rose-700">Polis sayısı 1, 2, 3 gibi pozitif tam sayı olmalıdır.</p>
+            }
             
           </div>
           <div>
@@ -514,12 +528,17 @@ export function BentAlanlari({
               step={1}
               value={form.gorevSuresi}
               onChange={(e) => guncelle('gorevSuresi', e.target.value)}
+              aria-invalid={sureHatasi}
               className="mt-1.5" />
+            {sureHatasi &&
+            <p className="mt-1 text-xs text-rose-700">Görev süresi 1, 2, 3 gibi pozitif tam saat olmalıdır.</p>
+            }
             
           </div>
         </div>
         <p className="text-xs text-muted-foreground">
-          Yarım personel ve buçuklu saat girilemez. Başlangıçta 1 polis / 1 saat gelir.
+          Ücret hesabında polis sayısı tam kişi, görev süresi tam saat girilir. 1,5 / 1.5 / 2,5
+          gibi değerler kabul edilmez.
         </p>
       </div>);
 

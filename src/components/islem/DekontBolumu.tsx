@@ -35,6 +35,7 @@ interface DekontBolumuProps {
   dosyaAta: (dosya: DekontDosyasi | null) => void;
   kaynakEtiketi: string;
   beklenenTutar: number;
+  qrOdenecekTutarGoster?: boolean;
   auditEkle: (eylem: string, hedef: string) => void;
 }
 
@@ -45,6 +46,7 @@ export function DekontBolumu({
   dosyaAta,
   kaynakEtiketi,
   beklenenTutar,
+  qrOdenecekTutarGoster = false,
   auditEkle
 }: DekontBolumuProps) {
   const [onizleme, setOnizleme] = useState(false);
@@ -193,6 +195,7 @@ export function DekontBolumu({
 
         <QrDekontPaneli
           kaynakEtiketi={kaynakEtiketi}
+          odenecekTutar={qrOdenecekTutarGoster ? formatTL(beklenenTutar) : undefined}
           dosyaAta={(d) => {
             dosyaAta(d);
             auditEkle('Dekont yüklendi', `${d.ad} (QR/link)`);

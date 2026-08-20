@@ -74,7 +74,6 @@ const BOS_ADLI: AdliRapor = {
 /** Bent seçildiğinde gelen en düşük geçerli değerler — placeholder değil, gerçek form değeri. */
 function bentVarsayilanlari(bent: BentKodu): Partial<IslemFormu> {
   if (bent === 'C' || bent === 'Ç') return { adet: '1' };
-  if (bent === 'D') return { polisSayisi: '1', gorevSuresi: '1' };
   if (bent === 'E') return { krediAdedi: '1' };
   return {};
 }
@@ -278,7 +277,13 @@ export function YeniIslem() {
 
     }
     if (form.bent === 'D') {
-      return sonuc.gecerli && !!form.operasyonTarihi && form.yer.trim() !== '';
+      return (
+        sonuc.gecerli &&
+        form.etkinlikAdi.trim() !== '' &&
+        !!form.operasyonTarihi &&
+        !!form.operasyonSaati &&
+        form.yer.trim() !== ''
+      );
     }
     if (form.bent === 'F') {
       if (!form.fAltTur || !form.operasyonTarihi || !sonuc.gecerli) return false;
@@ -357,7 +362,9 @@ export function YeniIslem() {
     if (form.bent === 'C' || form.bent === 'Ç' || form.bent === 'F') {
       return !!form.operasyonTarihi && !!form.operasyonSaati && form.yer.trim() !== '';
     }
-    if (form.bent === 'D') return !!form.operasyonTarihi && form.yer.trim() !== '';
+    if (form.bent === 'D') {
+      return form.etkinlikAdi.trim() !== '' && !!form.operasyonTarihi && !!form.operasyonSaati && form.yer.trim() !== '';
+    }
     if (krediPlanlama) {
       return !!form.tasOcagiId && !!form.operasyonTarihi && !!form.operasyonSaati;
     }
@@ -687,7 +694,11 @@ export function YeniIslem() {
           id="baslik"
           value={form.baslik}
           onChange={(e) => guncelle('baslik', e.target.value)}
-          placeholder="Örn. İtfaiye denetim ve kontrol raporu"
+          placeholder={
+          form.bent === 'D' ?
+          'Örn. Maraton yol kapama ve güvenlik tedbiri' :
+          'Örn. İtfaiye denetim ve kontrol raporu'
+          }
           className="mt-1.5" />
         
           </div>
@@ -820,7 +831,10 @@ export function YeniIslem() {
   if (dekontBolumuGorunur) {
     bolumler.push({
       baslik: 'Ödeme / Dekont ve Dijital Dosya',
-      aciklama: 'Dekont dosyası olmadan ödeme gerektiren kayıt oluşturulamaz.',
+      aciklama:
+      form.bent === 'D' ?
+      'Kayıt oluşturmak için dijital dekont dosyası yüklenmelidir.' :
+      'Dekont dosyası olmadan ödeme gerektiren kayıt oluşturulamaz.',
       icerik:
       <DekontBolumu
         form={dekont}
@@ -829,6 +843,7 @@ export function YeniIslem() {
         dosyaAta={setDosya}
         kaynakEtiketi={kaynakEtiketi}
         beklenenTutar={sonuc.tutar}
+        qrOdenecekTutarGoster={form.bent === 'D'}
         auditEkle={auditEkle} />
 
 
@@ -896,8 +911,8 @@ export function YeniIslem() {
                   <p className="text-sm font-medium text-foreground">Üretilecek kayıt numarası</p>
                   <p className="mt-1 font-mono text-sm text-primary">{kayitNoOnizleme || '—'}</p>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Eşzamanlı işlemlerde transaction, sequence ve unique constraint ile çakışma
-                    önlenir. Offline makbuz üretimi yoktur.
+                    Kayıt numarası sistem tarafından otomatik ve benzersiz üretilir. Aynı kayıt
+                    numarası ikinci kez oluşmaz. Çevrim dışı makbuz üretimi yapılmaz.
                   </p>
                 </div>
 
@@ -915,6 +930,8 @@ export function YeniIslem() {
               <p className="text-xs text-muted-foreground">
                     {krediPlanlama ?
                 'Plan kaydı için işletmeci, taş ocağı, planlanan patlatma tarihi/saati ve planlanan adet girilmelidir.' :
+                form.bent === 'D' && !dosya ?
+                'Kayıt oluşturmak için dijital dekont dosyası yüklenmelidir.' :
                 'Kayıt için başvuru kaynağı, rapor/operasyon bilgileri, hesaplama alanları, dekont bilgileri, dijital dekont dosyası ve hesaplanan tutarla eşleşen ödeme tamamlanmalıdır.'}
                   </p>
               }
@@ -964,7 +981,7 @@ export function YeniIslem() {
                 <dd className="font-medium text-foreground">
                   {krediPlanlama ?
                   `${Number(form.krediAdedi) || 0} kredi` :
-                  formatTL(sonuc.tutar)}
+                  form.bent === 'D' && !hesaplamaOlustu ? '—' : formatTL(sonuc.tutar)}
                 </dd>
               </div>
               {(dekontBolumuGorunur || odenen > 0) &&
