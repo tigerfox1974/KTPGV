@@ -9,7 +9,7 @@ import { BosDurum } from '../components/common/BosDurum';
 import { Button } from '../components/ui/Button';
 import { useApp } from '../contexts/AppContext';
 import { AjandaDurumu, AjandaKaydi } from '../types';
-import { formatTarih } from '../utils/currency';
+import { formatTarihSaat } from '../utils/currency';
 
 const DURUMLAR: AjandaDurumu[] = [
 'Planlandı',
@@ -110,7 +110,7 @@ export function Ajanda() {
                   <div>
                     <dt className="sr-only">Operasyon tarihi</dt>
                     <dd className="font-medium text-foreground">
-                      {formatTarih(kayit.tarih)} · {kayit.saat}
+                      {formatTarihSaat(kayit.tarih, kayit.saat)}
                     </dd>
                   </div>
                 </div>

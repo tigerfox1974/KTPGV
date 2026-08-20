@@ -23,9 +23,20 @@ export function formatSayi(deger: number): string {
 
 export function formatTarih(iso: string): string {
   if (!iso) return '—';
-  const [yil, ay, gun] = iso.split('-');
+  const temiz = iso.trim();
+  const tarihParcasi = temiz.split(/[ T]/)[0];
+  const [yil, ay, gun] = tarihParcasi.split('-');
   if (!yil || !ay || !gun) return iso;
   return `${gun}.${ay}.${yil}`;
+}
+
+export function formatTarihSaat(tarih: string, saat?: string): string {
+  if (!tarih) return '—';
+  const temizTarih = tarih.trim();
+  const [tarihParcasi, saatParcasi] = temizTarih.split(/[ T]/);
+  const gorunenTarih = formatTarih(tarihParcasi);
+  const gorunenSaat = saat || saatParcasi;
+  return gorunenSaat ? `${gorunenTarih} · ${gorunenSaat}` : gorunenTarih;
 }
 
 /**

@@ -17,7 +17,7 @@ import {
 import { bentler } from '../data/bentler';
 import { useApp } from '../contexts/AppContext';
 import { DekontDosyasi } from '../types';
-import { formatTL, formatTarih } from '../utils/currency';
+import { formatTL, formatTarih, formatTarihSaat } from '../utils/currency';
 
 export function Kayitlar() {
   const { gorunurIslemler, tumVeriGorebilir, auditEkle, sigortaBul } = useApp();
@@ -182,8 +182,7 @@ export function Kayitlar() {
                                   <dt>Operasyon tarihi</dt>
                                   <dd className="text-foreground">
                                     {islem.operasyonTarihi ?
-                                `${formatTarih(islem.operasyonTarihi)}${
-                                islem.operasyonSaati ? ` · ${islem.operasyonSaati}` : ''}` :
+                                formatTarihSaat(islem.operasyonTarihi, islem.operasyonSaati) :
 
                                 '—'}
                                   </dd>

@@ -12,7 +12,7 @@ import { MakbuzModal } from '../components/islem/MakbuzModal';
 import { Button } from '../components/ui/Button';
 import { useApp } from '../contexts/AppContext';
 import { DekontDosyasi, Islem, IslemDurumu } from '../types';
-import { formatTL, formatTarih } from '../utils/currency';
+import { formatTL, formatTarih, formatTarihSaat } from '../utils/currency';
 import { BENT_ORANLARI } from '../utils/hesaplama';
 
 /** Kayıt durumunun mantıksal ilerleme çizgisi — geçmiş ve güncel durum ayrı gösterilir. */
@@ -503,7 +503,7 @@ export function KayitDetay() {
                               </Link>{' '}
                               <span className="text-muted-foreground">
                                 {tasOcagiBul(p.tasOcagiId)?.ad} ·{' '}
-                                {p.operasyonTarihi ? formatTarih(p.operasyonTarihi) : '—'} ·{' '}
+                                {p.operasyonTarihi ? formatTarihSaat(p.operasyonTarihi, p.operasyonSaati) : '—'} ·{' '}
                                 {p.krediAdedi} kredi
                               </span>
                             </li>

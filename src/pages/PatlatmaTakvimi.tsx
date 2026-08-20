@@ -32,6 +32,7 @@ import {
 import { PatlatmaSonucModali, SonucTuru } from '../components/tasocagi/PatlatmaSonucModali';
 import { useApp } from '../contexts/AppContext';
 import { AjandaKaydi } from '../types';
+import { formatTarih, formatTarihSaat } from '../utils/currency';
 import { bilgiKaynagiEtiketi } from '../utils/patlatma';
 
 type ZamanFiltresi = 'TUMU' | 'BUGUN' | 'YARIN' | 'HAFTA' | 'AY' | 'ARALIK';
@@ -156,11 +157,6 @@ export function PatlatmaTakvimi() {
 
   const sonucNotuEtiketi = (kayit: AjandaKaydi) =>
   kayit.durum === 'İptal Edildi' ? 'İptal nedeni' : 'Açıklama';
-
-  const tarihEtiketi = (tarih: string) => {
-    const [yil, ay, gun] = tarih.split('-');
-    return yil && ay && gun ? `${gun}.${ay}.${yil}` : tarih;
-  };
 
   if (!kullanici) return null;
 
@@ -393,12 +389,12 @@ export function PatlatmaTakvimi() {
                 </div>
 
                 <p className="text-sm font-medium text-foreground">
-                  {kayit.tarih} · {kayit.saat}
+                  {formatTarihSaat(kayit.tarih, kayit.saat)}
                 </p>
                 {ertelendi &&
               <p className="text-sm text-muted-foreground">
                     <span className="font-medium text-foreground">Ertelendiği yeni tarih: </span>
-                    {tarihEtiketi(kayit.tarih)} · {kayit.saat}
+                    {formatTarihSaat(kayit.tarih, kayit.saat)}
                   </p>
               }
 
@@ -497,7 +493,7 @@ export function PatlatmaTakvimi() {
               const ozet = krediOzeti(kayit.isletmeciId ?? '');
               return (
                 <tr key={kayit.id} className="align-top">
-                    <td className="px-4 py-3 text-foreground">{kayit.tarih}</td>
+                    <td className="px-4 py-3 text-foreground">{formatTarih(kayit.tarih)}</td>
                     <td className="px-4 py-3 text-foreground">{kayit.saat}</td>
                     <td className="px-4 py-3 text-foreground">{kayit.talepEden}</td>
                     <td className="px-4 py-3 text-foreground">{kayit.yer}</td>

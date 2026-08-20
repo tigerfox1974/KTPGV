@@ -30,7 +30,7 @@ import {
 import { maliYilArsivleri } from '../data/arsiv';
 import { sonrakiKayitNo, sonrakiMakbuzNo } from '../utils/numaralandirma';
 import { VARSAYILAN_BAU } from '../utils/hesaplama';
-import { formatTL } from '../utils/currency';
+import { formatTL, formatTarihSaat } from '../utils/currency';
 import {
   ajandaIslemiYapilabilirMi,
   ajandaKaydiGorulebilirMi,
@@ -204,7 +204,7 @@ const AppContext = createContext<AppContextDegeri | null>(null);
 function simdiEtiketi(): string {
   const d = new Date();
   const iki = (n: number) => n.toString().padStart(2, '0');
-  return `${iki(d.getDate())}.${iki(d.getMonth() + 1)}.${d.getFullYear()} ${iki(
+  return `${iki(d.getDate())}.${iki(d.getMonth() + 1)}.${d.getFullYear()} · ${iki(
     d.getHours()
   )}:${iki(d.getMinutes())}`;
 }
@@ -429,7 +429,7 @@ export function AppProvider({
         olusturanKullaniciId: kayit.olusturanKullaniciId ?? kullanici?.id
       };
       setAjanda((eski) => [damgali, ...eski]);
-      auditEkle('Ajanda kaydı oluşturuldu', `${kayit.kayitNo} · ${kayit.tarih} ${kayit.saat}`);
+      auditEkle('Ajanda kaydı oluşturuldu', `${kayit.kayitNo} · ${formatTarihSaat(kayit.tarih, kayit.saat)}`);
     },
     [auditEkle, kullanici]
   );
@@ -568,7 +568,7 @@ export function AppProvider({
 
       auditEkle(
         'Patlatma planlandı',
-        `${kayitNo} · ${ocakAdi} · ${girdi.adet} patlatma · ${girdi.tarih} ${girdi.saat}`
+        `${kayitNo} · ${ocakAdi} · ${girdi.adet} patlatma · ${formatTarihSaat(girdi.tarih, girdi.saat)}`
       );
       if (krediYetersiz) {
         auditEkle(
@@ -610,8 +610,7 @@ export function AppProvider({
         sonucNotu: notParcalari || undefined,
         odemeDurumu:
         girdi.sonuc === 'ERTELENDI' ?
-        `Ertelendi · Yeni tarih ${girdi.yeniTarih || a.tarih} ${
-        girdi.yeniSaat || a.saat} · Kredi düşülmedi` :
+        `Ertelendi · Yeni tarih ${formatTarihSaat(girdi.yeniTarih || a.tarih, girdi.yeniSaat || a.saat)} · Kredi düşülmedi` :
 
         `${durum} · Kredi düşülmedi`
       } :
@@ -629,7 +628,7 @@ export function AppProvider({
         eylem,
         `${kayit.kayitNo} · ${kayit.yer}${
         girdi.sonuc === 'ERTELENDI' ?
-        ` · Yeni tarih ${girdi.yeniTarih} ${girdi.yeniSaat}` :
+        ` · Yeni tarih ${formatTarihSaat(girdi.yeniTarih ?? '', girdi.yeniSaat)}` :
         ''}${
         notParcalari ? ` · ${notParcalari}` : ''} · Kredi düşülmedi`
       );

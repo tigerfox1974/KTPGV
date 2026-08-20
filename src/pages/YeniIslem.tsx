@@ -29,7 +29,7 @@ import { useApp } from '../contexts/AppContext';
 import { AdliRapor, BentKodu, DekontDosyasi, Islem, TrafikAltBasvuru } from '../types';
 import { hesapla, patlatmaBedeli, raporBedeli } from '../utils/hesaplama';
 import { altBasvuruNo, sonrakiKayitNo } from '../utils/numaralandirma';
-import { formatTL, formatTarih } from '../utils/currency';
+import { formatTL, formatTarih, formatTarihSaat } from '../utils/currency';
 
 const BOS_FORM: IslemFormu = {
   bent: '',
@@ -640,7 +640,7 @@ export function YeniIslem() {
                     <p className="font-mono text-xs text-muted-foreground">{plan.kayitNo}</p>
                     <p className="text-sm font-medium text-foreground">{plan.baslik}</p>
                     <p className="mt-0.5 text-xs text-muted-foreground">
-                      {formatTarih(plan.tarih)} · {plan.saat} · Planlanan{' '}
+                      {formatTarihSaat(plan.tarih, plan.saat)} · Planlanan{' '}
                       {plan.planlananAdet ?? 1} kredi
                     </p>
                   </div>

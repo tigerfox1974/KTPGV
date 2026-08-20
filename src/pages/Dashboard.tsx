@@ -6,7 +6,7 @@ import { OzetKart } from '../components/common/OzetKart';
 import { IslemDurumRozeti, AjandaDurumRozeti } from '../components/common/DurumRozeti';
 import { KuralNotu } from '../components/common/KuralNotu';
 import { useApp } from '../contexts/AppContext';
-import { formatTL, formatTarih } from '../utils/currency';
+import { formatTL, formatTarih, formatTarihSaat } from '../utils/currency';
 import { bentler } from '../data/bentler';
 
 export function Dashboard() {
@@ -126,7 +126,7 @@ export function Dashboard() {
                 </div>
                 <p className="mt-1 text-sm font-medium text-foreground">{gorev.baslik}</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  {formatTarih(gorev.tarih)} · {gorev.saat}
+                  {formatTarihSaat(gorev.tarih, gorev.saat)}
                 </p>
               </li>
             )}

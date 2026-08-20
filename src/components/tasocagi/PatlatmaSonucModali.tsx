@@ -16,6 +16,7 @@ import { KuralNotu } from '../common/KuralNotu';
 import { BilgiKaynagiSecimi } from './BilgiKaynagiSecimi';
 import { useApp } from '../../contexts/AppContext';
 import { AjandaKaydi, BilgiKaynagi } from '../../types';
+import { formatTarihSaat } from '../../utils/currency';
 
 export type SonucTuru = 'YAPILMADI' | 'ERTELENDI' | 'IPTAL';
 
@@ -109,7 +110,7 @@ export function PatlatmaSonucModali({
         <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm">
           <p className="font-medium text-foreground">{kayit.yer}</p>
           <p className="text-muted-foreground">
-            {kayit.talepEden} · {kayit.tarih} · {kayit.saat} · Planlanan patlatma:{' '}
+            {kayit.talepEden} · {formatTarihSaat(kayit.tarih, kayit.saat)} · Planlanan patlatma:{' '}
             {kayit.planlananAdet ?? 1}
           </p>
         </div>

@@ -20,6 +20,7 @@ import { DosyaKarti } from '../islem/DosyaKarti';
 import { useApp } from '../../contexts/AppContext';
 import { BilgiKaynagi, DekontDosyasi } from '../../types';
 import { dosyaSec } from '../../utils/dosya';
+import { formatTarihSaat } from '../../utils/currency';
 
 export interface PatlatmaBaslangici {
   isletmeciId: string;
@@ -132,7 +133,7 @@ export function PatlatmaYapildiModali({ acik, kapat, baslangic }: PatlatmaYapild
             <div className="flex justify-between gap-3 sm:block">
               <dt className="text-muted-foreground">Planlanan tarih / saat</dt>
               <dd className="font-medium text-foreground">
-                {tarih} · {saat}
+                {formatTarihSaat(tarih, saat)}
               </dd>
             </div>
             <div className="flex justify-between gap-3 sm:block">

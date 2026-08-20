@@ -5,6 +5,7 @@ import { BosDurum } from '../components/common/BosDurum';
 import { KuralNotu } from '../components/common/KuralNotu';
 import { Input } from '../components/ui/Input';
 import { useApp } from '../contexts/AppContext';
+import { formatTarihSaat } from '../utils/currency';
 
 export function AuditLog() {
   const { gorunurAuditKayitlari, tumVeriGorebilir } = useApp();
@@ -65,7 +66,7 @@ export function AuditLog() {
                 {filtreli.map((kayit) =>
               <tr key={kayit.id} className="hover:bg-muted/40">
                     <td className="whitespace-nowrap px-4 py-3 font-mono text-xs text-muted-foreground">
-                      {kayit.zaman}
+                      {formatTarihSaat(kayit.zaman)}
                     </td>
                     <td className="px-4 py-3 text-foreground">{kayit.kullanici}</td>
                     <td className="px-4 py-3 font-medium text-foreground">{kayit.eylem}</td>
