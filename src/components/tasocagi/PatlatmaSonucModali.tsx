@@ -37,6 +37,12 @@ const BASLIKLAR: Record<SonucTuru, {baslik: string;aciklama: string;buton: strin
   }
 };
 
+const TOAST_METINLERI: Record<SonucTuru, string> = {
+  YAPILMADI: 'Patlatma yapılmadı',
+  ERTELENDI: 'Patlatma ertelendi',
+  IPTAL: 'Patlatma iptal edildi'
+};
+
 export function PatlatmaSonucModali({
   acik,
   kapat,
@@ -88,7 +94,7 @@ export function PatlatmaSonucModali({
       toast.error('İşlem tamamlanamadı', { description: sonuc.mesaj });
       return;
     }
-    toast.success(`${metin.baslik} olarak işlendi`, { description: 'Kredi düşülmedi.' });
+    toast.success(TOAST_METINLERI[tur], { description: 'Kredi düşülmedi.' });
     kapat();
   };
 

@@ -151,6 +151,12 @@ export function PatlatmaTakvimi() {
   const gorunenDurum = (kayit: AjandaKaydi) =>
   yapildiGosterilecekMi(kayit) ? 'Yapıldı' : kayit.durum;
 
+  const krediDusulmediGosterilecekMi = (kayit: AjandaKaydi) =>
+  kayit.durum === 'İptal Edildi' || kayit.durum === 'Yapılmadı';
+
+  const sonucNotuEtiketi = (kayit: AjandaKaydi) =>
+  kayit.durum === 'İptal Edildi' ? 'İptal nedeni' : 'Açıklama';
+
   if (!kullanici) return null;
 
   const yapabilir = (kayit: AjandaKaydi) => ajandaIslemiYapilabilir(kayit);
@@ -363,6 +369,8 @@ export function PatlatmaTakvimi() {
           const ozet = krediOzeti(kayit.isletmeciId ?? '');
           const yetersiz = krediYetersizMi(kayit);
           const yapildi = yapildiGosterilecekMi(kayit);
+          const krediDusulmedi = krediDusulmediGosterilecekMi(kayit);
+          const bekleyenPlan = sonucBekliyorMu(kayit);
           return (
             <article
               key={kayit.id}
@@ -389,15 +397,15 @@ export function PatlatmaTakvimi() {
                   </dd>
                   <dt className="text-muted-foreground">Kalan kredi</dt>
                   <dd className="text-right font-medium text-foreground">{ozet.kalan}</dd>
-                  {yapildi ?
+                  {yapildi || krediDusulmedi ?
                 <>
                       <dt className="text-muted-foreground">Bu patlatma</dt>
-                      <dd className="text-right font-medium text-foreground">Yapıldı</dd>
-                    </> :
+                      <dd className="text-right font-medium text-foreground">{gorunenDurum(kayit)}</dd>
+                    </> : bekleyenPlan ?
                 <>
                       <dt className="text-muted-foreground">Sonuç bekleyen planlı kredi</dt>
                       <dd className="text-right font-medium text-foreground">{ozet.planlanan}</dd>
-                    </>
+                    </> : null
                 }
                   <dt className="text-muted-foreground">Bilgi kaynağı</dt>
                   <dd className="text-right font-medium text-foreground">
@@ -413,8 +421,12 @@ export function PatlatmaTakvimi() {
 
                 {yetersiz && <BilgiRozeti metin="Kredi Yetersiz" ton="hata" />}
                 {yapildi && <BilgiRozeti metin="Kredi düşüldü" ton="olumlu" />}
+                {krediDusulmedi && <BilgiRozeti metin="Kredi düşülmedi" ton="uyari" />}
                 {kayit.sonucNotu &&
-              <p className="text-sm text-muted-foreground">{kayit.sonucNotu}</p>
+              <p className="text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">{sonucNotuEtiketi(kayit)}: </span>
+                    {kayit.sonucNotu}
+                  </p>
               }
 
                 <div className="mt-auto space-y-2 border-t border-border pt-3">
