@@ -174,6 +174,7 @@ interface AppContextDegeri {
   islemDegistirilebilir: (islem: Islem) => boolean;
   makbuzUretilebilir: (islem: Islem) => boolean;
   odemeDogrulanabilir: (islem: Islem) => boolean;
+  fazlaOdemeKararGuncelle: (islemId: string, durum: 'KARAR_BEKLIYOR' | 'IADE_BEKLIYOR' | 'MAHSUP_BAKIYESI') => void;
   ajandaIslemiYapilabilir: (kayit: AjandaKaydi) => boolean;
   islemBul: (kayitNo?: string) => Islem | undefined;
   bau: number;
@@ -430,6 +431,23 @@ export function AppProvider({
           `${hedef.talepEden} · ${hedef.krediAdedi} kredi (ödeme doğrulandı)`
         );
       }
+    },
+    [islemler, auditEkle]
+  );
+
+  const fazlaOdemeKararGuncelle = useCallback(
+    (islemId: string, durum: 'KARAR_BEKLIYOR' | 'IADE_BEKLIYOR' | 'MAHSUP_BAKIYESI') => {
+      const hedef = islemler.find((i) => i.id === islemId);
+      if (!hedef || !(hedef.fazlaOdemeTutar ?? 0)) return;
+      const eskiDurum = hedef.fazlaOdemeDurumu ?? 'KARAR_BEKLIYOR';
+      setIslemler((eski) => eski.map((i) => i.id === islemId ? { ...i, fazlaOdemeDurumu: durum } : i));
+      const eylem =
+      durum === 'IADE_BEKLIYOR' ?
+      'Fazla ödeme iade bekliyor olarak işaretlendi' :
+      durum === 'MAHSUP_BAKIYESI' ?
+      'Fazla ödeme mahsuplaşma bakiyesine aktarıldı' :
+      'Fazla ödeme karar bekliyor olarak bırakıldı';
+      auditEkle(eylem, `${hedef.kayitNo} · ${formatTL(hedef.fazlaOdemeTutar ?? 0)} · ${eskiDurum} → ${durum}`);
     },
     [islemler, auditEkle]
   );
@@ -1010,6 +1028,7 @@ export function AppProvider({
       islemEkle,
       makbuzUret,
       odemeDogrula,
+      fazlaOdemeKararGuncelle,
       fazlaOdemeIadeIsle,
       ajanda,
       ajandaEkle,
@@ -1076,6 +1095,7 @@ export function AppProvider({
     islemEkle,
     makbuzUret,
     odemeDogrula,
+    fazlaOdemeKararGuncelle,
     fazlaOdemeIadeIsle,
     ajanda,
     ajandaEkle,

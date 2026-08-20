@@ -30,11 +30,11 @@ export function KrediHareketleri() {
   let bakiye = 0;
   const satirlar = artan.map((h) => {
     const onceki = bakiye;
-    // Plan hareketleri bakiyeyi değiştirmez; kredi yalnızca gerçekleşme raporuyla düşer.
-    if (h.tip === 'YUKLEME') bakiye += h.adet;
-    if (h.tip === 'KULLANIM') bakiye -= h.adet;
     const kayit = islemler.find((i) => i.kayitNo === h.kayitNo);
     const dogrulandi = !kayit || !!kayit.makbuzNo || DOGRULANMIS.includes(kayit.durum);
+    // Plan hareketleri ve doğrulanmamış yüklemeler kullanılabilir bakiyeyi değiştirmez.
+    if (h.tip === 'YUKLEME' && dogrulandi) bakiye += h.adet;
+    if (h.tip === 'KULLANIM') bakiye -= h.adet;
     return { ...h, onceki, sonraki: bakiye, makbuzNo: kayit?.makbuzNo ?? h.makbuzNo, dogrulandi };
   });
 
@@ -87,7 +87,7 @@ export function KrediHareketleri() {
         <OzetKart
           etiket="Kalan kullanılabilir"
           deger={`${ozet.kalan}`}
-          altMetin={`Kullanılabilir kredi: ${ozet.kullanilabilir}`}
+          altMetin="Doğrulanmış yükleme - kullanılan kredi"
           ikon={Wallet} />
         
       </div>
@@ -125,9 +125,14 @@ export function KrediHareketleri() {
                       <p className="text-xs text-muted-foreground">{h.aciklama}</p>
                       <span className="mt-1 inline-flex flex-wrap gap-1.5">
                         {h.tip === 'YUKLEME' &&
+                    <>
                     <BilgiRozeti
                       metin={h.dogrulandi ? 'Kullanılabilir' : 'Doğrulama bekliyor'}
                       ton={h.dogrulandi ? 'olumlu' : 'uyari'} />
+                          {!h.dogrulandi &&
+                      <BilgiRozeti metin={`${h.adet} kredi doğrulanana kadar kullanılabilir değildir`} ton="uyari" />
+                      }
+                        </>
 
                     }
                         {h.tip === 'PLAN' &&

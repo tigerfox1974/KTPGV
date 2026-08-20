@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowUpRight, ChevronDown, ChevronRight, Search } from 'lucide-react';
 import { PageHeader } from '../components/common/PageHeader';
 import { BosDurum } from '../components/common/BosDurum';
-import { IslemDurumRozeti } from '../components/common/DurumRozeti';
+import { BilgiRozeti, IslemDurumRozeti } from '../components/common/DurumRozeti';
 import { DosyaKarti } from '../components/islem/DosyaKarti';
 import { DosyaOnizlemeModal } from '../components/islem/DosyaOnizlemeModal';
 import { Input } from '../components/ui/Input';
@@ -146,6 +146,20 @@ export function Kayitlar() {
                         <td className="px-4 py-3">
                           <p className="font-medium text-foreground">{islem.baslik}</p>
                           <p className="text-xs text-muted-foreground">{islem.talepEden}</p>
+                          {islem.fazlaOdemeTutar &&
+                          <div className="mt-1 flex flex-wrap gap-1.5">
+                              <BilgiRozeti metin="Fazla ödeme var" ton="uyari" />
+                              <BilgiRozeti
+                              metin={
+                              islem.fazlaOdemeDurumu === 'IADE_BEKLIYOR' ? 'İade bekliyor' :
+                              islem.fazlaOdemeDurumu === 'IADE_EDILDI' ? 'İade edildi' :
+                              islem.fazlaOdemeDurumu === 'MAHSUP_BAKIYESI' ? 'Mahsup bakiyesi' :
+                              islem.fazlaOdemeDurumu === 'MAHSUP_EDILDI' ? 'Mahsup edildi' :
+                              'Karar bekliyor'
+                              }
+                              ton="notr" />
+                            </div>
+                          }
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">
                           {formatTarih(islem.olusturmaTarihi)}

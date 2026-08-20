@@ -83,7 +83,10 @@ export function KayitDetay() {
     tasOcagiBul,
     krediOzeti,
     krediHareketleri,
+    kullanici,
+    merkezAdminMi,
     fazlaOdemeIadeIsle
+    , fazlaOdemeKararGuncelle
   } = useApp();
   const [onizleme, setOnizleme] = useState<DekontDosyasi | null>(null);
   const [makbuzAcik, setMakbuzAcik] = useState(false);
@@ -97,6 +100,7 @@ export function KayitDetay() {
   const [iadeAciklama, setIadeAciklama] = useState('');
 
   const islem = islemBul(kayitNo);
+  const fazlaOdemeKarariVerebilir = !!kullanici && !kullanici.sadeceGoruntule && (merkezAdminMi || kullanici.rolKodu === 'VAKIF_MUHASEBE');
 
   const iadeKaydet = () => {
     if (!islem || !iadeDosya) return;
@@ -371,11 +375,34 @@ export function KayitDetay() {
               <p className="mt-3 text-sm text-muted-foreground">
                 Fazla ödeme patlatma kredisi değildir; iade edilebilir veya sonraki ödemeye mahsup edilebilir.
               </p>
+              {islem.fazlaOdemeDurumu === 'KARAR_BEKLIYOR' && fazlaOdemeKarariVerebilir &&
+              <div className="mt-4 flex flex-wrap gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <Button size="sm" variant="outline" onClick={() => fazlaOdemeKararGuncelle(islem.id, 'IADE_BEKLIYOR')}>
+                    İade edilecek olarak işaretle
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => fazlaOdemeKararGuncelle(islem.id, 'MAHSUP_BAKIYESI')}>
+                    Mahsuplaşmaya aktar
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => fazlaOdemeKararGuncelle(islem.id, 'KARAR_BEKLIYOR')}>
+                    Karar bekliyor kalsın
+                  </Button>
+                </div>
+              }
+              {islem.fazlaOdemeDurumu === 'IADE_BEKLIYOR' &&
+              <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                  İade bekliyor. İade işlemi tamamlanınca iade dekontu yüklenmelidir.
+                </p>
+              }
+              {islem.fazlaOdemeDurumu === 'MAHSUP_BAKIYESI' &&
+              <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                  {formatTL(islem.fazlaOdemeTutar ?? 0)} sonraki ödemeye mahsup edilmek üzere işletmeci hesabına aktarılmıştır. Bu tutar işletmecinin sonraki kredi yükleme işleminde mahsup bakiyesi olarak kullanılabilir.
+                </p>
+              }
               {islem.fazlaOdemeDurumu === 'IADE_BEKLIYOR' &&
               <div className="mt-4 space-y-3 rounded-lg border border-border bg-muted/30 p-4">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm font-medium text-foreground">İade işlemi</p>
-                    <Button size="sm" variant="outline" onClick={() => setIadeFormAcik(!iadeFormAcik)}>
+                    <Button size="sm" variant="outline" onClick={() => setIadeFormAcik(!iadeFormAcik)} disabled={!fazlaOdemeKarariVerebilir}>
                       İade işle
                     </Button>
                   </div>
@@ -729,6 +756,18 @@ export function KayitDetay() {
               <Satir etiket="Makbuz" deger={islem.makbuzNo ?? 'Yok'} mono />
               <Satir etiket="Dekont" deger={islem.dekont.dekontNo} mono />
               <Satir etiket="Durum" deger={<IslemDurumRozeti durum={islem.durum} />} />
+              {islem.fazlaOdemeTutar && <Satir etiket="Fazla ödeme" deger={formatTL(islem.fazlaOdemeTutar)} />}
+              {islem.fazlaOdemeDurumu &&
+              <Satir
+              etiket="Fazla ödeme durumu"
+              deger={
+              islem.fazlaOdemeDurumu === 'IADE_BEKLIYOR' ? 'İade bekliyor' :
+              islem.fazlaOdemeDurumu === 'IADE_EDILDI' ? 'İade edildi' :
+              islem.fazlaOdemeDurumu === 'MAHSUP_BAKIYESI' ? 'Mahsup bakiyesi' :
+              islem.fazlaOdemeDurumu === 'MAHSUP_EDILDI' ? 'Mahsup edildi' :
+              'Karar bekliyor'
+              } />
+              }
             </dl>
           </div>
           <KuralNotu baslik="Numara kuralı">
