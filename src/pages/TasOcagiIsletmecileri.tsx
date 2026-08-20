@@ -9,7 +9,7 @@ import { Button } from '../components/ui/Button';
 import { IsletmeciFormu } from '../components/kart/IsletmeciFormu';
 import { useApp } from '../contexts/AppContext';
 import { Isletmeci } from '../types';
-import { formatTarih } from '../utils/currency';
+import { formatTL, formatTarih } from '../utils/currency';
 
 export function TasOcagiIsletmecileri() {
   const {
@@ -128,6 +128,14 @@ export function TasOcagiIsletmecileri() {
                 <div>
                   <p className="font-heading text-lg font-semibold text-primary">{ozet.kalan}</p>
                   <p className="text-xs text-muted-foreground">Kalan kredi</p>
+                </div>
+                <div>
+                  <p className="font-heading text-lg font-semibold text-amber-700">{formatTL(ozet.mahsuplasmaBakiyesi)}</p>
+                  <p className="text-xs text-muted-foreground">Mahsuplaşma bakiyesi</p>
+                </div>
+                <div>
+                  <p className="font-heading text-lg font-semibold text-rose-700">{formatTL(ozet.iadeBekleyenTutar)}</p>
+                  <p className="text-xs text-muted-foreground">İade bekleyen tutar</p>
                 </div>
               </div>
 

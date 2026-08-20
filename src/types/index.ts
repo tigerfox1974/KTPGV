@@ -85,6 +85,13 @@ export interface Birim {
 
 export type DekontYontemi = 'PERSONEL' | 'QR_LINK';
 
+export type FazlaOdemeDurumu =
+'KARAR_BEKLIYOR' |
+'IADE_BEKLIYOR' |
+'IADE_EDILDI' |
+'MAHSUP_BAKIYESI' |
+'MAHSUP_EDILDI';
+
 export interface DekontDosyasi {
   ad: string;
   tur: 'PDF' | 'JPG' | 'PNG';
@@ -166,6 +173,20 @@ export interface Islem {
   isletmeciId?: string;
   tasOcagiId?: string;
   krediAdedi?: number;
+  dekonttaOdenenTutar?: number;
+  krediyeMahsupEdilenTutar?: number;
+  fazlaOdemeTutar?: number;
+  fazlaOdemeDurumu?: FazlaOdemeDurumu;
+  iadeDekontNo?: string;
+  iadeDekontTarihi?: string;
+  iadeDekontDosyasi?: DekontDosyasi | null;
+  iadeTutar?: number;
+  iadeYapilan?: string;
+  iadeBankaBilgisi?: string;
+  iadeAciklama?: string;
+  mahsupKullanilanTutar?: number;
+  mahsupKaynakKayitNo?: string;
+  mahsupHedefKayitNo?: string;
   /** Gerçekleşme kaydının bağlı olduğu plan kaydı (EKPL). */
   planKayitNo?: string;
   /** Varsa belge / bildirim no. */

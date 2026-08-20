@@ -62,6 +62,19 @@ export interface KrediOzeti {
   kalan: number;
   /** Ödeme doğrulaması veya makbuz bekleyen, henüz kullanılamayan kredi */
   dogrulamaBekleyen: number;
+  mahsuplasmaBakiyesi: number;
+  iadeBekleyenTutar: number;
+}
+
+interface FazlaOdemeIadeGirdisi {
+  islemId: string;
+  iadeTutar: number;
+  iadeDekontTarihi: string;
+  iadeYapilan: string;
+  iadeBankaBilgisi: string;
+  iadeDekontNo: string;
+  iadeDekontDosyasi: DekontDosyasi;
+  iadeAciklama?: string;
 }
 
 export interface GerceklesmeGirdisi {
@@ -169,6 +182,7 @@ interface AppContextDegeri {
   islemEkle: (islem: Islem) => void;
   makbuzUret: (islemId: string) => string | null;
   odemeDogrula: (islemId: string) => void;
+  fazlaOdemeIadeIsle: (girdi: FazlaOdemeIadeGirdisi) => {basarili: boolean;mesaj?: string;};
   ajanda: AjandaKaydi[];
   ajandaEkle: (kayit: AjandaKaydi) => void;
   ajandaDurumGuncelle: (id: string, durum: AjandaDurumu) => void;
@@ -420,6 +434,34 @@ export function AppProvider({
     [islemler, auditEkle]
   );
 
+  const fazlaOdemeIadeIsle = useCallback(
+    (girdi: FazlaOdemeIadeGirdisi) => {
+      const hedef = islemler.find((i) => i.id === girdi.islemId);
+      if (!hedef) return { basarili: false, mesaj: 'Kayıt bulunamadı.' };
+      const fazla = hedef.fazlaOdemeTutar ?? 0;
+      if (fazla <= 0) return { basarili: false, mesaj: 'Bu kayıtta fazla ödeme yok.' };
+      if (girdi.iadeTutar <= 0 || girdi.iadeTutar > fazla) {
+        return { basarili: false, mesaj: 'İade tutarı fazla ödeme tutarından büyük olamaz.' };
+      }
+      setIslemler((eski) =>
+      eski.map((i) => i.id === girdi.islemId ? {
+        ...i,
+        fazlaOdemeDurumu: 'IADE_EDILDI' as const,
+        iadeTutar: girdi.iadeTutar,
+        iadeDekontTarihi: girdi.iadeDekontTarihi,
+        iadeYapilan: girdi.iadeYapilan,
+        iadeBankaBilgisi: girdi.iadeBankaBilgisi,
+        iadeDekontNo: girdi.iadeDekontNo,
+        iadeDekontDosyasi: girdi.iadeDekontDosyasi,
+        iadeAciklama: girdi.iadeAciklama || undefined
+      } : i)
+      );
+      auditEkle('Fazla ödeme iadesi işlendi', `${hedef.kayitNo} · ${formatTL(girdi.iadeTutar)}`);
+      return { basarili: true };
+    },
+    [islemler, auditEkle]
+  );
+
   const ajandaEkle = useCallback(
     (kayit: AjandaKaydi) => {
       const damgali: AjandaKaydi = {
@@ -462,13 +504,24 @@ export function AppProvider({
       filter((h) => h.tip === 'PLAN' && !raporlananPlanlar.includes(h.kayitNo)).
       reduce((t, h) => t + h.adet, 0);
       const kullanilabilir = yuklenen - dogrulamaBekleyen;
+      const ilgiliIslemler = islemler.filter((i) => i.isletmeciId === isletmeciId);
+      const mahsuplasmaBakiyesi = ilgiliIslemler.reduce((t, i) => {
+        if (i.fazlaOdemeDurumu === 'MAHSUP_BAKIYESI') return t + (i.fazlaOdemeTutar ?? 0);
+        return t;
+      }, 0);
+      const iadeBekleyenTutar = ilgiliIslemler.reduce((t, i) => {
+        if (i.fazlaOdemeDurumu === 'IADE_BEKLIYOR') return t + (i.fazlaOdemeTutar ?? 0);
+        return t;
+      }, 0);
       return {
         yuklenen,
         kullanilabilir,
         kullanilan,
         planlanan,
         kalan: kullanilabilir - kullanilan,
-        dogrulamaBekleyen
+        dogrulamaBekleyen,
+        mahsuplasmaBakiyesi,
+        iadeBekleyenTutar
       };
     },
     [krediHareketleri, islemler]
@@ -957,6 +1010,7 @@ export function AppProvider({
       islemEkle,
       makbuzUret,
       odemeDogrula,
+      fazlaOdemeIadeIsle,
       ajanda,
       ajandaEkle,
       ajandaDurumGuncelle,
@@ -1022,6 +1076,7 @@ export function AppProvider({
     islemEkle,
     makbuzUret,
     odemeDogrula,
+    fazlaOdemeIadeIsle,
     ajanda,
     ajandaEkle,
     ajandaDurumGuncelle,

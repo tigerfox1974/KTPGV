@@ -26,7 +26,7 @@ import {
 '../components/tasocagi/PatlatmaYapildiModali';
 import { bentler } from '../data/bentler';
 import { useApp } from '../contexts/AppContext';
-import { AdliRapor, BentKodu, DekontDosyasi, Islem, TrafikAltBasvuru } from '../types';
+import { AdliRapor, BentKodu, DekontDosyasi, FazlaOdemeDurumu, Islem, TrafikAltBasvuru } from '../types';
 import { hesapla, patlatmaBedeli, raporBedeli } from '../utils/hesaplama';
 import { altBasvuruNo, sonrakiKayitNo } from '../utils/numaralandirma';
 import { formatTL, formatTarih, formatTarihSaat } from '../utils/currency';
@@ -129,6 +129,10 @@ export function YeniIslem() {
   const [adliSatirlari, setAdliSatirlari] = useState<AdliRapor[]>([]);
   const [sonKayit, setSonKayit] = useState<Islem | null>(null);
   const [raporBaslangici, setRaporBaslangici] = useState<PatlatmaBaslangici | null>(null);
+  const [krediYuklemeYontemi, setKrediYuklemeYontemi] = useState<'ADET' | 'TUTAR'>('ADET');
+  const [krediDekontTutari, setKrediDekontTutari] = useState<number | null>(null);
+  const [fazlaOdemeDurumu, setFazlaOdemeDurumu] = useState<'KARAR_BEKLIYOR' | 'IADE_BEKLIYOR' | 'MAHSUP_BAKIYESI'>('KARAR_BEKLIYOR');
+  const [mahsupKullan, setMahsupKullan] = useState(false);
   const navigate = useNavigate();
 
   const kullanilabilirBentler = useMemo(
@@ -151,6 +155,10 @@ export function YeniIslem() {
     if (alan === 'eIslemTuru') {
       setDekont(BOS_DEKONT);
       setDosya(null);
+      setKrediYuklemeYontemi('ADET');
+      setKrediDekontTutari(null);
+      setFazlaOdemeDurumu('KARAR_BEKLIYOR');
+      setMahsupKullan(false);
       setForm((eski) => ({
         ...eski,
         eIslemTuru: deger as IslemFormu['eIslemTuru'],
@@ -167,6 +175,33 @@ export function YeniIslem() {
 
   const dekontGuncelle = <K extends keyof DekontFormu,>(alan: K, deger: DekontFormu[K]) =>
   setDekont((eski) => ({ ...eski, [alan]: deger }));
+
+  const krediYuklemeBirimKurus = Math.round(patlatmaBedeli(bau) * 100);
+
+  const krediYuklemeYontemiDegistir = (yontem: 'ADET' | 'TUTAR') => {
+    setKrediYuklemeYontemi(yontem);
+    setDekont(BOS_DEKONT);
+    setDosya(null);
+    setFazlaOdemeDurumu('KARAR_BEKLIYOR');
+    setMahsupKullan(false);
+    if (yontem === 'ADET') {
+      setKrediDekontTutari(null);
+      setForm((eski) => ({ ...eski, krediAdedi: eski.krediAdedi || '1' }));
+      return;
+    }
+    setForm((eski) => ({ ...eski, krediAdedi: '' }));
+  };
+
+  const krediDekontTutariDegistir = (tutar: number | null) => {
+    setKrediDekontTutari(tutar);
+    const tutarKurus = Math.round((tutar ?? 0) * 100);
+    const krediAdedi =
+    krediYuklemeBirimKurus > 0 && tutarKurus >= krediYuklemeBirimKurus ?
+    Math.floor(tutarKurus / krediYuklemeBirimKurus) :
+    0;
+    setForm((eski) => ({ ...eski, krediAdedi: krediAdedi > 0 ? String(krediAdedi) : '' }));
+    setDekont((eski) => ({ ...eski, odenenTutar: krediAdedi > 0 ? tutar : null }));
+  };
 
   const trafik = form.bent === 'F' && form.fAltTur === 'TRAFIK';
   const adli = form.bent === 'F' && form.fAltTur === 'ADLI';
@@ -219,6 +254,21 @@ export function YeniIslem() {
     [form, bau, raporSayisi]
   );
 
+  const krediDekontKurus = Math.round((krediDekontTutari ?? 0) * 100);
+  const krediDekonttanAdet =
+  krediYuklemeBirimKurus > 0 && krediDekontKurus >= krediYuklemeBirimKurus ?
+  Math.floor(krediDekontKurus / krediYuklemeBirimKurus) :
+  0;
+  const krediDekontTutariGecerli = krediYuklemeYontemi !== 'TUTAR' || krediDekonttanAdet > 0;
+  const krediyeMahsupEdilenTutar = krediYukleme ? (Number(form.krediAdedi) || 0) * patlatmaBedeli(bau) : sonuc.tutar;
+  const mahsupKullanilanTutar = krediYukleme && mahsupKullan && ozet ? Math.min(ozet.mahsuplasmaBakiyesi, krediyeMahsupEdilenTutar) : 0;
+  const beklenenOdemeTutari = krediYuklemeYontemi === 'TUTAR' && krediYukleme ?
+  krediDekontTutari ?? 0 :
+  Math.max(0, sonuc.tutar - mahsupKullanilanTutar);
+  const fazlaOdemeTutar = krediYuklemeYontemi === 'TUTAR' && krediYukleme ?
+  Math.max(0, (krediDekontTutari ?? 0) - krediyeMahsupEdilenTutar) :
+  0;
+
   const kayitNoOnizleme = form.bent ?
   sonrakiKayitNo(islemler, form.bent as BentKodu, form.fAltTur, form.eIslemTuru) :
   '';
@@ -251,7 +301,7 @@ export function YeniIslem() {
   const adliKaldir = (sira: number) => setAdliSatirlari((eski) => eski.filter((_, i) => i !== sira));
 
   const odenen = dekont.odenenTutar ?? 0;
-  const tutarUyumlu = odenen > 0 && Math.abs(odenen - sonuc.tutar) < 0.01;
+  const tutarUyumlu = odenen > 0 && Math.abs(odenen - beklenenOdemeTutari) < 0.01;
 
   const dekontTamam =
   !!dosya &&
@@ -323,7 +373,8 @@ export function YeniIslem() {
           Number(form.krediAdedi) > 0);
 
       }
-      return sonuc.gecerli;
+  if (krediYukleme) return sonuc.gecerli && krediDekontTutariGecerli;
+  return sonuc.gecerli;
     }
     return sonuc.gecerli;
   })();
@@ -401,6 +452,10 @@ export function YeniIslem() {
     setDosya(null);
     setTrafikSatirlari([]);
     setAdliSatirlari([]);
+    setKrediYuklemeYontemi('ADET');
+    setKrediDekontTutari(null);
+    setFazlaOdemeDurumu('KARAR_BEKLIYOR');
+    setMahsupKullan(false);
   };
 
   const kaydet = () => {
@@ -480,6 +535,11 @@ export function YeniIslem() {
       isletmeciId: bent === 'E' ? form.isletmeciId : undefined,
       tasOcagiId: krediPlanlama ? form.tasOcagiId : undefined,
       krediAdedi: bent === 'E' ? Number(form.krediAdedi) : undefined,
+      dekonttaOdenenTutar: krediYukleme ? odenen : undefined,
+      krediyeMahsupEdilenTutar: krediYukleme ? krediyeMahsupEdilenTutar : undefined,
+      fazlaOdemeTutar: krediYukleme && fazlaOdemeTutar > 0 ? fazlaOdemeTutar : undefined,
+      fazlaOdemeDurumu: krediYukleme && fazlaOdemeTutar > 0 ? fazlaOdemeDurumu as FazlaOdemeDurumu : undefined,
+      mahsupKullanilanTutar: krediYukleme && mahsupKullanilanTutar > 0 ? mahsupKullanilanTutar : undefined,
       notlar: form.notlar.trim() || undefined
     };
 
@@ -510,6 +570,15 @@ export function YeniIslem() {
         'Taş ocağı kredi yüklendi',
         `${isletmeci?.ad} · +${form.krediAdedi} kredi (doğrulama bekliyor)`
       );
+      if (fazlaOdemeTutar > 0) {
+        auditEkle(
+          'Fazla ödeme kaydedildi',
+          `${kayitNo} · ${formatTL(fazlaOdemeTutar)} · ${fazlaOdemeDurumu === 'IADE_BEKLIYOR' ? 'İade bekliyor' : fazlaOdemeDurumu === 'MAHSUP_BAKIYESI' ? 'Mahsup bakiyesi' : 'Karar bekliyor'}`
+        );
+      }
+      if (mahsupKullanilanTutar > 0) {
+        auditEkle('Fazla ödeme mahsup edildi', `${kayitNo} · ${formatTL(mahsupKullanilanTutar)}`);
+      }
     }
 
     if (krediPlanlama) {
@@ -605,6 +674,14 @@ export function YeniIslem() {
   const bentAlanProps = {
     form,
     guncelle,
+    krediYuklemeYontemi,
+    krediYuklemeYontemiDegistir,
+    krediDekontTutari,
+    krediDekontTutariDegistir,
+    fazlaOdemeDurumu,
+    fazlaOdemeDurumuDegistir: setFazlaOdemeDurumu,
+    mahsupKullan,
+    mahsupKullanDegistir: setMahsupKullan,
     krediOzeti: ozet,
     patlatmaBedeliTutar: patlatmaBedeli(bau),
     raporBedeliTutar: raporBedeli(bau),
@@ -634,6 +711,10 @@ export function YeniIslem() {
             setForm({ ...BOS_FORM, bent: yeniBent, ...bentVarsayilanlari(yeniBent) });
             setDosya(null);
             setDekont(BOS_DEKONT);
+            setKrediYuklemeYontemi('ADET');
+            setKrediDekontTutari(null);
+            setFazlaOdemeDurumu('KARAR_BEKLIYOR');
+            setMahsupKullan(false);
             setTrafikSatirlari([]);
             setAdliSatirlari([]);
           }}>
@@ -843,7 +924,7 @@ export function YeniIslem() {
         dosya={dosya}
         dosyaAta={setDosya}
         kaynakEtiketi={kaynakEtiketi}
-        beklenenTutar={sonuc.tutar}
+        beklenenTutar={beklenenOdemeTutari}
         qrOdenecekTutarGoster={form.bent === 'D'}
         auditEkle={auditEkle} />
 

@@ -46,6 +46,14 @@ interface BentAlanlariProps {
   bolum: BentBolumu;
   form: IslemFormu;
   guncelle: <K extends keyof IslemFormu>(alan: K, deger: IslemFormu[K]) => void;
+  krediYuklemeYontemi?: 'ADET' | 'TUTAR';
+  krediYuklemeYontemiDegistir?: (yontem: 'ADET' | 'TUTAR') => void;
+  krediDekontTutari?: number | null;
+  krediDekontTutariDegistir?: (tutar: number | null) => void;
+  fazlaOdemeDurumu?: 'KARAR_BEKLIYOR' | 'IADE_BEKLIYOR' | 'MAHSUP_BAKIYESI';
+  fazlaOdemeDurumuDegistir?: (durum: 'KARAR_BEKLIYOR' | 'IADE_BEKLIYOR' | 'MAHSUP_BAKIYESI') => void;
+  mahsupKullan?: boolean;
+  mahsupKullanDegistir?: (kullan: boolean) => void;
   krediOzeti: KrediOzeti | null;
   patlatmaBedeliTutar: number;
   raporBedeliTutar: number;
@@ -125,7 +133,7 @@ function KrediOzetKutusu({ ozet }: {ozet: KrediOzeti;}) {
   const kalemler = [
   { etiket: 'Yüklenen kredi', deger: ozet.yuklenen, ton: 'notr' as const },
   { etiket: 'Doğrulama bekleyen', deger: ozet.dogrulamaBekleyen, ton: 'uyari' as const },
-  { etiket: 'Planlanan / rapor bekleyen', deger: ozet.planlanan, ton: 'uyari' as const },
+  { etiket: 'Planlanan / sonuç bekleyen', deger: ozet.planlanan, ton: 'uyari' as const },
   { etiket: 'Gerçekleşmiş kullanılan', deger: ozet.kullanilan, ton: 'notr' as const },
   { etiket: 'Kalan kullanılabilir', deger: ozet.kalan, ton: 'vurgu' as const }];
 
@@ -168,6 +176,14 @@ export function BentAlanlari({
   bolum,
   form,
   guncelle,
+  krediYuklemeYontemi = 'ADET',
+  krediYuklemeYontemiDegistir,
+  krediDekontTutari = null,
+  krediDekontTutariDegistir,
+  fazlaOdemeDurumu = 'KARAR_BEKLIYOR',
+  fazlaOdemeDurumuDegistir,
+  mahsupKullan = false,
+  mahsupKullanDegistir,
   krediOzeti,
   patlatmaBedeliTutar,
   raporBedeliTutar,
@@ -563,20 +579,136 @@ export function BentAlanlari({
   // E bendi hesaplama alanları
   if (krediYukleme) {
     const adet = Number(form.krediAdedi) || 0;
+    const birimKurus = Math.round(patlatmaBedeliTutar * 100);
+    const dekontKurus = Math.round((krediDekontTutari ?? 0) * 100);
+    const tutardanKredi = birimKurus > 0 && dekontKurus >= birimKurus ? Math.floor(dekontKurus / birimKurus) : 0;
+    const mahsupKurus = mahsupKullan && krediOzeti ? Math.min(Math.round(krediOzeti.mahsuplasmaBakiyesi * 100), Math.max(0, patlatmaBedeliTutar * adet * 100)) : 0;
+    const mahsupTutari = mahsupKurus / 100;
+    const odenecekTutar = Math.max(0, patlatmaBedeliTutar * adet - mahsupTutari);
+    const krediyeMahsupKurus = tutardanKredi * birimKurus;
+    const fazlaKurus = Math.max(0, dekontKurus - krediyeMahsupKurus);
+    const fazlaOdemeTutar = fazlaKurus / 100;
+    const tutarYetersiz = krediYuklemeYontemi === 'TUTAR' && (krediDekontTutari ?? 0) > 0 && dekontKurus < birimKurus;
+    const fazlaOdemeVar = krediYuklemeYontemi === 'TUTAR' && fazlaOdemeTutar > 0 && tutardanKredi > 0;
     return (
       <div className="space-y-4">
-        <div className="sm:max-w-xs">
-          <Label htmlFor="kredi-adedi">Kaç patlatmalık ödeme yapılacak?</Label>
-          <Input
-            id="kredi-adedi"
-            type="number"
-            min={1}
-            step={1}
-            value={form.krediAdedi}
-            onChange={(e) => guncelle('krediAdedi', e.target.value)}
-            className="mt-1.5" />
-          
+        <div className="grid gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => krediYuklemeYontemiDegistir?.('ADET')}
+            className={`rounded-lg border p-3 text-left text-sm ${
+            krediYuklemeYontemi === 'ADET' ? 'border-primary bg-primary/5 text-foreground' : 'border-border bg-card text-muted-foreground'}`
+            }>
+            <span className="block font-medium">Patlatma adedine göre hesapla</span>
+            <span className="mt-0.5 block text-xs">Kredi adedini tam sayı olarak girin.</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => krediYuklemeYontemiDegistir?.('TUTAR')}
+            className={`rounded-lg border p-3 text-left text-sm ${
+            krediYuklemeYontemi === 'TUTAR' ? 'border-primary bg-primary/5 text-foreground' : 'border-border bg-card text-muted-foreground'}`
+            }>
+            <span className="block font-medium">Dekont tutarından kredi hesapla</span>
+            <span className="mt-0.5 block text-xs">Tutar tam kredi adedine karşılık gelmelidir.</span>
+          </button>
         </div>
+
+        {krediOzeti && krediOzeti.mahsuplasmaBakiyesi > 0 && krediYuklemeYontemi === 'ADET' &&
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            <p className="font-medium">Bu işletmecinin mahsuplaşma bakiyesi: {formatTL(krediOzeti.mahsuplasmaBakiyesi)}</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => mahsupKullanDegistir?.(true)}
+                className={`rounded-md border px-3 py-1.5 text-xs ${mahsupKullan ? 'border-amber-700 bg-white text-amber-900' : 'border-amber-200 bg-amber-100/60 text-amber-800'}`}>
+                Bu bakiyeyi bu işlemde kullan
+              </button>
+              <button
+                type="button"
+                onClick={() => mahsupKullanDegistir?.(false)}
+                className={`rounded-md border px-3 py-1.5 text-xs ${!mahsupKullan ? 'border-amber-700 bg-white text-amber-900' : 'border-amber-200 bg-amber-100/60 text-amber-800'}`}>
+                Bu bakiyeyi kullanma
+              </button>
+            </div>
+            {mahsupKullan &&
+            <dl className="mt-2 grid gap-1 text-xs sm:grid-cols-3">
+                <div><dt>Kredi yükleme tutarı</dt><dd className="font-medium">{formatTL(patlatmaBedeliTutar * adet)}</dd></div>
+                <div><dt>Kullanılan mahsup</dt><dd className="font-medium">{formatTL(mahsupTutari)}</dd></div>
+                <div><dt>Ödenmesi gereken</dt><dd className="font-medium">{formatTL(odenecekTutar)}</dd></div>
+              </dl>
+            }
+          </div>
+        }
+
+        {krediYuklemeYontemi === 'ADET' ?
+        <div className="sm:max-w-xs">
+            <Label htmlFor="kredi-adedi">Kaç patlatmalık ödeme yapılacak?</Label>
+            <Input
+              id="kredi-adedi"
+              type="number"
+              min={1}
+              step={1}
+              value={form.krediAdedi}
+              onChange={(e) => guncelle('krediAdedi', e.target.value)}
+              className="mt-1.5" />
+            <p className="mt-1 text-xs text-muted-foreground">
+              Kredi adedi pozitif tam sayı olmalıdır; yarım veya küsuratlı kredi oluşturulmaz.
+            </p>
+          </div> :
+        <div className="space-y-2 sm:max-w-sm">
+            <Label htmlFor="kredi-dekont-tutari">Dekonttaki ödeme tutarı</Label>
+            <ParaInput
+              id="kredi-dekont-tutari"
+              value={krediDekontTutari}
+              onValueChange={(deger) => krediDekontTutariDegistir?.(deger)}
+              placeholder="Örn. 21.267,90 TL"
+              className="mt-1.5" />
+            <p className="text-xs text-muted-foreground">
+              Bu alan kredi adedini hesaplamak içindir. Kayıt aşamasında dekont bilgileri ayrıca doğrulanır.
+            </p>
+            {tutarYetersiz &&
+            <p className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
+                Girilen tutar 1 patlatma kredisi bedelinden düşüktür. 1 kredi bedeli {formatTL(patlatmaBedeliTutar)}’dir.
+              </p>
+            }
+            {tutardanKredi > 0 &&
+            <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+                {formatTL(krediDekontTutari ?? 0)} / {formatTL(patlatmaBedeliTutar)} = {tutardanKredi} tam kredi
+              </p>
+            }
+            {fazlaOdemeVar &&
+            <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                <p className="font-medium">Bu dekont tutarı tam kredi bedeline bölünmüyor.</p>
+                <dl className="grid gap-1 sm:grid-cols-2">
+                  <div><dt>Dekont tutarı</dt><dd className="font-medium">{formatTL(krediDekontTutari ?? 0)}</dd></div>
+                  <div><dt>1 kredi bedeli</dt><dd className="font-medium">{formatTL(patlatmaBedeliTutar)}</dd></div>
+                  <div><dt>Tam karşılanan kredi</dt><dd className="font-medium">{tutardanKredi}</dd></div>
+                  <div><dt>Krediye mahsup edilen</dt><dd className="font-medium">{formatTL(krediyeMahsupKurus / 100)}</dd></div>
+                  <div><dt>Fazla ödeme</dt><dd className="font-medium">{formatTL(fazlaOdemeTutar)}</dd></div>
+                </dl>
+                <p>Fazla ödeme patlatma kredisi değildir. Kayıt oluşturulabilir; ancak fazla ödeme için iade veya mahsup kararı alınmalıdır.</p>
+                <div>
+                  <p className="font-medium">Fazla ödeme işlemi</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {[
+                    ['IADE_BEKLIYOR', 'İade edilecek'],
+                    ['MAHSUP_BAKIYESI', 'Sonraki ödemeye mahsup edilecek'],
+                    ['KARAR_BEKLIYOR', 'Karar bekliyor']
+                    ].map(([deger, etiket]) =>
+                    <button
+                      key={deger}
+                      type="button"
+                      onClick={() => fazlaOdemeDurumuDegistir?.(deger as 'KARAR_BEKLIYOR' | 'IADE_BEKLIYOR' | 'MAHSUP_BAKIYESI')}
+                      className={`rounded-md border px-3 py-1.5 text-xs ${fazlaOdemeDurumu === deger ? 'border-amber-700 bg-white text-amber-900' : 'border-amber-200 bg-amber-100/60 text-amber-800'}`}>
+                        {etiket}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
 
         <dl className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-lg border border-border bg-muted/30 p-3">
@@ -594,6 +726,14 @@ export function BentAlanlari({
             </dd>
           </div>
         </dl>
+
+        {adet > 0 &&
+        <p className="text-sm text-muted-foreground">
+            {krediYuklemeYontemi === 'TUTAR' ?
+          `${formatTL(patlatmaBedeliTutar * adet)} / ${formatTL(patlatmaBedeliTutar)} = ${adet} kredi` :
+          `${adet} kredi × ${formatTL(patlatmaBedeliTutar)} = ${formatTL(patlatmaBedeliTutar * adet)}`}
+          </p>
+        }
 
         <KuralNotu baslik="Kredi kullanılabilirliği">
           Kredi yükleme kaydı “Ödeme Doğrulama Bekliyor” durumunda başlar. Ödeme doğrulandığında veya

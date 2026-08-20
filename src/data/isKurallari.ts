@@ -26,7 +26,7 @@ export const isKurallari: KuralGrubu[] = [
   baslik: 'E Bendi — Patlatma Kredisi Akışı',
   kurallar: [
   'Kredi yükleme (EKRD): ödeme alınır, dekont ve makbuz süreci işler; ödeme doğrulanınca veya makbuz kesilince kredi kullanılabilir olur.',
-  'Patlatma planlama (EKPL): plan kaydı açılır, kredi düşülmez; kredi “planlanan / rapor bekleyen” olarak izlenir.',
+  'Patlatma planlama (EKPL): plan kaydı açılır, kredi düşülmez; kredi “planlanan / sonuç bekleyen” olarak izlenir.',
   'Patlatma sonucu (EKGR): patlatmanın yapıldığı bilgisi işlenir ve kredi bu aşamada düşer.',
   'Patlatma bilgisi sözlü, telefonla, yazılı veya görevli personel bildirimiyle gelebilir; belge ve dosya zorunlu değildir, bilgi kaynağı ise kayda geçer.',
   'Sonuç işlenirken kullanılabilir kredi yetersizse kayıt tamamlanmaz; kredi yükleme / ödeme doğrulama / makbuz süreci gerekir.',

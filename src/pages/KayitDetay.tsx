@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Check, Circle, Printer, Receipt } from 'lucide-react';
+import { toast } from 'sonner';
 import { PageHeader } from '../components/common/PageHeader';
 import { BosDurum } from '../components/common/BosDurum';
 import { KuralNotu } from '../components/common/KuralNotu';
@@ -10,10 +11,15 @@ import { DosyaKarti } from '../components/islem/DosyaKarti';
 import { DosyaOnizlemeModal } from '../components/islem/DosyaOnizlemeModal';
 import { MakbuzModal } from '../components/islem/MakbuzModal';
 import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
+import { Label } from '../components/ui/Label';
+import { ParaInput } from '../components/ui/ParaInput';
+import { Textarea } from '../components/ui/Textarea';
 import { useApp } from '../contexts/AppContext';
 import { DekontDosyasi, Islem, IslemDurumu } from '../types';
 import { formatTL, formatTarih, formatTarihSaat } from '../utils/currency';
 import { BENT_ORANLARI } from '../utils/hesaplama';
+import { dosyaSec } from '../utils/dosya';
 
 /** Kayıt durumunun mantıksal ilerleme çizgisi — geçmiş ve güncel durum ayrı gösterilir. */
 const DURUM_AKISI: {durum: IslemDurumu | 'ARSIVLENDI';etiket: string;}[] = [
@@ -76,12 +82,41 @@ export function KayitDetay() {
     isletmeciBul,
     tasOcagiBul,
     krediOzeti,
-    krediHareketleri
+    krediHareketleri,
+    fazlaOdemeIadeIsle
   } = useApp();
   const [onizleme, setOnizleme] = useState<DekontDosyasi | null>(null);
   const [makbuzAcik, setMakbuzAcik] = useState(false);
+  const [iadeFormAcik, setIadeFormAcik] = useState(false);
+  const [iadeTutar, setIadeTutar] = useState<number | null>(null);
+  const [iadeTarihi, setIadeTarihi] = useState('');
+  const [iadeYapilan, setIadeYapilan] = useState('');
+  const [iadeBanka, setIadeBanka] = useState('');
+  const [iadeDekontNo, setIadeDekontNo] = useState('');
+  const [iadeDosya, setIadeDosya] = useState<DekontDosyasi | null>(null);
+  const [iadeAciklama, setIadeAciklama] = useState('');
 
   const islem = islemBul(kayitNo);
+
+  const iadeKaydet = () => {
+    if (!islem || !iadeDosya) return;
+    const sonuc = fazlaOdemeIadeIsle({
+      islemId: islem.id,
+      iadeTutar: iadeTutar ?? 0,
+      iadeDekontTarihi: iadeTarihi,
+      iadeYapilan: iadeYapilan.trim(),
+      iadeBankaBilgisi: iadeBanka.trim(),
+      iadeDekontNo: iadeDekontNo.trim(),
+      iadeDekontDosyasi: iadeDosya,
+      iadeAciklama: iadeAciklama.trim()
+    });
+    if (!sonuc.basarili) {
+      toast.error('İade işlenemedi', { description: sonuc.mesaj });
+      return;
+    }
+    toast.success('Fazla ödeme iadesi işlendi', { description: `${islem.kayitNo} · ${formatTL(iadeTutar ?? 0)}` });
+    setIadeFormAcik(false);
+  };
 
   if (!islem) {
     return (
@@ -303,6 +338,115 @@ export function KayitDetay() {
               </div>
             )}
           </Bolum>
+
+          {(islem.dekonttaOdenenTutar !== undefined || islem.fazlaOdemeTutar) &&
+          <Bolum baslik="Fazla ödeme / iade / mahsup bilgisi">
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
+                <Satir etiket="Dekontta ödenen" deger={formatTL(islem.dekonttaOdenenTutar ?? islem.dekont.odenenTutar)} />
+                <Satir etiket="Krediye mahsup edilen" deger={formatTL(islem.krediyeMahsupEdilenTutar ?? islem.tutar)} />
+                <Satir etiket="Fazla ödeme" deger={formatTL(islem.fazlaOdemeTutar ?? 0)} />
+                <Satir
+                etiket="Durum"
+                deger={
+                islem.fazlaOdemeDurumu === 'IADE_BEKLIYOR' ? 'İade bekliyor' :
+                islem.fazlaOdemeDurumu === 'IADE_EDILDI' ? 'İade edildi' :
+                islem.fazlaOdemeDurumu === 'MAHSUP_BAKIYESI' ? 'Mahsup bakiyesi' :
+                islem.fazlaOdemeDurumu === 'MAHSUP_EDILDI' ? 'Mahsup edildi' :
+                islem.fazlaOdemeDurumu === 'KARAR_BEKLIYOR' ? 'Karar bekliyor' :
+                '—'
+                } />
+                <Satir etiket="İade dekontu" deger={islem.iadeDekontNo ?? '—'} mono={!!islem.iadeDekontNo} />
+                <Satir etiket="İade tutarı" deger={islem.iadeTutar ? formatTL(islem.iadeTutar) : '—'} />
+                <Satir etiket="Mahsup kullanılan" deger={islem.mahsupKullanilanTutar ? formatTL(islem.mahsupKullanilanTutar) : '—'} />
+                <Satir etiket="Mahsup kaynağı" deger={islem.mahsupKaynakKayitNo ?? '—'} mono={!!islem.mahsupKaynakKayitNo} />
+                <Satir etiket="Mahsup hedefi" deger={islem.mahsupHedefKayitNo ?? '—'} mono={!!islem.mahsupHedefKayitNo} />
+              </dl>
+              {islem.iadeDekontDosyasi &&
+              <div className="mt-4">
+                  <DosyaKarti
+                  dosya={islem.iadeDekontDosyasi}
+                  goruntule={() => setOnizleme(islem.iadeDekontDosyasi ?? null)} />
+                </div>
+              }
+              <p className="mt-3 text-sm text-muted-foreground">
+                Fazla ödeme patlatma kredisi değildir; iade edilebilir veya sonraki ödemeye mahsup edilebilir.
+              </p>
+              {islem.fazlaOdemeDurumu === 'IADE_BEKLIYOR' &&
+              <div className="mt-4 space-y-3 rounded-lg border border-border bg-muted/30 p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-foreground">İade işlemi</p>
+                    <Button size="sm" variant="outline" onClick={() => setIadeFormAcik(!iadeFormAcik)}>
+                      İade işle
+                    </Button>
+                  </div>
+                  {iadeFormAcik &&
+                  <div className="grid gap-3 sm:grid-cols-2">
+                      <div>
+                        <Label htmlFor="iade-tutar">İade tutarı</Label>
+                        <ParaInput
+                        id="iade-tutar"
+                        value={iadeTutar}
+                        onValueChange={setIadeTutar}
+                        className="mt-1.5"
+                        aria-invalid={(iadeTutar ?? 0) > (islem.fazlaOdemeTutar ?? 0)} />
+                      </div>
+                      <div>
+                        <Label htmlFor="iade-tarih">İade tarihi</Label>
+                        <Input id="iade-tarih" type="date" value={iadeTarihi} onChange={(e) => setIadeTarihi(e.target.value)} className="mt-1.5" />
+                      </div>
+                      <div>
+                        <Label htmlFor="iade-yapilan">İade yapılan kişi / kurum</Label>
+                        <Input id="iade-yapilan" value={iadeYapilan} onChange={(e) => setIadeYapilan(e.target.value)} className="mt-1.5" />
+                      </div>
+                      <div>
+                        <Label htmlFor="iade-banka">İade banka bilgisi</Label>
+                        <Input id="iade-banka" value={iadeBanka} onChange={(e) => setIadeBanka(e.target.value)} className="mt-1.5" />
+                      </div>
+                      <div>
+                        <Label htmlFor="iade-dekont-no">İade dekont no</Label>
+                        <Input id="iade-dekont-no" value={iadeDekontNo} onChange={(e) => setIadeDekontNo(e.target.value)} className="mt-1.5" />
+                      </div>
+                      <div className="flex items-end">
+                        <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => dosyaSec('PERSONEL', setIadeDosya)}>
+                          İade dekont dosyası seç
+                        </Button>
+                      </div>
+                      <div className="sm:col-span-2">
+                        <Label htmlFor="iade-aciklama">Açıklama</Label>
+                        <Textarea id="iade-aciklama" value={iadeAciklama} onChange={(e) => setIadeAciklama(e.target.value)} rows={2} className="mt-1.5" />
+                      </div>
+                      {iadeDosya &&
+                      <div className="sm:col-span-2">
+                          <DosyaKarti dosya={iadeDosya} goruntule={() => setOnizleme(iadeDosya)} kaldir={() => setIadeDosya(null)} />
+                        </div>
+                      }
+                      <div className="sm:col-span-2 flex flex-wrap items-center gap-2">
+                        <Button
+                        onClick={iadeKaydet}
+                        disabled={
+                        !iadeDosya ||
+                        !iadeTarihi ||
+                        !iadeYapilan.trim() ||
+                        !iadeBanka.trim() ||
+                        !iadeDekontNo.trim() ||
+                        (iadeTutar ?? 0) <= 0 ||
+                        (iadeTutar ?? 0) > (islem.fazlaOdemeTutar ?? 0)
+                        }>
+                          İadeyi tamamla
+                        </Button>
+                        <p className="text-xs text-muted-foreground">
+                          İade tutarı fazla ödeme tutarından büyük olamaz; iade dekont dosyası olmadan iade tamamlanmaz.
+                        </p>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </Bolum>
+          }
 
           <Bolum baslik="5. Makbuz / ödeme belgesi">
             {islem.makbuzNo ? (

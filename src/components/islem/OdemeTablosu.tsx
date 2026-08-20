@@ -20,9 +20,31 @@ function KrediYuklemeDetayi({ islem }: {islem: Islem;}) {
     (i) => i.isletmeciId === islem.isletmeciId && i.eIslemTuru === 'KREDI_GERCEKLESME'
   );
   const hareketler = krediHareketleri.filter((h) => h.isletmeciId === islem.isletmeciId);
+  const fazlaOdemeDurumu = islem.fazlaOdemeDurumu === 'IADE_BEKLIYOR' ? 'İade bekliyor' :
+  islem.fazlaOdemeDurumu === 'IADE_EDILDI' ? 'İade edildi' :
+  islem.fazlaOdemeDurumu === 'MAHSUP_BAKIYESI' ? 'Mahsup bakiyesi' :
+  islem.fazlaOdemeDurumu === 'MAHSUP_EDILDI' ? 'Mahsup edildi' :
+  islem.fazlaOdemeDurumu === 'KARAR_BEKLIYOR' ? 'Karar bekliyor' :
+  '—';
 
   return (
     <div className="space-y-3">
+      {(islem.dekonttaOdenenTutar !== undefined || islem.fazlaOdemeTutar) &&
+      <div className="rounded-md border border-border bg-card p-3 text-sm">
+          <p className="text-xs font-medium text-foreground">Fazla ödeme / iade / mahsup bilgisi</p>
+          <dl className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            <div><dt className="text-muted-foreground">Dekontta ödenen</dt><dd className="font-medium">{formatTL(islem.dekonttaOdenenTutar ?? islem.dekont.odenenTutar)}</dd></div>
+            <div><dt className="text-muted-foreground">Krediye mahsup edilen</dt><dd className="font-medium">{formatTL(islem.krediyeMahsupEdilenTutar ?? islem.tutar)}</dd></div>
+            <div><dt className="text-muted-foreground">Yüklenen kredi</dt><dd className="font-medium">{islem.krediAdedi ?? 0} kredi</dd></div>
+            <div><dt className="text-muted-foreground">Fazla ödeme</dt><dd className="font-medium">{formatTL(islem.fazlaOdemeTutar ?? 0)}</dd></div>
+            <div><dt className="text-muted-foreground">Durum</dt><dd className="font-medium">{fazlaOdemeDurumu}</dd></div>
+            {islem.iadeDekontNo && <div><dt className="text-muted-foreground">İade dekontu</dt><dd className="font-mono text-xs">{islem.iadeDekontNo}</dd></div>}
+            {islem.mahsupKullanilanTutar && <div><dt className="text-muted-foreground">Mahsup kullanılan</dt><dd className="font-medium">{formatTL(islem.mahsupKullanilanTutar)}</dd></div>}
+            {islem.mahsupKaynakKayitNo && <div><dt className="text-muted-foreground">Mahsup kaynağı</dt><dd className="font-mono text-xs">{islem.mahsupKaynakKayitNo}</dd></div>}
+            {islem.mahsupHedefKayitNo && <div><dt className="text-muted-foreground">Mahsup hedefi</dt><dd className="font-mono text-xs">{islem.mahsupHedefKayitNo}</dd></div>}
+          </dl>
+        </div>
+      }
       <div className="flex flex-wrap gap-4 text-sm">
         <span>
           <span className="text-muted-foreground">Yüklenen kredi: </span>
