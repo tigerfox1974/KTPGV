@@ -31,6 +31,10 @@ interface EtiketAdayi {
   oncelik: number;
 }
 
+interface TutarAdayiEtiketli extends TutarAdayi {
+  kaynak: string;
+}
+
 export function normalizeDekontNo(deger: string): string {
   return deger.trim().replace(/\s+/g, ' ').toLocaleUpperCase('tr-TR');
 }
@@ -77,13 +81,16 @@ const ETIKETLER: Array<{alan: EtiketAdayi['alan']; desen: RegExp; oncelik: numbe
   { alan: 'dekontNo', desen: /e\s*-?dekont\s+belge\s+no|dekont\s+belge\s+no/i, oncelik: 5 },
   { alan: 'dekontNo', desen: /dekont\s+(no|numarası|numarasi)/i, oncelik: 6 },
   { alan: 'dekontNo', desen: /belge\s+(no|numarası|numarasi)/i, oncelik: 4 },
-  { alan: 'dekontNo', desen: /işlem\s+belge\s+no|transaction\s+document\s+no/i, oncelik: 3 },
-  { alan: 'bankaReferansNo', desen: /referans\s+(no|numarası|numarasi)|işlem\s+referans\s+no|transaction\s+reference|transaction\s+id|işlem\s+no|islem\s+no|sorgu\s+(no|numarası|numarasi)/i, oncelik: 4 },
+  { alan: 'dekontNo', desen: /işlem\s+belge\s+no|transaction\s+document\s+no|fiş\s+no|fis\s+no/i, oncelik: 3 },
+  { alan: 'bankaReferansNo', desen: /referans\s+(no|numarası|numarasi)|[iİ]şlem\s+referans\s+no|[iİ]şlem\s+ref|islem\s+ref|transaction\s+reference|transaction\s+id|[iİ]şlem\s+no|islem\s+no|sorgu\s+(no|numarası|numarasi)|b[iİ]mref|seri\s+sıra\s+no|seri\s+sira\s+no/i, oncelik: 4 },
   { alan: 'banka', desen: /\bbanka\s*adı\b|\bbanka\b(?!\s+(referans|ref|no|numarası|numarasi))|\bbank\s+name\b/i, oncelik: 2 },
-  { alan: 'odemeYapan', desen: /gönderen|gonderen|gönderici hesap|gonderici hesap|ödeyen|odeyen|ödeme yapan|borçlu|borclu|hesap sahibi|from account holder|sender/i, oncelik: 4 },
-  { alan: 'tarih', desen: /dekont\s+tarihi|işlem\s+tarihi|islem\s+tarihi|işlem\s+zamanı|islem\s+zamani|valör|valor|transaction date/i, oncelik: 4 },
-  { alan: 'odenenTutar', desen: /aktarılan tutar|aktarilan tutar|gönderilen tutar|gonderilen tutar|transfer tutarı|transfer tutari|ödeme tutarı|odeme tutari|işlem tutarı|islem tutari|principal amount|transfer amount|toplam tutar|tutar/i, oncelik: 4 },
-  { alan: 'sinir', desen: /\bETTN\b|\bAçıklama\b|\bAciklama\b|\bBSMV\b|\bVergi\b|\bKomisyon\b|\bMasraf\b|\bHavale Ücreti\b|\bHavale Ucreti\b/i, oncelik: 1 }
+  { alan: 'odemeYapan', desen: /gönderen\s+adı|gonderen\s+adi|gönderen|gonderen|gönderici hesap|gonderici hesap|ödeyen|odeyen|ödeme yapan|borçlu|borclu|hesap adı|hesap adi|hesap sahibi|ad soyad|from account holder|sender/i, oncelik: 4 },
+  { alan: 'tarih', desen: /dekont\s+tarihi|belge\s+tarihi|[iİ]şlem\s+tarihi|islem\s+tarihi|[iİ]şlem\s+zamanı|islem\s+zamani|tarih\s*-\s*saat|valör\s+tarihi|valor\s+tarihi|valör|valor|transaction date/i, oncelik: 4 },
+  { alan: 'odenenTutar', desen: /aktarılan tutar|aktarilan tutar|gönderilen tutar|gonderilen tutar|giden fast tutarı|giden fast tutari|transfer tutarı|transfer tutari|havale tutarı|havale tutari|ödeme tutarı|odeme tutari|[iİ]şlem tutarı|islem tutari|borç|borc|principal amount|transfer amount/i, oncelik: 5 },
+  { alan: 'odenenTutar', desen: /toplam ödeme|toplam odeme|toplam tutar/i, oncelik: 3 },
+  { alan: 'odenenTutar', desen: /toplam net tutar|toplam tahsilat tutarı|toplam tahsilat tutari|toplam|net tutar/i, oncelik: 1 },
+  { alan: 'odenenTutar', desen: /tutar/i, oncelik: 2 },
+  { alan: 'sinir', desen: /\bETTN\b|\bAçıklama\b|\bAciklama\b|\bB[iİ]MREF\b|\bBSMV\b|\bVergi\b|\bKomisyon\b|\bMasraf\b|\bHavale Ücreti\b|\bHavale Ucreti\b|\bFAST Ücreti\b|\bFAST Ucreti\b|\bEFT Ücreti\b|\bEFT Ucreti\b|\bHMK\b/i, oncelik: 1 }
 ];
 
 function normalizeMetin(metin: string): string {
@@ -101,7 +108,12 @@ function etiketleriBul(metin: string): EtiketAdayi[] {
       bulunan.push({ alan: aday.alan, etiket: eslesme[0], baslangic: eslesme.index ?? 0, bitis: (eslesme.index ?? 0) + eslesme[0].length, oncelik: aday.oncelik });
     }
   }
-  return bulunan.sort((a, b) => a.baslangic - b.baslangic || b.etiket.length - a.etiket.length);
+  const sirali = bulunan.sort((a, b) => a.baslangic - b.baslangic || b.etiket.length - a.etiket.length);
+  return sirali.filter((aday, index) => {
+    const cakisan = sirali.slice(0, index).find((onceki) =>
+      onceki.baslangic <= aday.baslangic && onceki.bitis > aday.baslangic);
+    return !cakisan || aday.oncelik > cakisan.oncelik;
+  });
 }
 
 function alanDegeriAl(metin: string, etiket: EtiketAdayi, sonrakiEtiketBaslangici: number): string {
@@ -117,26 +129,37 @@ function makulDegerMi(alan: keyof DekontOcrAlanlari, deger: string): boolean {
 
 const BANKA_NORMALIZASYONLARI: Array<[RegExp, string]> = [
   [/t[uü]rkiye\s+[iİıI][sSşŞ]\s+bankas[iıIİ]|[iİıI][sSşŞ]bank/i, 'Türkiye İş Bankası'],
+  [/t\.?\s*halk\s+bankas[iı]|halkbank/i, 'Türkiye Halk Bankası'],
+  [/yapı\s+ve\s+kredi\s+bankas[iı]|yapı\s+kredi|yapi\s+kredi/i, 'Yapı ve Kredi Bankası'],
+  [/capitalbank/i, 'CapitalBank'],
+  [/novabank/i, 'NovaBank'],
+  [/t[uü]rk\s+ekonomi\s+bankas[iı]|\bteb\b/i, 'Türk Ekonomi Bankası'],
   [/k[iı]br[iı]s\s+vak[iı]flar\s+bankas[iı]/i, 'Kıbrıs Vakıflar Bankası'],
   [/kooperatif\s+merkez\s+bankas[iı]/i, 'Kooperatif Merkez Bankası']
 ];
 
 function bankaAdiniNormalizeEt(deger: string): string {
   const temiz = deger.replace(/\s+/g, ' ').trim();
-  return BANKA_NORMALIZASYONLARI.find(([desen]) => desen.test(temiz))?.[1] ?? (temiz.length <= 80 ? temiz : '');
+  const katlanmis = temiz.toLocaleLowerCase('tr-TR').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ö/g, 'o').replace(/ç/g, 'c').replace(/İ/g, 'i');
+  const banka = BANKA_NORMALIZASYONLARI.find(([desen]) => desen.test(temiz) || desen.test(katlanmis));
+  return banka?.[1] ?? (temiz.length <= 80 ? temiz : '');
 }
 
 export function parseDekontFields(metin: string): DekontOcrAlanlari {
   const temizMetin = normalizeMetin(metin);
   const etiketler = etiketleriBul(temizMetin);
   const alanlar: DekontOcrAlanlari = {};
+  const tutarAdaylari: TutarAdayiEtiketli[] = [];
   for (const etiket of etiketler) {
     const sonraki = etiketler.find((aday) => aday.baslangic > etiket.baslangic)?.baslangic ?? temizMetin.length;
     const deger = alanDegeriAl(temizMetin, etiket, sonraki);
     if (etiket.alan === 'sinir' || !makulDegerMi(etiket.alan, deger) || alanlar[etiket.alan] !== undefined) continue;
     if (etiket.alan === 'banka') alanlar.banka = bankaAdiniNormalizeEt(deger);
     else if (etiket.alan === 'tarih') alanlar.tarih = tarihBul(deger);
-    else if (etiket.alan === 'odenenTutar') alanlar.odenenTutar = tutarBul(deger);
+    else if (etiket.alan === 'odenenTutar') {
+      const tutar = tutarBul(deger);
+      if (tutar !== undefined) tutarAdaylari.push({ deger: tutar, oncelik: etiket.oncelik, kaynak: etiket.etiket });
+    }
     else if (etiket.alan === 'dekontNo') alanlar.dekontNo = normalizeDekontNo(deger.replace(/\s/g, ''));
     else if (etiket.alan === 'bankaReferansNo') alanlar.bankaReferansNo = normalizeDekontNo(deger);
     else if (etiket.alan === 'odemeYapan') {
@@ -146,12 +169,12 @@ export function parseDekontFields(metin: string): DekontOcrAlanlari {
   }
   if (!alanlar.banka) {
     const ustMetin = temizMetin.split('\n').slice(0, 8).join(' ');
-    const banka = BANKA_NORMALIZASYONLARI.find(([desen]) => desen.test(ustMetin));
+    const katlanmis = ustMetin.toLocaleLowerCase('tr-TR').replace(/ı/g, 'i').replace(/ş/g, 's').replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ö/g, 'o').replace(/ç/g, 'c').replace(/İ/g, 'i');
+    const banka = BANKA_NORMALIZASYONLARI.find(([desen]) => desen.test(ustMetin) || desen.test(katlanmis));
     if (banka) alanlar.banka = banka[1];
   }
-  if (alanlar.odenenTutar === undefined) {
-    alanlar.odenenTutar = tutarBul(temizMetin);
-  }
+  const secilenTutar = tutarAdaylari.sort((a, b) => b.oncelik - a.oncelik || b.deger - a.deger)[0];
+  alanlar.odenenTutar = secilenTutar?.deger ?? tutarBul(temizMetin);
   return alanlar;
 }
 
