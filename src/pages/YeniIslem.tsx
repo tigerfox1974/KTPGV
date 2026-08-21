@@ -255,9 +255,13 @@ export function YeniIslem() {
   const odenen = dekont.odenenTutar ?? 0;
   const tutarUyumlu = odenen > 0 && Math.abs(odenen - sonuc.tutar) < 0.01;
   const dekontNo = normalizeDekontNo(dekont.dekontNo);
+  const bankaReferansNo = normalizeDekontNo(dekont.bankaReferansNo);
   const banka = dekont.banka.trim().toLocaleUpperCase('tr-TR');
   const duplicateDekont = krediYukleme && dekontNo && banka ? islemler.find((islem) =>
     normalizeDekontNo(islem.dekont.dekontNo) === dekontNo &&
+    islem.dekont.banka.trim().toLocaleUpperCase('tr-TR') === banka) : undefined;
+  const duplicateReferans = krediYukleme && bankaReferansNo && banka ? islemler.find((islem) =>
+    normalizeDekontNo(islem.dekont.bankaReferansNo ?? '') === bankaReferansNo &&
     islem.dekont.banka.trim().toLocaleUpperCase('tr-TR') === banka) : undefined;
   const duplicateDosya = krediYukleme && dosya?.dekontHash ? islemler.find((islem) => islem.dekont.dosya?.dekontHash === dosya.dekontHash) : undefined;
   const gelecekDekontTarihi = krediYukleme && !!dekont.tarih && dekont.tarih > new Date().toISOString().slice(0, 10);
@@ -270,6 +274,7 @@ export function YeniIslem() {
   dekont.odemeYapan.trim() !== '' &&
   tutarUyumlu &&
   !duplicateDekont &&
+  !duplicateReferans &&
   !duplicateDosya &&
   !gelecekDekontTarihi;
 
@@ -475,6 +480,7 @@ export function YeniIslem() {
       } :
       {
         dekontNo: dekont.dekontNo.trim(),
+        bankaReferansNo: dekont.bankaReferansNo.trim() || undefined,
         banka: dekont.banka.trim(),
         tarih: dekont.tarih,
         odenenTutar: odenen,

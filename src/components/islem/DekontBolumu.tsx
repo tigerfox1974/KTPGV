@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Upload } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '../ui/Button';
@@ -16,6 +16,7 @@ import { dekontOcrOku, DekontOcrSonucu, normalizeDekontNo } from '../../utils/de
 
 export interface DekontFormu {
   dekontNo: string;
+  bankaReferansNo: string;
   banka: string;
   tarih: string;
   odenenTutar: number | null;
@@ -24,6 +25,7 @@ export interface DekontFormu {
 
 export const BOS_DEKONT: DekontFormu = {
   dekontNo: '',
+  bankaReferansNo: '',
   banka: '',
   tarih: '',
   odenenTutar: null,
@@ -69,6 +71,12 @@ export function DekontBolumu({
       normalizeDekontNo(islem.dekont.dekontNo) === normalizedNo &&
       islem.dekont.banka.trim().toLocaleUpperCase('tr-TR') === form.banka.trim().toLocaleUpperCase('tr-TR'))
     : undefined;
+  const normalizedReferans = normalizeDekontNo(form.bankaReferansNo);
+  const duplicateReferansKaydi = normalizedReferans && form.banka.trim()
+    ? mevcutIslemler.find((islem) =>
+      normalizeDekontNo(islem.dekont.bankaReferansNo ?? '') === normalizedReferans &&
+      islem.dekont.banka.trim().toLocaleUpperCase('tr-TR') === form.banka.trim().toLocaleUpperCase('tr-TR'))
+    : undefined;
   const hashDuplicateKaydi = dosya?.dekontHash
     ? mevcutIslemler.find((islem) => islem.dekont.dosya?.dekontHash === dosya.dekontHash)
     : undefined;
@@ -110,13 +118,14 @@ export function DekontBolumu({
   }, [dosya, gelistirilmisMi]);
 
   useEffect(() => {
-    const anahtar = duplicateKaydi ? `no:${duplicateKaydi.id}` : hashDuplicateKaydi ? `hash:${hashDuplicateKaydi.id}` : benzerKaydi ? `benzer:${benzerKaydi.id}` : '';
+    const anahtar = duplicateKaydi ? `no:${duplicateKaydi.id}` : duplicateReferansKaydi ? `ref:${duplicateReferansKaydi.id}` : hashDuplicateKaydi ? `hash:${hashDuplicateKaydi.id}` : benzerKaydi ? `benzer:${benzerKaydi.id}` : '';
     if (!anahtar || anahtar === sonDuplicateAudit.current) return;
     sonDuplicateAudit.current = anahtar;
     if (duplicateKaydi) auditEkle('Mükerrer dekont tespit edildi', `${duplicateKaydi.kayitNo} · ${duplicateKaydi.dekont.dekontNo}`);
+    else if (duplicateReferansKaydi) auditEkle('Mükerrer banka referansı tespit edildi', `${duplicateReferansKaydi.kayitNo} · ${duplicateReferansKaydi.dekont.bankaReferansNo}`);
     else if (hashDuplicateKaydi) auditEkle('Mükerrer dijital dekont tespit edildi', hashDuplicateKaydi.kayitNo);
     else if (benzerKaydi) auditEkle('Benzer ödeme uyarısı oluştu', benzerKaydi.kayitNo);
-  }, [duplicateKaydi, hashDuplicateKaydi, benzerKaydi, auditEkle]);
+  }, [duplicateKaydi, duplicateReferansKaydi, hashDuplicateKaydi, benzerKaydi, auditEkle]);
 
   if (!gelistirilmisMi) {
     return (
@@ -131,7 +140,7 @@ export function DekontBolumu({
             <div><Label htmlFor="dekont-banka">Banka</Label><Input id="dekont-banka" value={form.banka} onChange={(e) => guncelle('banka', e.target.value)} placeholder="Örn. Kıbrıs Vakıflar Bankası" className="mt-1.5" /></div>
             <div><Label htmlFor="dekont-tarih">Dekont tarihi (mali belge tarihi)</Label><Input id="dekont-tarih" type="date" value={form.tarih} onChange={(e) => guncelle('tarih', e.target.value)} className="mt-1.5" /></div>
             <div><Label htmlFor="dekont-tutar">Ödenen tutar (TL)</Label><ParaInput id="dekont-tutar" value={form.odenenTutar} onValueChange={(deger) => guncelle('odenenTutar', deger)} placeholder="0,00 TL" className="mt-1.5" /><p className="mt-1 text-xs text-muted-foreground">Hesaplanan tutar: {formatTL(beklenenTutar)}</p></div>
-            <div className="sm:col-span-2"><Label htmlFor="dekont-odeyen">Ödeme yapan kişi / kurum</Label><Input id="dekont-odeyen" value={form.odemeYapan} onChange={(e) => guncelle('odemeYapan', e.target.value)} placeholder="Örn. Kıbrıs Sigorta Ltd." className="mt-1.5" /></div>
+            <div><Label htmlFor="dekont-odeyen">Ödeme yapan kişi / kurum</Label><Input id="dekont-odeyen" value={form.odemeYapan} onChange={(e) => guncelle('odemeYapan', e.target.value)} placeholder="Örn. Kıbrıs Sigorta Ltd." className="mt-1.5" /></div>
           </div>
           {odenen > 0 && !tutarUyumlu && <div role="alert" className="space-y-1 rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900"><p className="font-medium">Dekont tutarı hesaplanan tutarla eşleşmiyor.</p><p>Hesaplanan tutar: {formatTL(beklenenTutar)}</p><p>Dekontta ödenen: {formatTL(odenen)}</p><p>Fark: {formatTL(Math.abs(fark))}</p></div>}
           {tutarUyumlu && <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-900">Ödenen tutar hesaplanan tutarla eşleşiyor: {formatTL(odenen)}</p>}
@@ -190,7 +199,7 @@ export function DekontBolumu({
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
-            <Label htmlFor="dekont-no">Dekont no</Label>
+            <Label htmlFor="dekont-no">Belge / Dekont no</Label>
             <Input
               id="dekont-no"
               value={form.dekontNo}
@@ -198,6 +207,15 @@ export function DekontBolumu({
               placeholder="Örn. 987654321"
               className="mt-1.5" />
             
+          </div>
+          <div>
+            <Label htmlFor="banka-referans-no">Banka referans no</Label>
+            <Input
+              id="banka-referans-no"
+              value={form.bankaReferansNo}
+              onChange={(e) => guncelle('bankaReferansNo', e.target.value)}
+              placeholder="Örn. 09.08.2026/447/8888/8888"
+              className="mt-1.5" />
           </div>
           <div>
             <Label htmlFor="dekont-banka">Banka</Label>
@@ -233,7 +251,7 @@ export function DekontBolumu({
               Hesaplanan tutar: {formatTL(beklenenTutar)}
             </p>
           </div>
-          <div className="sm:col-span-2">
+          <div>
             <Label htmlFor="dekont-odeyen">Ödeme yapan kişi / kurum</Label>
             <Input
               id="dekont-odeyen"
@@ -275,13 +293,15 @@ export function DekontBolumu({
       <section className="space-y-2 rounded-xl border border-border p-4" aria-labelledby="dogrulama-baslik">
         <h2 id="dogrulama-baslik" className="font-heading text-base font-semibold text-foreground">C — Dekont Doğrulama</h2>
         <div className="grid gap-1.5 text-sm">
-          <p className={duplicateKaydi || hashDuplicateKaydi ? 'text-rose-700' : 'text-emerald-700'}>{duplicateKaydi || hashDuplicateKaydi ? '✕ Dekont daha önce kullanılmış' : '✓ Dekont ve dijital dosya daha önce kullanılmamış'}</p>
-          <p className={!form.dekontNo.trim() ? 'text-rose-700' : 'text-emerald-700'}>{form.dekontNo.trim() ? '✓ Dekont numarası mevcut' : '✕ Dekont numarası eksik'}</p>
+          <p className={duplicateKaydi || duplicateReferansKaydi || hashDuplicateKaydi ? 'text-rose-700' : 'text-emerald-700'}>{duplicateKaydi || duplicateReferansKaydi || hashDuplicateKaydi ? '✕ Dekont daha önce kullanılmış' : '✓ Dekont ve dijital dosya daha önce kullanılmamış'}</p>
+          <p className={!form.dekontNo.trim() ? 'text-rose-700' : 'text-emerald-700'}>{form.dekontNo.trim() ? '✓ Belge / dekont numarası mevcut' : '✕ Belge / dekont numarası eksik'}</p>
+          <p className={!form.bankaReferansNo.trim() ? 'text-rose-700' : 'text-emerald-700'}>{form.bankaReferansNo.trim() ? '✓ Banka referans numarası mevcut' : '○ Banka referans numarası bulunamadı'}</p>
           <p className={!form.banka.trim() ? 'text-rose-700' : 'text-emerald-700'}>{form.banka.trim() ? '✓ Banka bilgisi mevcut' : '✕ Banka bilgisi eksik'}</p>
           <p className={gelecekTarih ? 'text-rose-700' : form.tarih ? 'text-emerald-700' : 'text-rose-700'}>{gelecekTarih ? '✕ Dekont tarihi gelecekte olamaz' : form.tarih ? '✓ Dekont tarihi geçerli' : '✕ Dekont tarihi eksik'}</p>
           <p className={!form.odemeYapan.trim() ? 'text-rose-700' : 'text-emerald-700'}>{form.odemeYapan.trim() ? '✓ Ödeme yapan bilgisi mevcut' : '✕ Ödeme yapan bilgisi eksik'}</p>
           <p className={!tutarUyumlu ? 'text-rose-700' : 'text-emerald-700'}>{tutarUyumlu ? '✓ Dekont tutarı hesaplanan tutarla eşleşiyor' : `✕ Dekont tutarı hesaplanan tutarla eşleşmiyor · Hesaplanan: ${formatTL(beklenenTutar)} · Dekontta ödenen: ${formatTL(odenen)} · Fark: ${formatTL(Math.abs(fark))}`}</p>
           {duplicateKaydi && <p className="text-rose-700">Kullanıldığı kayıt: <Link className="underline" to={`/kayitlar/${duplicateKaydi.kayitNo}`}>{duplicateKaydi.kayitNo}</Link></p>}
+          {duplicateReferansKaydi && <p className="text-rose-700">Banka referansı kullanılan kayıt: <Link className="underline" to={`/kayitlar/${duplicateReferansKaydi.kayitNo}`}>{duplicateReferansKaydi.kayitNo}</Link></p>}
           {hashDuplicateKaydi && <p className="text-rose-700">Dijital dosya kullanıldığı kayıt: {hashDuplicateKaydi.kayitNo}</p>}
           {benzerKaydi && !duplicateKaydi && !hashDuplicateKaydi && <p className="text-amber-700">Benzer bir ödeme kaydı bulundu: {benzerKaydi.kayitNo}. Lütfen kontrol ediniz.</p>}
         </div>

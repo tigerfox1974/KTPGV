@@ -1,5 +1,5 @@
-import React from 'react';
-import { FileText, ImageIcon, Maximize2, ZoomIn } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { FileText, ImageIcon, Maximize2, Move, ZoomIn, ZoomOut } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -74,6 +74,16 @@ function PdfOnizleme({ dosya }: {dosya: DekontDosyasi;}) {
 }
 
 function GorselOnizleme({ dosya }: {dosya: DekontDosyasi;}) {
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [surukleniyor, setSurukleniyor] = useState(false);
+  const baslangic = useRef({ x: 0, y: 0 });
+
+  const zoomAyarla = (deger: number) => {
+    setZoom(Math.min(3, Math.max(0.5, deger)));
+    if (deger <= 1) setOffset({ x: 0, y: 0 });
+  };
+
   if (dosya.previewUrl) {
     return (
       <div className="rounded-lg border border-border bg-slate-900 p-4">
@@ -82,16 +92,36 @@ function GorselOnizleme({ dosya }: {dosya: DekontDosyasi;}) {
             <ImageIcon className="h-3.5 w-3.5" aria-hidden="true" />
             Görsel önizleme · {dosya.tur}
           </span>
-          <span className="inline-flex items-center gap-1">
-            <ZoomIn className="h-3.5 w-3.5" aria-hidden="true" />
-            Yakınlaştır
-          </span>
+          <div className="flex items-center gap-1.5">
+            <button type="button" className="rounded border border-slate-600 p-1.5 hover:bg-slate-700" onClick={() => zoomAyarla(zoom - 0.25)} aria-label="Uzaklaştır" title="Uzaklaştır"><ZoomOut className="h-3.5 w-3.5" /></button>
+            <button type="button" className="min-w-12 rounded border border-slate-600 px-1.5 py-1 text-center hover:bg-slate-700" onClick={() => zoomAyarla(1)} aria-label="Yüzde 100" title="Yüzde 100">{Math.round(zoom * 100)}%</button>
+            <button type="button" className="rounded border border-slate-600 p-1.5 hover:bg-slate-700" onClick={() => zoomAyarla(zoom + 0.25)} aria-label="Yakınlaştır" title="Yakınlaştır"><ZoomIn className="h-3.5 w-3.5" /></button>
+            <button type="button" className="rounded border border-slate-600 px-2 py-1 hover:bg-slate-700" onClick={() => { setZoom(1); setOffset({ x: 0, y: 0 }); }} aria-label="Pencereye sığdır" title="Pencereye sığdır">Sığdır</button>
+          </div>
         </div>
-        <img
-          src={dosya.previewUrl}
-          alt={dosya.ad}
-          className="mx-auto max-h-[520px] max-w-full rounded-md bg-white object-contain" />
+        <div
+          className={`flex h-[520px] items-center justify-center overflow-hidden rounded-md bg-slate-800 ${surukleniyor ? 'cursor-grabbing' : zoom > 1 ? 'cursor-grab' : 'cursor-default'}`}
+          onPointerDown={(event) => {
+            if (zoom <= 1) return;
+            setSurukleniyor(true);
+            baslangic.current = { x: event.clientX - offset.x, y: event.clientY - offset.y };
+            event.currentTarget.setPointerCapture(event.pointerId);
+          }}
+          onPointerMove={(event) => {
+            if (!surukleniyor) return;
+            setOffset({ x: event.clientX - baslangic.current.x, y: event.clientY - baslangic.current.y });
+          }}
+          onPointerUp={() => setSurukleniyor(false)}
+          onPointerCancel={() => setSurukleniyor(false)}>
+          <img
+            src={dosya.previewUrl}
+            alt={dosya.ad}
+            draggable={false}
+            className="max-h-full max-w-full select-none rounded-md bg-white object-contain transition-transform"
+            style={{ transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})` }} />
+        </div>
         <p className="mt-3 text-center text-[10px] text-slate-400">{dosya.ad}</p>
+        <p className="mt-1 flex items-center justify-center gap-1 text-center text-[10px] text-slate-400"><Move className="h-3 w-3" aria-hidden="true" /> Görsel büyütüldüğünde sürükleyerek gezebilirsiniz.</p>
       </div>);
 
   }

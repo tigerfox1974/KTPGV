@@ -51,7 +51,8 @@ async function dosyaBilgisiOlustur(
     sikistirildi: sikistirildi || undefined,
     previewUrl: URL.createObjectURL(secilen),
     mimeType: secilen.type || undefined,
-    dekontHash: await sha256Olustur(secilen)
+    dekontHash: await sha256Olustur(secilen),
+    kaynakVeri: await secilen.arrayBuffer()
   };
 }
 

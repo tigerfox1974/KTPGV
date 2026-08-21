@@ -95,10 +95,12 @@ export interface DekontDosyasi {
   previewUrl?: string;
   mimeType?: string;
   dekontHash?: string;
+  kaynakVeri?: ArrayBuffer;
 }
 
 export interface Dekont {
   dekontNo: string;
+  bankaReferansNo?: string;
   banka: string;
   tarih: string;
   odenenTutar: number;
@@ -106,7 +108,7 @@ export interface Dekont {
   dosya: DekontDosyasi | null;
   ocrDurumu?: 'BEKLIYOR' | 'OKUNUYOR' | 'BASARILI' | 'KISMI' | 'BASARISIZ';
   ocrOkunanAlanlar?: string[];
-  ocrGuvenBilgileri?: Partial<Record<'dekontNo' | 'banka' | 'tarih' | 'odenenTutar' | 'odemeYapan', number>>;
+  ocrGuvenBilgileri?: Partial<Record<'dekontNo' | 'bankaReferansNo' | 'banka' | 'tarih' | 'odenenTutar' | 'odemeYapan', number>>;
 }
 
 export type IslemDurumu =
