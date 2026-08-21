@@ -92,6 +92,7 @@ export function GerceklesmeRaporuFormu({
       tarih,
       saat,
       adet: gerceklesenAdet,
+      bilgiKaynagi: 'SOZLU',
       raporNo: raporNo.trim(),
       bildiren: bildiren.trim(),
       aciklama: aciklama.trim(),

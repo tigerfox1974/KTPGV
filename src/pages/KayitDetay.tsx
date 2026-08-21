@@ -202,7 +202,7 @@ export function KayitDetay() {
           <Button
             onClick={() => {
               setMakbuzAcik(true);
-              auditEkle('Makbuz görüntülendi', islem.makbuzNo);
+              auditEkle('Makbuz görüntülendi', islem.makbuzNo ?? islem.kayitNo);
             }}>
             
                 <Receipt className="h-4 w-4" aria-hidden="true" />

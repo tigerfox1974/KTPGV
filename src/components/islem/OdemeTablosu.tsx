@@ -142,7 +142,8 @@ function bentEtiketi(islem: Islem): string {
 
 function odemeDurumuEtiketi(islem: Islem): string | null {
   if (islem.durum === 'ODEME_BEKLIYOR') return 'Ödeme doğrulama bekliyor';
-  if (!islem.makbuzNo && islem.durum !== 'ODEME_BEKLIYOR') return 'Makbuz aşamasında';
+  const odemeBekliyor = islem.durum === 'ODEME_BEKLIYOR';
+  if (!islem.makbuzNo && !odemeBekliyor) return 'Makbuz aşamasında';
   return null;
 }
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
@@ -17,6 +16,7 @@ import { AdliRaporlar } from './AdliRaporlar';
 import { KrediOzeti, useApp } from '../../contexts/AppContext';
 import { AdliRapor, BentKodu, EIslemTuru, FAltTur, TrafikAltBasvuru } from '../../types';
 import { formatTL } from '../../utils/currency';
+import { hesaplaEKrediYuklemeMahsup } from '../../utils/hesaplama';
 
 export interface IslemFormu {
   bent: BentKodu | '';
@@ -579,27 +579,20 @@ export function BentAlanlari({
   // E bendi hesaplama alanları
   if (krediYukleme) {
     const adet = Number(form.krediAdedi) || 0;
-    const birimKurus = Math.round(patlatmaBedeliTutar * 100);
-    const dekontKurus = Math.round((krediDekontTutari ?? 0) * 100);
-    const mahsupBakiyesiKurus = Math.round((krediOzeti?.mahsuplasmaBakiyesi ?? 0) * 100);
-    const dekontTekBasinaKredi = birimKurus > 0 ? Math.floor(dekontKurus / birimKurus) : 0;
-    const kalanKurus = birimKurus > 0 ? dekontKurus % birimKurus : 0;
-    const sonrakiKrediIcinEksikKurus = birimKurus > 0 && kalanKurus > 0 ? birimKurus - kalanKurus : 0;
-    const gerekliMahsupKurus = mahsupKullan && krediYuklemeYontemi === 'TUTAR' && sonrakiKrediIcinEksikKurus > 0 && sonrakiKrediIcinEksikKurus <= mahsupBakiyesiKurus ? sonrakiKrediIcinEksikKurus : 0;
-    const toplamHesapKurus = krediYuklemeYontemi === 'TUTAR' ? dekontKurus + gerekliMahsupKurus : adet * birimKurus;
-    const tutardanKredi = birimKurus > 0 && toplamHesapKurus >= birimKurus ? Math.floor(toplamHesapKurus / birimKurus) : 0;
-    const krediyeMahsupKurus = tutardanKredi * birimKurus;
-    const mahsupKurus = mahsupKullan && krediOzeti ?
-    krediYuklemeYontemi === 'TUTAR' ?
-    Math.min(gerekliMahsupKurus, Math.max(0, krediyeMahsupKurus - dekontKurus)) :
-    Math.min(mahsupBakiyesiKurus, Math.max(0, adet * birimKurus)) :
-    0;
-    const mahsupTutari = mahsupKurus / 100;
-    const kalanMahsupTutari = Math.max(0, (mahsupBakiyesiKurus - mahsupKurus) / 100);
-    const odenecekTutar = krediYuklemeYontemi === 'TUTAR' ? (krediDekontTutari ?? 0) : Math.max(0, adet * patlatmaBedeliTutar - mahsupTutari);
-    const fazlaKurus = Math.max(0, dekontKurus + mahsupKurus - krediyeMahsupKurus);
-    const fazlaOdemeTutar = fazlaKurus / 100;
-    const tutarYetersiz = krediYuklemeYontemi === 'TUTAR' && (krediDekontTutari ?? 0) > 0 && toplamHesapKurus < birimKurus;
+    const hesap = hesaplaEKrediYuklemeMahsup({
+      yontem: krediYuklemeYontemi,
+      istenenKrediAdedi: form.krediAdedi,
+      gercekDekontTutari: krediDekontTutari ?? 0,
+      mevcutMahsupBakiyesi: krediOzeti?.mahsuplasmaBakiyesi ?? 0,
+      mahsupKullanilsinMi: mahsupKullan,
+      krediBedeli: patlatmaBedeliTutar
+    });
+    const tutardanKredi = hesap.krediAdedi;
+    const mahsupTutari = hesap.kullanilanMahsup;
+    const kalanMahsupTutari = hesap.kalanMahsupBakiyesi;
+    const odenecekTutar = hesap.yeniDekonttaOdenmesiGerekenTutar;
+    const fazlaOdemeTutar = hesap.krediyeUygulanmamisBakiye;
+    const tutarYetersiz = krediYuklemeYontemi === 'TUTAR' && (krediDekontTutari ?? 0) > 0 && hesap.krediAdedi === 0;
     const fazlaOdemeVar = krediYuklemeYontemi === 'TUTAR' && fazlaOdemeTutar > 0 && tutardanKredi > 0;
     return (
       <div className="space-y-4">
@@ -645,18 +638,18 @@ export function BentAlanlari({
             {mahsupKullan &&
             <dl className="mt-2 grid gap-1 text-xs sm:grid-cols-4">
                 {krediYuklemeYontemi === 'TUTAR' && <div><dt>Dekonttaki yeni ödeme</dt><dd className="font-medium">{formatTL(krediDekontTutari ?? 0)}</dd></div>}
-                <div><dt>Kredi yükleme tutarı</dt><dd className="font-medium">{formatTL(krediYuklemeYontemi === 'TUTAR' ? krediyeMahsupKurus / 100 : patlatmaBedeliTutar * adet)}</dd></div>
+                <div><dt>Kredi yükleme tutarı</dt><dd className="font-medium">{formatTL(krediYuklemeYontemi === 'TUTAR' ? hesap.krediYuklemeTutari : patlatmaBedeliTutar * adet)}</dd></div>
                 <div><dt>Kullanılan mahsup</dt><dd className="font-medium">{formatTL(mahsupTutari)}</dd></div>
                 <div><dt>Ödenmesi gereken</dt><dd className="font-medium">{formatTL(odenecekTutar)}</dd></div>
                 <div><dt>Kalan mahsup bakiyesi</dt><dd className="font-medium">{formatTL(kalanMahsupTutari)}</dd></div>
               </dl>
             }
             {!mahsupKullan && <p className="mt-2 text-xs">Mahsup bakiyesi bu işlemde kullanılmadı.</p>}
-            {mahsupKullan && krediYuklemeYontemi === 'TUTAR' && dekontKurus > 0 && dekontKurus % birimKurus === 0 &&
-            <p className="mt-2 text-xs">Bu dekont tutarı tam kredi karşılıyor. Mahsup bakiyesi kullanılmasına gerek yoktur.</p>
+            {mahsupKullan && krediYuklemeYontemi === 'TUTAR' && (krediDekontTutari ?? 0) > 0 && hesap.krediAdedi > 0 &&
+            <p className="mt-2 text-xs">Bu dekont tutarı {hesap.krediAdedi} tam krediye eşitti; mahsup kullanılmadan önce gerçek dekont tutarı dikkate alınır.</p>
             }
-            {mahsupKullan && krediYuklemeYontemi === 'TUTAR' && dekontKurus > 0 && dekontKurus % birimKurus !== 0 && gerekliMahsupKurus === 0 && dekontTekBasinaKredi > 0 &&
-            <p className="mt-2 text-xs">Bu dekont {dekontTekBasinaKredi} kredi karşılıyor. Mahsup bakiyesi bu işlemde kullanılmadı; çünkü ek kredi oluşturmaya gerek/yeterlilik yok.</p>
+            {mahsupKullan && krediYuklemeYontemi === 'TUTAR' && (krediDekontTutari ?? 0) > 0 && hesap.krediAdedi === 0 &&
+            <p className="mt-2 text-xs">Dekont tutarı tam krediye bölünmediği için mahsup bakiyesi yalnızca eksik tutarı tamamlamak için kullanılır.</p>
             }
           </div>
         }
@@ -694,7 +687,7 @@ export function BentAlanlari({
             }
             {tutardanKredi > 0 &&
             <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
-                {formatTL((dekontKurus + mahsupKurus) / 100)} / {formatTL(patlatmaBedeliTutar)} = {tutardanKredi} tam kredi
+                {formatTL(hesap.hesaplamayaGirenToplam)} / {formatTL(patlatmaBedeliTutar)} = {tutardanKredi} tam kredi
               </p>
             }
             {fazlaOdemeVar &&
@@ -703,10 +696,10 @@ export function BentAlanlari({
                 <dl className="grid gap-1 sm:grid-cols-2">
                   <div><dt>Dekonttaki yeni ödeme tutarı</dt><dd className="font-medium">{formatTL(krediDekontTutari ?? 0)}</dd></div>
                   <div><dt>Kullanılan mahsup</dt><dd className="font-medium">{formatTL(mahsupTutari)}</dd></div>
-                  <div><dt>Hesaplamaya giren toplam</dt><dd className="font-medium">{formatTL((dekontKurus + mahsupKurus) / 100)}</dd></div>
+                  <div><dt>Hesaplamaya giren toplam</dt><dd className="font-medium">{formatTL(hesap.hesaplamayaGirenToplam)}</dd></div>
                   <div><dt>1 kredi bedeli</dt><dd className="font-medium">{formatTL(patlatmaBedeliTutar)}</dd></div>
                   <div><dt>Tam karşılanan kredi</dt><dd className="font-medium">{tutardanKredi}</dd></div>
-                  <div><dt>Krediye mahsup edilen</dt><dd className="font-medium">{formatTL(krediyeMahsupKurus / 100)}</dd></div>
+                  <div><dt>Krediye mahsup edilen</dt><dd className="font-medium">{formatTL(hesap.krediyeUygulananTutar)}</dd></div>
                   <div><dt>Kalan mahsup bakiyesi</dt><dd className="font-medium">{formatTL(kalanMahsupTutari)}</dd></div>
                   <div><dt>Fazla ödeme</dt><dd className="font-medium">{formatTL(fazlaOdemeTutar)}</dd></div>
                 </dl>

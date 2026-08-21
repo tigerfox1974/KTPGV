@@ -24,6 +24,32 @@ export interface HesaplamaSonuc {
   hatalar: string[];
 }
 
+export interface MahsupKaynakKullanim {
+  kaynakKayitNo?: string;
+  kullanilanTutar: number;
+  kalanTutar: number;
+}
+
+export interface EKrediYuklemeHesapSonucu {
+  yontem: 'ADET' | 'TUTAR';
+  krediAdedi: number;
+  krediYuklemeTutari: number;
+  gercekDekontTutari: number;
+  yeniDekonttaOdenmesiGerekenTutar: number;
+  kullanilanMahsup: number;
+  hesaplamayaGirenToplam: number;
+  krediyeUygulananTutar: number;
+  kalanMahsupBakiyesi: number;
+  krediyeUygulanmamisBakiye: number;
+  kayitOlusturulabilirMi: boolean;
+  krediOlusturulabilirMi: boolean;
+  dekontZorunluMu: boolean;
+  mahsupKullanildiMi: boolean;
+  mahsupKaynakKullanimlari: MahsupKaynakKullanim[];
+  mesajTipi: 'INFO' | 'SUCCESS' | 'WARN' | 'ERROR';
+  mesajlar: string[];
+}
+
 const BOS: HesaplamaSonuc = {
   gecerli: false,
   tutar: 0,
@@ -135,6 +161,141 @@ export function hesapla(girdi: HesaplamaGirdi): HesaplamaSonuc {
 
 export function patlatmaBedeli(bau: number): number {
   return bau * 0.1;
+}
+
+export function hesaplaEKrediYuklemeMahsup(args: {
+  yontem: 'ADET' | 'TUTAR';
+  istenenKrediAdedi?: number | string;
+  gercekDekontTutari?: number | string;
+  mevcutMahsupBakiyesi?: number | string;
+  mahsupKullanilsinMi?: boolean;
+  krediBedeli: number;
+  mevcutMahsupKaynaklari?: MahsupKaynakKullanim[];
+}): EKrediYuklemeHesapSonucu {
+  const yontem = args.yontem;
+  const krediBedeli = Number(args.krediBedeli ?? 0);
+  const gercekDekontTutari = Number(args.gercekDekontTutari ?? 0);
+  const mevcutMahsupBakiyesi = Number(args.mevcutMahsupBakiyesi ?? 0);
+  const istenenKrediAdedi = Number(args.istenenKrediAdedi ?? 0);
+  const mahsupKullanilsinMi = !!args.mahsupKullanilsinMi;
+
+  const mesajlar: string[] = [];
+  const kaynaklar: MahsupKaynakKullanim[] = Array.isArray(args.mevcutMahsupKaynaklari) ? args.mevcutMahsupKaynaklari : [];
+  const gercekKrediyeUygulanmamisBakiye = Math.max(0, gercekDekontTutari - Math.floor(gercekDekontTutari / Math.max(krediBedeli, 1)) * Math.max(krediBedeli, 1));
+
+  if (yontem === 'ADET') {
+    const hedefAdet = Number.isFinite(istenenKrediAdedi) && istenenKrediAdedi > 0 ? Math.floor(istenenKrediAdedi) : 0;
+    const krediYuklemeTutari = hedefAdet * krediBedeli;
+    let kullanilanMahsup = 0;
+    if (mahsupKullanilsinMi && mevcutMahsupBakiyesi > 0) {
+      kullanilanMahsup = Math.min(mevcutMahsupBakiyesi, Math.max(0, krediYuklemeTutari));
+    }
+    const yeniDekonttaOdenmesiGerekenTutar = Math.max(0, krediYuklemeTutari - kullanilanMahsup);
+    const kalanMahsupBakiyesi = Math.max(0, mevcutMahsupBakiyesi - kullanilanMahsup);
+    const krediOlusturulabilirMi = hedefAdet > 0 && krediYuklemeTutari > 0 && yeniDekonttaOdenmesiGerekenTutar >= 0;
+    const kayitOlusturulabilirMi = krediOlusturulabilirMi;
+    const dekontZorunluMu = yeniDekonttaOdenmesiGerekenTutar > 0;
+
+    if (mahsupKullanilsinMi && mevcutMahsupBakiyesi > 0 && kullanilanMahsup > 0) {
+      mesajlar.push('Eski mahsup bakiyesi, yeni dekont ödemesini düşürmek için kullanıldı.');
+    }
+    if (!mahsupKullanilsinMi && mevcutMahsupBakiyesi > 0) {
+      mesajlar.push('Eski mahsup bakiyesi kullanılmadı; işletmeci hesabında kaldı.');
+    }
+    if (hedefAdet <= 0) {
+      mesajlar.push('İstenen kredi adedi pozitif tam sayı olmalıdır.');
+    }
+
+    return {
+      yontem,
+      krediAdedi: hedefAdet,
+      krediYuklemeTutari,
+      gercekDekontTutari: 0,
+      yeniDekonttaOdenmesiGerekenTutar,
+      kullanilanMahsup,
+      hesaplamayaGirenToplam: krediYuklemeTutari,
+      krediyeUygulananTutar: krediYuklemeTutari,
+      kalanMahsupBakiyesi,
+      krediyeUygulanmamisBakiye: 0,
+      kayitOlusturulabilirMi,
+      krediOlusturulabilirMi: krediOlusturulabilirMi,
+      dekontZorunluMu,
+      mahsupKullanildiMi: kullanilanMahsup > 0,
+      mahsupKaynakKullanimlari: kaynaklar.length ? kaynaklar : [{ kullanilanTutar: kullanilanMahsup, kalanTutar: kalanMahsupBakiyesi }],
+      mesajTipi: kullanilanMahsup > 0 ? 'SUCCESS' : 'INFO',
+      mesajlar
+    };
+  }
+
+  const dekontBasiKrediAdedi = Math.floor(gercekDekontTutari / krediBedeli);
+  const dekontBasiKalan = krediBedeli > 0 ? gercekDekontTutari % krediBedeli : 0;
+  const eksikTutar = krediBedeli > 0 ? krediBedeli - dekontBasiKalan : 0;
+
+  let kullanilanMahsup = 0;
+  let krediAdedi = dekontBasiKrediAdedi;
+  let krediyeUygulananTutar = krediAdedi * krediBedeli;
+  let kalanMahsupBakiyesi = mevcutMahsupBakiyesi;
+  let yeniBakiye = Math.max(0, gercekDekontTutari - krediyeUygulananTutar);
+  const gercekUygulanmayanBakiye = Math.max(0, gercekDekontTutari - krediyeUygulananTutar);
+
+  if (mahsupKullanilsinMi && mevcutMahsupBakiyesi > 0 && dekontBasiKalan > 0) {
+    const gerekliMahsup = Math.min(mevcutMahsupBakiyesi, eksikTutar);
+    if (gerekliMahsup > 0 && gerekliMahsup >= eksikTutar) {
+      kullanilanMahsup = gerekliMahsup;
+      krediAdedi = Math.floor((gercekDekontTutari + kullanilanMahsup) / krediBedeli);
+      krediyeUygulananTutar = krediAdedi * krediBedeli;
+      kalanMahsupBakiyesi = Math.max(0, mevcutMahsupBakiyesi - kullanilanMahsup);
+      yeniBakiye = Math.max(0, gercekDekontTutari + kullanilanMahsup - krediyeUygulananTutar);
+    }
+  }
+
+  if (!mahsupKullanilsinMi && gercekDekontTutari > 0) {
+    kullanilanMahsup = 0;
+    krediAdedi = dekontBasiKrediAdedi;
+    krediyeUygulananTutar = krediAdedi * krediBedeli;
+    kalanMahsupBakiyesi = mevcutMahsupBakiyesi;
+    yeniBakiye = Math.max(0, gercekDekontTutari - krediyeUygulananTutar);
+  }
+
+  const kullanilanMaksimumBakiye = Math.max(0, gercekUygulanmayanBakiye);
+
+  const hesaplamayaGirenToplam = gercekDekontTutari + kullanilanMahsup;
+  const krediOlusturulabilirMi = gercekDekontTutari > 0 || (mahsupKullanilsinMi && kullanilanMahsup > 0 && krediAdedi > 0);
+  const kayitOlusturulabilirMi = krediAdedi > 0 || gercekDekontTutari > 0;
+  const dekontZorunluMu = gercekDekontTutari > 0;
+
+  if (mahsupKullanilsinMi && kullanilanMahsup > 0) {
+    mesajlar.push('Eski mahsup bakiyesi, bir sonraki tam kredi için kullanıldı.');
+  }
+  if (!mahsupKullanilsinMi && mevcutMahsupBakiyesi > 0) {
+    mesajlar.push('Mahsup kullanma seçildi; eski mahsup bakiyesi korunuyor.');
+  }
+  if (gercekDekontTutari > 0 && dekontBasiKalan > 0 && kullanilanMahsup === 0) {
+    mesajlar.push('Gerçek dekont tutarı tam krediye dönüştürülemedi; kalan tutar krediye uygulanmamış bakiye olarak izlenir.');
+  }
+  if (gercekDekontTutari === 0 && mevcutMahsupBakiyesi > 0 && kullanilanMahsup > 0) {
+    mesajlar.push('Yeni banka dekontu yok; mahsup kullanımı kredi oluşturdu.');
+  }
+
+  return {
+    yontem,
+    krediAdedi,
+    krediYuklemeTutari: krediyeUygulananTutar,
+    gercekDekontTutari,
+    yeniDekonttaOdenmesiGerekenTutar: Math.max(0, gercekDekontTutari - kullanilanMahsup),
+    kullanilanMahsup,
+    hesaplamayaGirenToplam,
+    krediyeUygulananTutar,
+    kalanMahsupBakiyesi,
+    krediyeUygulanmamisBakiye: Math.max(yeniBakiye, kullanilanMaksimumBakiye, gercekKrediyeUygulanmamisBakiye),
+    kayitOlusturulabilirMi,
+    krediOlusturulabilirMi,
+    dekontZorunluMu,
+    mahsupKullanildiMi: kullanilanMahsup > 0,
+    mahsupKaynakKullanimlari: kaynaklar.length ? kaynaklar : [{ kullanilanTutar: kullanilanMahsup, kalanTutar: kalanMahsupBakiyesi }],
+    mesajTipi: krediAdedi > 0 ? 'SUCCESS' : (gercekDekontTutari > 0 ? 'WARN' : 'INFO'),
+    mesajlar
+  };
 }
 
 export function raporBedeli(bau: number): number {

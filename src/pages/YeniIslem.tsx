@@ -27,7 +27,7 @@ import {
 import { bentler } from '../data/bentler';
 import { useApp } from '../contexts/AppContext';
 import { AdliRapor, BentKodu, DekontDosyasi, FazlaOdemeDurumu, Islem, TrafikAltBasvuru } from '../types';
-import { hesapla, patlatmaBedeli, raporBedeli } from '../utils/hesaplama';
+import { hesapla, hesaplaEKrediYuklemeMahsup, patlatmaBedeli, raporBedeli } from '../utils/hesaplama';
 import { altBasvuruNo, sonrakiKayitNo } from '../utils/numaralandirma';
 import { formatTL, formatTarih, formatTarihSaat } from '../utils/currency';
 
@@ -254,29 +254,28 @@ export function YeniIslem() {
     [form, bau, raporSayisi]
   );
 
-  const krediDekontKurus = Math.round((krediDekontTutari ?? 0) * 100);
-  const mahsupBakiyesiKurus = Math.round((ozet?.mahsuplasmaBakiyesi ?? 0) * 100);
-  const temelKrediKurus = Math.round(sonuc.tutar * 100);
-  const sonrakiKrediIcinEksikKurus = krediYuklemeBirimKurus > 0 ? krediYuklemeBirimKurus - krediDekontKurus % krediYuklemeBirimKurus : 0;
-  const gerekliMahsupKurus = mahsupKullan && krediYuklemeYontemi === 'TUTAR' && sonrakiKrediIcinEksikKurus > 0 && sonrakiKrediIcinEksikKurus <= mahsupBakiyesiKurus ? sonrakiKrediIcinEksikKurus : 0;
-  const toplamHesapKurus = krediYukleme && krediYuklemeYontemi === 'TUTAR' ? krediDekontKurus + gerekliMahsupKurus : temelKrediKurus;
-  const krediDekonttanAdet =
-  krediYuklemeBirimKurus > 0 && toplamHesapKurus >= krediYuklemeBirimKurus ?
-  Math.floor(toplamHesapKurus / krediYuklemeBirimKurus) :
-  0;
-  const krediDekontTutariGecerli = krediYuklemeYontemi !== 'TUTAR' || krediDekonttanAdet > 0;
-  const krediyeMahsupKurus = krediYukleme ? (Number(form.krediAdedi) || 0) * krediYuklemeBirimKurus : temelKrediKurus;
-  const mahsupKullanilanKurus = krediYukleme && mahsupKullan ?
-  krediYuklemeYontemi === 'TUTAR' ?
-  Math.min(gerekliMahsupKurus, Math.max(0, krediyeMahsupKurus - krediDekontKurus)) :
-  Math.min(mahsupBakiyesiKurus, krediyeMahsupKurus) :
-  0;
-  const krediyeMahsupEdilenTutar = krediyeMahsupKurus / 100;
-  const mahsupKullanilanTutar = mahsupKullanilanKurus / 100;
-  const beklenenOdemeTutari = krediYuklemeYontemi === 'TUTAR' && krediYukleme ? krediDekontTutari ?? 0 : Math.max(0, (krediyeMahsupKurus - mahsupKullanilanKurus) / 100);
-  const fazlaOdemeTutar = krediYuklemeYontemi === 'TUTAR' && krediYukleme ?
-  Math.max(0, (krediDekontKurus + mahsupKullanilanKurus - krediyeMahsupKurus) / 100) :
-  0;
+  const krediMahsupHesabi = useMemo(() => {
+    if (!krediYukleme) {
+      return null;
+    }
+
+    return hesaplaEKrediYuklemeMahsup({
+      yontem: krediYuklemeYontemi,
+      istenenKrediAdedi: form.krediAdedi,
+      gercekDekontTutari: krediDekontTutari ?? 0,
+      mevcutMahsupBakiyesi: ozet?.mahsuplasmaBakiyesi ?? 0,
+      mahsupKullanilsinMi: mahsupKullan,
+      krediBedeli: patlatmaBedeli(bau),
+      mevcutMahsupKaynaklari: []
+    });
+  }, [bau, form.krediAdedi, krediDekontTutari, krediYukleme, krediYuklemeYontemi, mahsupKullan, ozet?.mahsuplasmaBakiyesi]);
+
+  const krediDekonttanAdet = krediMahsupHesabi?.krediAdedi ?? 0;
+  const krediDekontTutariGecerli = krediYuklemeYontemi !== 'TUTAR' || krediDekonttanAdet > 0 || (krediDekontTutari ?? 0) > 0;
+  const krediyeMahsupEdilenTutar = krediMahsupHesabi?.krediyeUygulananTutar ?? 0;
+  const mahsupKullanilanTutar = krediMahsupHesabi?.kullanilanMahsup ?? 0;
+  const beklenenOdemeTutari = krediMahsupHesabi?.yeniDekonttaOdenmesiGerekenTutar ?? 0;
+  const fazlaOdemeTutar = krediMahsupHesabi?.krediyeUygulanmamisBakiye ?? 0;
 
   useEffect(() => {
     if (!krediYukleme) return;
