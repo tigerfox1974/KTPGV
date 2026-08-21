@@ -126,6 +126,7 @@ export function YeniIslem() {
   const [form, setForm] = useState<IslemFormu>(BOS_FORM);
   const [dekont, setDekont] = useState<DekontFormu>(BOS_DEKONT);
   const [dosya, setDosya] = useState<DekontDosyasi | null>(null);
+  const [dekontKontrolTamamlandi, setDekontKontrolTamamlandi] = useState(false);
   const [ocrBilgileri, setOcrBilgileri] = useState<Pick<DekontOcrSonucu, 'durum' | 'okunanAlanlar' | 'guven'>>({ durum: 'BASARISIZ', okunanAlanlar: [], guven: {} });
   const [trafikSatirlari, setTrafikSatirlari] = useState<TrafikAltBasvuru[]>([]);
   const [adliSatirlari, setAdliSatirlari] = useState<AdliRapor[]>([]);
@@ -276,7 +277,8 @@ export function YeniIslem() {
   !duplicateDekont &&
   !duplicateReferans &&
   !duplicateDosya &&
-  !gelecekDekontTarihi;
+  !gelecekDekontTarihi &&
+  (!krediYukleme || dekontKontrolTamamlandi);
 
   const talepEdenAdi = trafik ?
   sigortaSirketi?.ad ?? '' :
@@ -416,6 +418,7 @@ export function YeniIslem() {
     setForm(BOS_FORM);
     setDekont(BOS_DEKONT);
     setDosya(null);
+    setDekontKontrolTamamlandi(false);
     setOcrBilgileri({ durum: 'BASARISIZ', okunanAlanlar: [], guven: {} });
     setTrafikSatirlari([]);
     setAdliSatirlari([]);
@@ -861,18 +864,24 @@ export function YeniIslem() {
       'Kayıt oluşturmak için dijital dekont dosyası yüklenmelidir.' :
       'Dekont dosyası olmadan ödeme gerektiren kayıt oluşturulamaz.',
       icerik:
-      <DekontBolumu
-        form={dekont}
-        guncelle={dekontGuncelle}
-        dosya={dosya}
-        dosyaAta={setDosya}
-        kaynakEtiketi={kaynakEtiketi}
-        beklenenTutar={sonuc.tutar}
-        qrOdenecekTutarGoster={form.bent === 'D'}
-        auditEkle={auditEkle}
-        mevcutIslemler={islemler}
-        ocrBilgisi={setOcrBilgileri}
-        gelistirilmisMi={krediYukleme} />
+      <div className="space-y-3">
+        {krediYukleme && <p className={dekontKontrolTamamlandi ? 'rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800' : 'rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800'}>
+          {dekontKontrolTamamlandi ? '✓ Dekont kullanıcı tarafından kontrol edildi' : dosya ? 'Dekont yüklendi — kontrol bekliyor' : 'Dekont yüklenmesi bekleniyor'}
+        </p>}
+        <DekontBolumu
+          form={dekont}
+          guncelle={dekontGuncelle}
+          dosya={dosya}
+          dosyaAta={setDosya}
+          kaynakEtiketi={kaynakEtiketi}
+          beklenenTutar={sonuc.tutar}
+          qrOdenecekTutarGoster={form.bent === 'D'}
+          auditEkle={auditEkle}
+          mevcutIslemler={islemler}
+          ocrBilgisi={setOcrBilgileri}
+          gelistirilmisMi={krediYukleme}
+          dekontKontrolDurumu={setDekontKontrolTamamlandi} />
+      </div>
 
 
     });

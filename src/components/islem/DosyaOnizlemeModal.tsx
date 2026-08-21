@@ -181,3 +181,8 @@ export function DosyaOnizlemeModal({ dosya, acik, kapat }: DosyaOnizlemeModalPro
     </Dialog>);
 
 }
+
+export function DosyaOnizlemeIcerigi({ dosya }: { dosya: DekontDosyasi }) {
+  const gorsel = dosya.tur === 'JPG' || dosya.tur === 'PNG';
+  return gorsel ? <GorselOnizleme dosya={dosya} /> : <PdfOnizleme dosya={dosya} />;
+}

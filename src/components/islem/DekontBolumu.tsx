@@ -6,7 +6,7 @@ import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
 import { ParaInput } from '../ui/ParaInput';
 import { DosyaKarti } from './DosyaKarti';
-import { DosyaOnizlemeModal } from './DosyaOnizlemeModal';
+import { DosyaOnizlemeIcerigi, DosyaOnizlemeModal } from './DosyaOnizlemeModal';
 import { QrDekontPaneli } from './QrDekontPaneli';
 import { KuralNotu } from '../common/KuralNotu';
 import { DekontDosyasi, Islem } from '../../types';
@@ -32,6 +32,16 @@ export const BOS_DEKONT: DekontFormu = {
   odemeYapan: ''
 };
 
+function KontrolDurumu({
+  durum,
+  onayla,
+  opsiyonel = false
+}: {durum?: 'BEKLIYOR' | 'OCR_OKUDU' | 'DOGRULANDI' | 'DUZELTILDI';onayla: () => void;opsiyonel?: boolean;}) {
+  const metin = durum === 'DOGRULANDI' ? 'Kullanıcı doğruladı' : durum === 'DUZELTILDI' ? 'Kullanıcı düzeltti' : durum === 'OCR_OKUDU' ? 'OCR okudu · kontrol bekliyor' : opsiyonel ? 'Belgede yoksa boş bırakılabilir' : 'Kontrol gerekli';
+  const renk = durum === 'DOGRULANDI' || durum === 'DUZELTILDI' ? 'text-emerald-700' : durum === 'OCR_OKUDU' ? 'text-sky-700' : 'text-amber-700';
+  return <div className="mt-1.5 flex items-center justify-between gap-2 text-xs"><span className={renk}>{metin}</span>{!(opsiyonel && !durum) && <Button type="button" variant="ghost" size="sm" className="h-7 px-2" disabled={durum === 'DOGRULANDI' || durum === 'DUZELTILDI'} onClick={onayla}>✓ Doğruladım</Button>}</div>;
+}
+
 interface DekontBolumuProps {
   form: DekontFormu;
   guncelle: <K extends keyof DekontFormu>(alan: K, deger: DekontFormu[K]) => void;
@@ -44,6 +54,7 @@ interface DekontBolumuProps {
   mevcutIslemler: Islem[];
   ocrBilgisi: (sonuc: Pick<DekontOcrSonucu, 'durum' | 'okunanAlanlar' | 'guven'>) => void;
   gelistirilmisMi: boolean;
+  dekontKontrolDurumu: (tamamlandi: boolean) => void;
 }
 
 export function DekontBolumu({
@@ -57,10 +68,12 @@ export function DekontBolumu({
   auditEkle,
   mevcutIslemler,
   ocrBilgisi,
-  gelistirilmisMi
+  gelistirilmisMi,
+  dekontKontrolDurumu
 }: DekontBolumuProps) {
   const [onizleme, setOnizleme] = useState(false);
   const [ocrDurumu, setOcrDurumu] = useState<'BEKLIYOR' | 'OKUNUYOR' | 'BASARILI' | 'KISMI' | 'BASARISIZ'>('BEKLIYOR');
+  const [alanKontrolleri, setAlanKontrolleri] = useState<Record<string, 'BEKLIYOR' | 'OCR_OKUDU' | 'DOGRULANDI' | 'DUZELTILDI'>>({});
   const sonDuplicateAudit = useRef('');
   const odenen = form.odenenTutar ?? 0;
   const fark = Number((odenen - beklenenTutar).toFixed(2));
@@ -88,9 +101,29 @@ export function DekontBolumu({
       islem.dekont.odemeYapan.trim().toLocaleUpperCase('tr-TR') === form.odemeYapan.trim().toLocaleUpperCase('tr-TR'))
     : undefined;
   const gelecekTarih = !!form.tarih && form.tarih > new Date().toISOString().slice(0, 10);
+  const zorunluAlanlar = ['dekontNo', 'banka', 'tarih', 'odenenTutar', 'odemeYapan'] as const;
+  const kontrolEdilen = zorunluAlanlar.filter((alan) => alanKontrolleri[alan] === 'DOGRULANDI' || alanKontrolleri[alan] === 'DUZELTILDI').length;
+  const referansKontrolGerekli = !!form.bankaReferansNo.trim();
+  const kontrolTamamlanabilir = !!dosya && !duplicateKaydi && !duplicateReferansKaydi && !hashDuplicateKaydi && !gelecekTarih &&
+    zorunluAlanlar.every((alan) => alan === 'odenenTutar' ? odenen > 0 && tutarUyumlu && (alanKontrolleri[alan] === 'DOGRULANDI' || alanKontrolleri[alan] === 'DUZELTILDI') :
+      !!form[alan] && (alanKontrolleri[alan] === 'DOGRULANDI' || alanKontrolleri[alan] === 'DUZELTILDI')) &&
+    (!referansKontrolGerekli || alanKontrolleri.bankaReferansNo === 'DOGRULANDI' || alanKontrolleri.bankaReferansNo === 'DUZELTILDI');
+
+  const alanGuncelle = <K extends keyof DekontFormu>(alan: K, deger: DekontFormu[K]) => {
+    guncelle(alan, deger);
+    setAlanKontrolleri((eski) => ({ ...eski, [alan]: 'DUZELTILDI' }));
+    dekontKontrolDurumu(false);
+  };
+
+  const alanDogrula = (alan: string) => {
+    setAlanKontrolleri((eski) => ({ ...eski, [alan]: 'DOGRULANDI' }));
+    dekontKontrolDurumu(false);
+  };
 
   useEffect(() => {
     if (!gelistirilmisMi) return;
+    setAlanKontrolleri({});
+    dekontKontrolDurumu(false);
     if (!dosya) {
       setOcrDurumu('BEKLIYOR');
       ocrBilgisi({ durum: 'BASARISIZ', okunanAlanlar: [], guven: {} });
@@ -103,12 +136,18 @@ export function DekontBolumu({
       setOcrDurumu(sonuc.durum);
       ocrBilgisi(sonuc);
       Object.entries(sonuc.alanlar).forEach(([alan, deger]) => {
-        if (deger !== undefined) guncelle(alan as keyof typeof form, deger as never);
+        if (deger !== undefined) {
+          guncelle(alan as keyof typeof form, deger as never);
+          setAlanKontrolleri((eski) => ({ ...eski, [alan]: 'OCR_OKUDU' }));
+        }
       });
+      dekontKontrolDurumu(false);
       auditEkle(sonuc.durum === 'BASARISIZ' ? 'OCR başarısız oldu' : 'OCR ile dekont bilgileri okundu', dosya.ad);
     }).catch(() => {
       if (iptal) return;
       setOcrDurumu('BASARISIZ');
+      setAlanKontrolleri({});
+      dekontKontrolDurumu(false);
       ocrBilgisi({ durum: 'BASARISIZ', okunanAlanlar: [], guven: {} });
       auditEkle('OCR başarısız oldu', dosya.ad);
     });
@@ -116,6 +155,13 @@ export function DekontBolumu({
   // OCR is intentionally triggered only when the uploaded file changes.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dosya, gelistirilmisMi]);
+
+  useEffect(() => {
+    if (!dosya) {
+      setAlanKontrolleri({});
+      dekontKontrolDurumu(false);
+    }
+  }, [dosya, dekontKontrolDurumu]);
 
   useEffect(() => {
     const anahtar = duplicateKaydi ? `no:${duplicateKaydi.id}` : duplicateReferansKaydi ? `ref:${duplicateReferansKaydi.id}` : hashDuplicateKaydi ? `hash:${hashDuplicateKaydi.id}` : benzerKaydi ? `benzer:${benzerKaydi.id}` : '';
@@ -191,8 +237,58 @@ export function DekontBolumu({
 
         {!dosya && <p className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">Önce dijital dekontu yükleyiniz. Sistem dekont üzerindeki bilgileri otomatik okumaya çalışacaktır.</p>}
 
+        {dosya && <section className="space-y-4 rounded-xl border-2 border-primary/20 bg-card p-4 lg:p-5" aria-labelledby="dekont-kontrol-baslik">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 id="dekont-kontrol-baslik" className="font-heading text-base font-semibold text-foreground">Dekont Kontrolü</h2>
+              <p className="mt-1 text-sm text-muted-foreground">OCR yardımcıdır. Her alanı dekontu açıp kontrol ederek doğrulayınız.</p>
+            </div>
+            <span className="rounded-full border border-border bg-muted px-3 py-1 text-sm font-medium text-foreground">{kontrolEdilen} / {zorunluAlanlar.length} alan kontrol edildi</span>
+          </div>
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
+            <div className="min-w-0 rounded-lg bg-slate-900 p-2">
+              <DosyaOnizlemeIcerigi dosya={dosya} />
+            </div>
+            <div className="space-y-3">
+              <div>
+                <Label htmlFor="kontrol-dekont-no">Belge / Dekont No</Label>
+                <Input id="kontrol-dekont-no" value={form.dekontNo} onChange={(e) => alanGuncelle('dekontNo', e.target.value)} className="mt-1.5" />
+                <KontrolDurumu durum={alanKontrolleri.dekontNo} onayla={() => alanDogrula('dekontNo')} />
+              </div>
+              <div>
+                <Label htmlFor="kontrol-referans-no">Banka Referans No</Label>
+                <Input id="kontrol-referans-no" value={form.bankaReferansNo} onChange={(e) => alanGuncelle('bankaReferansNo', e.target.value)} className="mt-1.5" />
+                <KontrolDurumu durum={alanKontrolleri.bankaReferansNo} onayla={() => alanDogrula('bankaReferansNo')} opsiyonel={!form.bankaReferansNo.trim()} />
+              </div>
+              <div>
+                <Label htmlFor="kontrol-banka">Banka</Label>
+                <Input id="kontrol-banka" value={form.banka} onChange={(e) => alanGuncelle('banka', e.target.value)} className="mt-1.5" />
+                <KontrolDurumu durum={alanKontrolleri.banka} onayla={() => alanDogrula('banka')} />
+              </div>
+              <div>
+                <Label htmlFor="kontrol-tarih">Dekont Tarihi</Label>
+                <Input id="kontrol-tarih" type="date" value={form.tarih} onChange={(e) => alanGuncelle('tarih', e.target.value)} className="mt-1.5" />
+                <KontrolDurumu durum={alanKontrolleri.tarih} onayla={() => alanDogrula('tarih')} />
+              </div>
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <Label htmlFor="kontrol-tutar">Ödenen Tutar</Label>
+                <ParaInput id="kontrol-tutar" value={form.odenenTutar} onValueChange={(deger) => alanGuncelle('odenenTutar', deger)} className="mt-1.5" aria-invalid={!tutarUyumlu} />
+                <div className="mt-2 grid grid-cols-2 gap-2 text-sm"><span>Hesaplanan: <strong>{formatTL(beklenenTutar)}</strong></span><span>Dekont: <strong>{formatTL(odenen)}</strong></span></div>
+                <p className={tutarUyumlu ? 'mt-1 text-sm text-emerald-700' : 'mt-1 text-sm text-rose-700'}>{tutarUyumlu ? '✓ Sistem tutarı eşleşiyor; kullanıcı kontrolü yine zorunludur.' : `✕ Tutar eşleşmiyor. Fark: ${formatTL(Math.abs(fark))}`}</p>
+                <KontrolDurumu durum={alanKontrolleri.odenenTutar} onayla={() => alanDogrula('odenenTutar')} />
+              </div>
+              <div>
+                <Label htmlFor="kontrol-odeyen">Ödeme Yapan Kişi / Kurum</Label>
+                <Input id="kontrol-odeyen" value={form.odemeYapan} onChange={(e) => alanGuncelle('odemeYapan', e.target.value)} className="mt-1.5" />
+                <KontrolDurumu durum={alanKontrolleri.odemeYapan} onayla={() => alanDogrula('odemeYapan')} />
+              </div>
+              <Button type="button" className="w-full" disabled={!kontrolTamamlanabilir} onClick={() => dekontKontrolDurumu(true)}>Kontrolü Tamamla</Button>
+            </div>
+          </div>
+        </section>}
+
         {dosya && <>
-        <section className="space-y-3" aria-labelledby="bilgi-baslik">
+        <section className="hidden" aria-labelledby="bilgi-baslik">
           <div>
             <h2 id="bilgi-baslik" className="font-heading text-base font-semibold text-foreground">B — Dekont Bilgileri</h2>
             <p className="mt-1 text-xs text-muted-foreground">Sistem dekont üzerindeki bilgileri otomatik okumaya çalışmıştır. Kayıt öncesinde bilgileri kontrol ediniz.</p>
