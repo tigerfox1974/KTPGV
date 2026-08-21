@@ -1,4 +1,4 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
 import { LogOut, Menu, Settings2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Label } from '../ui/Label';
@@ -8,10 +8,10 @@ import { formatTL } from '../../utils/currency';
 
 export function Topbar({ menuAc }: {menuAc: () => void;}) {
   const { kullanici, cikis, bau, bauGuncelle } = useApp();
-  const [ayarAcik, setAyarAcik] = React.useState(false);
-  const [bauTaslak, setBauTaslak] = React.useState<number | null>(bau);
+  const [ayarAcik, setAyarAcik] = useState(false);
+  const [bauTaslak, setBauTaslak] = useState<number | null>(bau);
 
-  React.useEffect(() => setBauTaslak(bau), [bau]);
+  useEffect(() => setBauTaslak(bau), [bau]);
 
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">

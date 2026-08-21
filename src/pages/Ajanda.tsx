@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarClock, CheckCircle2, MapPin, Wallet } from 'lucide-react';
 import { toast } from 'sonner';

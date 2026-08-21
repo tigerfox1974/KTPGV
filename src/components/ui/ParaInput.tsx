@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Input } from './Input';
 import { formatTL, paraDuzenlemeMetni, parseTL } from '../../utils/currency';
 

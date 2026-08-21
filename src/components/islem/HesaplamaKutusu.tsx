@@ -1,4 +1,3 @@
-import React from 'react';
 import { AlertTriangle, Calculator } from 'lucide-react';
 import { HesaplamaSonuc } from '../../utils/hesaplama';
 import { formatTL } from '../../utils/currency';

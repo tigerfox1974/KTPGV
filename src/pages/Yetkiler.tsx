@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { Check, Minus } from 'lucide-react';
 import { PageHeader } from '../components/common/PageHeader';

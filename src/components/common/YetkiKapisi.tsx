@@ -1,4 +1,3 @@
-import React from 'react';
 import { ShieldAlert } from 'lucide-react';
 import { PageHeader } from './PageHeader';
 import { useApp } from '../../contexts/AppContext';

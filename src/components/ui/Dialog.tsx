@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect } from 'react';
+import { createContext, useContext, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { cn } from '../../utils/cn';
 

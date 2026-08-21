@@ -1,4 +1,3 @@
-import React from 'react';
 import { Label } from '../ui/Label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/Select';
 import { BILGI_KAYNAKLARI } from '../../utils/patlatma';

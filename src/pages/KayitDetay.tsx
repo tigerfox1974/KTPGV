@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Check, Circle, Printer, Receipt } from 'lucide-react';
 import { toast } from 'sonner';
@@ -490,7 +490,7 @@ export function KayitDetay() {
                     size="sm"
                     onClick={() => {
                       setMakbuzAcik(true);
-                      auditEkle('Makbuz görüntülendi', islem.makbuzNo);
+                      auditEkle('Makbuz görüntülendi', islem.makbuzNo ?? islem.kayitNo);
                     }}
                   >
                     <Receipt className="h-4 w-4" aria-hidden="true" />

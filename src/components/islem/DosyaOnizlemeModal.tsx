@@ -1,4 +1,3 @@
-import React from 'react';
 import { FileText, ImageIcon, Maximize2, ZoomIn } from 'lucide-react';
 import {
   Dialog,

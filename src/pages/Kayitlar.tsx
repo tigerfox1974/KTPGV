@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, ChevronDown, ChevronRight, Search } from 'lucide-react';
 import { PageHeader } from '../components/common/PageHeader';
@@ -99,7 +99,7 @@ export function Kayitlar() {
                 {filtreli.map((islem) => {
                 const acik = acikSatir === islem.id;
                 return (
-                  <React.Fragment key={islem.id}>
+                  <Fragment key={islem.id}>
                       <tr className="hover:bg-muted/40">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1.5">
@@ -315,7 +315,7 @@ export function Kayitlar() {
                           </td>
                         </tr>
                     }
-                    </React.Fragment>);
+                    </Fragment>);
 
               })}
               </tbody>

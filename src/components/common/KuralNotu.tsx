@@ -1,4 +1,3 @@
-import React from 'react';
 import { Info, ShieldAlert } from 'lucide-react';
 
 interface KuralNotuProps {
