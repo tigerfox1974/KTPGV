@@ -94,6 +94,7 @@ export interface DekontDosyasi {
   sikistirildi?: boolean;
   previewUrl?: string;
   mimeType?: string;
+  dekontHash?: string;
 }
 
 export interface Dekont {
@@ -103,6 +104,9 @@ export interface Dekont {
   odenenTutar: number;
   odemeYapan: string;
   dosya: DekontDosyasi | null;
+  ocrDurumu?: 'BEKLIYOR' | 'OKUNUYOR' | 'BASARILI' | 'KISMI' | 'BASARISIZ';
+  ocrOkunanAlanlar?: string[];
+  ocrGuvenBilgileri?: Partial<Record<'dekontNo' | 'banka' | 'tarih' | 'odenenTutar' | 'odemeYapan', number>>;
 }
 
 export type IslemDurumu =

@@ -28,6 +28,7 @@ import { bentler } from '../data/bentler';
 import { useApp } from '../contexts/AppContext';
 import { AdliRapor, BentKodu, DekontDosyasi, Islem, TrafikAltBasvuru } from '../types';
 import { hesapla, patlatmaBedeli, raporBedeli } from '../utils/hesaplama';
+import { DekontOcrSonucu, normalizeDekontNo } from '../utils/dekontOcr';
 import { altBasvuruNo, sonrakiKayitNo } from '../utils/numaralandirma';
 import { formatTL, formatTarih, formatTarihSaat } from '../utils/currency';
 
@@ -125,6 +126,7 @@ export function YeniIslem() {
   const [form, setForm] = useState<IslemFormu>(BOS_FORM);
   const [dekont, setDekont] = useState<DekontFormu>(BOS_DEKONT);
   const [dosya, setDosya] = useState<DekontDosyasi | null>(null);
+  const [ocrBilgileri, setOcrBilgileri] = useState<Pick<DekontOcrSonucu, 'durum' | 'okunanAlanlar' | 'guven'>>({ durum: 'BASARISIZ', okunanAlanlar: [], guven: {} });
   const [trafikSatirlari, setTrafikSatirlari] = useState<TrafikAltBasvuru[]>([]);
   const [adliSatirlari, setAdliSatirlari] = useState<AdliRapor[]>([]);
   const [sonKayit, setSonKayit] = useState<Islem | null>(null);
@@ -252,6 +254,13 @@ export function YeniIslem() {
 
   const odenen = dekont.odenenTutar ?? 0;
   const tutarUyumlu = odenen > 0 && Math.abs(odenen - sonuc.tutar) < 0.01;
+  const dekontNo = normalizeDekontNo(dekont.dekontNo);
+  const banka = dekont.banka.trim().toLocaleUpperCase('tr-TR');
+  const duplicateDekont = krediYukleme && dekontNo && banka ? islemler.find((islem) =>
+    normalizeDekontNo(islem.dekont.dekontNo) === dekontNo &&
+    islem.dekont.banka.trim().toLocaleUpperCase('tr-TR') === banka) : undefined;
+  const duplicateDosya = krediYukleme && dosya?.dekontHash ? islemler.find((islem) => islem.dekont.dosya?.dekontHash === dosya.dekontHash) : undefined;
+  const gelecekDekontTarihi = krediYukleme && !!dekont.tarih && dekont.tarih > new Date().toISOString().slice(0, 10);
 
   const dekontTamam =
   !!dosya &&
@@ -259,7 +268,10 @@ export function YeniIslem() {
   dekont.banka.trim() !== '' &&
   dekont.tarih !== '' &&
   dekont.odemeYapan.trim() !== '' &&
-  tutarUyumlu;
+  tutarUyumlu &&
+  !duplicateDekont &&
+  !duplicateDosya &&
+  !gelecekDekontTarihi;
 
   const talepEdenAdi = trafik ?
   sigortaSirketi?.ad ?? '' :
@@ -399,6 +411,7 @@ export function YeniIslem() {
     setForm(BOS_FORM);
     setDekont(BOS_DEKONT);
     setDosya(null);
+    setOcrBilgileri({ durum: 'BASARISIZ', okunanAlanlar: [], guven: {} });
     setTrafikSatirlari([]);
     setAdliSatirlari([]);
   };
@@ -466,7 +479,12 @@ export function YeniIslem() {
         tarih: dekont.tarih,
         odenenTutar: odenen,
         odemeYapan: dekont.odemeYapan.trim(),
-        dosya
+        dosya,
+        ...(krediYukleme ? {
+          ocrDurumu: ocrBilgileri.durum,
+          ocrOkunanAlanlar: ocrBilgileri.okunanAlanlar,
+          ocrGuvenBilgileri: ocrBilgileri.guven
+        } : {})
       },
       makbuzNo: null,
       durum: krediPlanlama ?
@@ -845,7 +863,10 @@ export function YeniIslem() {
         kaynakEtiketi={kaynakEtiketi}
         beklenenTutar={sonuc.tutar}
         qrOdenecekTutarGoster={form.bent === 'D'}
-        auditEkle={auditEkle} />
+        auditEkle={auditEkle}
+        mevcutIslemler={islemler}
+        ocrBilgisi={setOcrBilgileri}
+        gelistirilmisMi={krediYukleme} />
 
 
     });

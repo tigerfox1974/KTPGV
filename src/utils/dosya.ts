@@ -23,19 +23,25 @@ function mbEtiketi(kb: number): string {
   return `${(kb / 1024).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} MB`;
 }
 
+async function sha256Olustur(veri: Blob): Promise<string | undefined> {
+  if (!globalThis.crypto?.subtle) return undefined;
+  const hash = await crypto.subtle.digest('SHA-256', await veri.arrayBuffer());
+  return Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
 interface DosyaSecenekleri {
   accept?: string;
   capture?: 'environment';
 }
 
-function dosyaBilgisiOlustur(
+async function dosyaBilgisiOlustur(
   secilen: File | Blob,
   ad: string,
   tur: DekontDosyasi['tur'],
   boyutKb: number,
   yontem: DekontYontemi,
   sikistirildi = false
-): DekontDosyasi {
+): Promise<DekontDosyasi> {
   return {
     ad,
     tur,
@@ -44,7 +50,8 @@ function dosyaBilgisiOlustur(
     yuklemeZamani: zamanEtiketi(),
     sikistirildi: sikistirildi || undefined,
     previewUrl: URL.createObjectURL(secilen),
-    mimeType: secilen.type || undefined
+    mimeType: secilen.type || undefined,
+    dekontHash: await sha256Olustur(secilen)
   };
 }
 
@@ -140,7 +147,7 @@ export function dosyaSec(
           description: `Dosya ${mbEtiketi(boyutKb)} olduğu için optimize edildi. Yeni boyut: ${mbEtiketi(optimize.boyutKb)}.`
         });
         tamamlandi(
-          dosyaBilgisiOlustur(
+          await dosyaBilgisiOlustur(
             optimize.blob,
             `${uzantisizAd(secilen.name)}-optimize.jpg`,
             'JPG',
@@ -157,7 +164,7 @@ export function dosyaSec(
       return;
     }
 
-    tamamlandi(dosyaBilgisiOlustur(secilen, secilen.name, tur, boyutKb, yontem));
+    tamamlandi(await dosyaBilgisiOlustur(secilen, secilen.name, tur, boyutKb, yontem));
   };
   girdi.click();
 }
