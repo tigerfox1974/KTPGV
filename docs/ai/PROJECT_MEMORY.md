@@ -34,6 +34,8 @@ Bu dosya projenin kalıcı hafızasıdır. Zaman içinde alınmış ve geliştir
 
 ## Makbuz
 - Makbuz bilgileri mevcut Ödeme / Makbuz alanında yönetilir.
+- KTPGV bir vakıf olduğu için Vakfa gelen her ödeme karşılığında bağış makbuzu düzenlenir.
+- Banka dekontu ödeme kanıtı, bağış makbuzu ise Vakfın ürettiği mali belgedir.
 - Makbuz kesme/girme yetkisi rol ve birim bazlıdır.
 - Merkez/Vakıf adminleri ve yetkilendirilmiş birimler makbuz işlemi yapabilir.
 - Yetkili saha birimleri sistem tarafından üretilen benzersiz makbuzu yazdırabilir.
@@ -51,6 +53,11 @@ Bu dosya projenin kalıcı hafızasıdır. Zaman içinde alınmış ve geliştir
 - Bir ödeme bir veya birden fazla patlatma hakkı satın alabilir.
 - Her gerçekleşen patlatma 1 kredi tüketir.
 - Aynı işletmeci/kişiye bağlı birden fazla taş ocağı ortak kredi havuzunu kullanabilir.
+- Bir kredi talebi hedef tutara ulaşıncaya kadar birden fazla banka dekontuyla ödenebilir; eksik ödeme için tolerans sınırı yoktur.
+- Kısmi ödeme, kümülatif tutarın karşıladığı tam kredi adedi kadar kullanılabilir kredi üretir. Tam krediye yetmeyen bakiye sonraki dekontla birleşmek üzere aynı talepte bekler.
+- Kullanılabilir kredi talep edilen kredi adedini aşmaz; hedefi aşan ödeme ek kredi değil, firma tarafından yapılan genel Vakıf bağışıdır.
+- Tek banka dekontunun krediye ayrılan ve fazla bağış olarak ayrılan bölümleri için ayrı bağış makbuzları üretilebilir.
+- Yıl sonu raporunda taş ocağı patlatması bağışları ile firma bazındaki genel Vakıf bağışları ayrı gösterilir.
 
 ## Bent F — Adli ve Trafik Raporları
 - F tek benttir ancak Adli ve Trafik ayrı iş akışlarıdır.

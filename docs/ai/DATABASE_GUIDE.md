@@ -15,6 +15,10 @@ Bu dosya veri modeline ilişkin kalıcı yönlendirmeyi tutar. Mevcut repo henü
 - Bent–birim eşleşmesi yapılandırılabilir olmalıdır.
 - Dekont dosyaları ile dekont metadata bilgileri ayrı ama ilişkili tutulmalıdır.
 - Makbuz kayıtları ödeme kanıtı olan dekontlardan kavramsal olarak ayrılmalıdır.
+- Bir taş ocağı kredi talebine birden fazla banka dekontu bağlanabilmelidir.
+- Bir banka dekontunun tutarı kredi talebi ve genel Vakıf bağışı gibi birden fazla muhasebe amacına dağıtılabilmelidir.
+- Aynı banka dekontuna bağlı birden fazla bağış makbuzu üretilebilmelidir; makbuz amacı ve tutar dağılımı açıkça saklanmalıdır.
+- Kısmi ödeme bakiyesi ve kullanılabilir kredi hesabı yalnız mevcut bakiye olarak değil, dekont ve dağılım hareketleri üzerinden yeniden hesaplanabilir olmalıdır.
 - Sigorta şirketleri kalıcı kart/master veri olarak tutulmalı ve Trafik işlemleri bu kayda bağlanmalıdır.
 - Taş ocağı/işletmeci kartları kalıcı master veri olarak tutulmalıdır.
 - Taş ocağı kredi hareketleri yalnızca mevcut bakiye sayısı olarak değil, mümkünse hareket geçmişiyle izlenebilir olmalıdır.

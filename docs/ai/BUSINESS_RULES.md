@@ -69,6 +69,24 @@ Kullanıcının belirlediği “Bend” ifadesi korunur. Bent seçimlerinde kod 
 ## BR-022 — Minimal-touch geliştirme
 Kullanıcı belirli bir değişiklik istediğinde, zorunlu teknik bağlantılar dışında çalışan diğer yapı değiştirilmez.
 
+## BR-023 — Vakfa gelen her ödeme için bağış makbuzu
+KTPGV bir vakıftır. Vakfa hangi amaçla ödeme yapılırsa yapılsın alınan tutar için bağış makbuzu düzenlenir. Banka dekontu ödemenin banka kanıtıdır; bağış makbuzu Vakfın ürettiği mali belgedir ve biri diğerinin yerine geçmez.
+
+## BR-024 — Taş ocağı kredi talebinde çoklu dekont
+Taş ocağı patlatma kredi talebinin hedef tutarı, talep edilen kredi adedi ile güncel bir kredi bedelinin çarpımıdır. Firma hedef tutara ulaşıncaya kadar bir veya birden fazla banka dekontu sunabilir. Eksik ödeme için kuruş, oran veya başka bir tolerans sınırı uygulanmaz; her dekont ayrı kaydedilir ve aynı kredi talebiyle ilişkilendirilir.
+
+## BR-025 — Kısmi ödeme tam kredi kadar kullanılabilirlik üretir
+Kısmi ödemede bütün kredi talebi bloke edilmez. Kredi talebine ayrılan kümülatif ödeme toplamının tam kredi bedeline karşılık gelen kısmı kadar kredi firmaya kullanılabilir olarak eklenir. Bir tam krediye yetmeyen bakiye aynı talepte bekletilir ve sonraki dekontlarla birleştirilir. Kullanılabilir kredi adedi `floor(krediye ayrılan toplam ödeme / bir kredi bedeli)` hesabıyla belirlenir ve talep edilen kredi adedini aşamaz.
+
+## BR-026 — Fazla ödeme genel Vakıf bağışıdır
+Taş ocağı kredi talebinin henüz karşılanmamış hedef tutarını aşan ödeme ek patlatma kredisi üretmez. Aşan bölüm ilgili firma veya işletmeci tarafından yapılmış genel Vakıf bağışı olarak kaydedilir.
+
+## BR-027 — Tek dekontta iki bağış amacı ve iki makbuz
+Bir banka dekontunun bir bölümü taş ocağı kredi talebini karşılarken kalan bölümü hedef tutarı aşıyorsa dekont iki muhasebe amacına dağıtılır. Kredi talebine ayrılan tutar için “Taş Ocağı Patlatması Bağışı”, fazla tutar için “Genel Vakıf Bağışı” türünde ayrı, benzersiz bağış makbuzları düzenlenir. Kısmi ödemede kredi talebine ayrılan dekont tutarı için de Taş Ocağı Patlatması Bağışı makbuzu düzenlenir.
+
+## BR-028 — Taş ocağı ödeme dağılımı ve yıl sonu raporu
+Taş ocağı ödeme kaydı; bağlı banka dekontlarını, bağış makbuzlarını, krediye ayrılan tutarı, bekleyen bakiyeyi ve genel bağışa ayrılan fazla tutarı birlikte göstermelidir. Yıl sonu Excel çıktısında taş ocağı patlatması için alınan bağışlar ile firma bazındaki genel Vakıf bağışları ayrı raporlanmalıdır.
+
 ## İş kuralı ekleme yöntemi
 Yeni iş kuralı doğarsa:
 1. Önce `DECISION_LOG.md` içine karar olarak kaydedilir.
