@@ -2,8 +2,8 @@
 
 ## Durum
 
-- Yaşam döngüsü: Backlog
-- Onay durumu: Kullanıcı onayı bekleniyor
+- Yaşam döngüsü: In Progress
+- Onay durumu: 2026-08-29 tarihinde kullanıcı tarafından onaylandı
 - Uygulama kodu: Henüz değiştirilmedi
 - Kapsam: Yalnızca `E > Kredi Yükleme` içindeki dekont görüntüleme, OCR ve alan düzeltme alt modülü
 
