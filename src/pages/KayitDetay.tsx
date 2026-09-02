@@ -1,19 +1,24 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Check, Circle, Printer, Receipt } from 'lucide-react';
+import { ArrowLeft, Check, Circle, Plus, Printer, Receipt } from 'lucide-react';
+import { toast } from 'sonner';
 import { PageHeader } from '../components/common/PageHeader';
 import { BosDurum } from '../components/common/BosDurum';
 import { KuralNotu } from '../components/common/KuralNotu';
 import { YetkisizUyari } from '../components/common/YetkiKapisi';
 import { BilgiRozeti, IslemDurumRozeti } from '../components/common/DurumRozeti';
 import { DosyaKarti } from '../components/islem/DosyaKarti';
+import { BOS_DEKONT, DekontBolumu, DekontFormu } from '../components/islem/DekontBolumu';
+import { KrediYuklemeTalepPaneli } from '../components/islem/KrediYuklemeTalepPaneli';
 import { DosyaOnizlemeModal } from '../components/islem/DosyaOnizlemeModal';
 import { MakbuzModal } from '../components/islem/MakbuzModal';
 import { Button } from '../components/ui/Button';
 import { useApp } from '../contexts/AppContext';
 import { DekontDosyasi, Islem, IslemDurumu } from '../types';
 import { formatTL, formatTarih, formatTarihSaat } from '../utils/currency';
-import { BENT_ORANLARI } from '../utils/hesaplama';
+import { BENT_ORANLARI, patlatmaBedeli } from '../utils/hesaplama';
+import { krediYuklemeKaydiniCozumle } from '../utils/krediYukleme';
+import { DekontOcrSonucu } from '../utils/dekontOcr';
 
 /** Kayıt durumunun mantıksal ilerleme çizgisi — geçmiş ve güncel durum ayrı gösterilir. */
 const DURUM_AKISI: {durum: IslemDurumu | 'ARSIVLENDI';etiket: string;}[] = [
@@ -69,6 +74,7 @@ export function KayitDetay() {
     islemBul,
     islemler,
     islemGorulebilir,
+    islemDegistirilebilir,
     bau,
     auditKayitlari,
     auditEkle,
@@ -76,10 +82,20 @@ export function KayitDetay() {
     isletmeciBul,
     tasOcagiBul,
     krediOzeti,
-    krediHareketleri
+    krediHareketleri,
+    krediYuklemeDekontEkle,
+    makbuzUret,
+    makbuzUretilebilir,
+    odemeDogrula,
+    odemeDogrulanabilir
   } = useApp();
   const [onizleme, setOnizleme] = useState<DekontDosyasi | null>(null);
   const [makbuzAcik, setMakbuzAcik] = useState(false);
+  const [ekDekontAcik, setEkDekontAcik] = useState(false);
+  const [ekDekont, setEkDekont] = useState<DekontFormu>(BOS_DEKONT);
+  const [ekDekontDosya, setEkDekontDosya] = useState<DekontDosyasi | null>(null);
+  const [ekDekontKontrolTamamlandi, setEkDekontKontrolTamamlandi] = useState(false);
+  const [ekOcrBilgileri, setEkOcrBilgileri] = useState<Pick<DekontOcrSonucu, 'durum' | 'okunanAlanlar' | 'guven'>>({ durum: 'BASARISIZ', okunanAlanlar: [], guven: {} });
 
   const islem = islemBul(kayitNo);
 
@@ -120,9 +136,25 @@ export function KayitDetay() {
   const isletmeci = isletmeciBul(islem.isletmeciId);
   const ozet = isletmeci ? krediOzeti(isletmeci.id) : null;
   const oran = BENT_ORANLARI[islem.bent];
+  const krediAnalizi =
+  islem.eIslemTuru === 'KREDI_YUKLEME' ?
+  krediYuklemeKaydiniCozumle({
+    islem,
+    birimKrediBedeli: patlatmaBedeli(bau)
+  }) :
+  null;
+  const bagisMakbuzlari =
+  islem.eIslemTuru === 'KREDI_YUKLEME' ?
+  krediAnalizi?.bagisMakbuzlari ?? [] :
+  islem.makbuzNo ?
+  [{ makbuzNo: islem.makbuzNo }] :
+  [];
+  const dekontEklemeYetkisi = islem.eIslemTuru === 'KREDI_YUKLEME' && islemDegistirilebilir(islem);
 
   const ilgiliAudit = auditKayitlari.filter(
-    (a) => a.hedef.includes(islem.kayitNo) || islem.makbuzNo && a.hedef.includes(islem.makbuzNo)
+    (a) =>
+    a.hedef.includes(islem.kayitNo) ||
+    bagisMakbuzlari.some((makbuz) => !!makbuz.makbuzNo && a.hedef.includes(makbuz.makbuzNo))
   );
 
   // E bendi: bu kredi yükleme kaydına bağlı plan ve gerçekleşme kayıtları
@@ -148,6 +180,74 @@ export function KayitDetay() {
   'Adli polis raporu' :
   'Gelir / tahsilat kaydı';
 
+  const ekDekontGuncelle = <K extends keyof DekontFormu,>(alan: K, deger: DekontFormu[K]) =>
+  setEkDekont((eski) => ({ ...eski, [alan]: deger }));
+
+  const ekDekontSifirla = () => {
+    setEkDekont(BOS_DEKONT);
+    setEkDekontDosya(null);
+    setEkDekontKontrolTamamlandi(false);
+    setEkOcrBilgileri({ durum: 'BASARISIZ', okunanAlanlar: [], guven: {} });
+  };
+
+  const tamamlayiciDekontEkle = () => {
+    if (!ekDekontKontrolTamamlandi || !ekDekontDosya) {
+      toast.error('Dekont eklenemedi', {
+        description: 'Yeni dekont için dosya yüklenmeli ve kullanıcı kontrolü tamamlanmalıdır.'
+      });
+      return;
+    }
+    const sonuc = krediYuklemeDekontEkle(islem.id, {
+      dekontNo: ekDekont.dekontNo,
+      bankaReferansNo: ekDekont.bankaReferansNo || undefined,
+      banka: ekDekont.banka,
+      tarih: ekDekont.tarih,
+      odenenTutar: ekDekont.odenenTutar ?? 0,
+      odemeYapan: ekDekont.odemeYapan,
+      dosya: ekDekontDosya,
+      ocrDurumu: ekOcrBilgileri.durum,
+      ocrOkunanAlanlar: ekOcrBilgileri.okunanAlanlar,
+      ocrGuvenBilgileri: ekOcrBilgileri.guven,
+      ocrDogrulananDegerleri: {
+        dekontNo: ekDekont.dekontNo,
+        bankaReferansNo: ekDekont.bankaReferansNo || undefined,
+        banka: ekDekont.banka,
+        tarih: ekDekont.tarih,
+        odenenTutar: ekDekont.odenenTutar ?? undefined,
+        odemeYapan: ekDekont.odemeYapan
+      }
+    });
+    if (!sonuc.basarili) {
+      toast.error('Dekont eklenemedi', { description: sonuc.mesaj });
+      return;
+    }
+    toast.success('Tamamlayıcı dekont eklendi', { description: sonuc.mesaj });
+    setEkDekontAcik(false);
+    ekDekontSifirla();
+  };
+
+  const krediOdemeDogrula = (dekontId?: string) => {
+    const sonuc = odemeDogrula(islem.id, dekontId);
+    if (!sonuc.basarili) {
+      toast.error('Ödeme doğrulanamadı', { description: sonuc.mesaj });
+      return;
+    }
+    toast.success('Ödeme doğrulandı', { description: sonuc.mesaj });
+  };
+
+  const krediMakbuzUret = () => {
+    const sonuc = makbuzUret(islem.id);
+    if (!sonuc.basarili) {
+      toast.error('Makbuz üretilemedi', { description: sonuc.mesaj });
+      return;
+    }
+    toast.success('Makbuz üretildi', {
+      description: sonuc.makbuzNumaralari?.length ?
+      `${sonuc.mesaj} · ${sonuc.makbuzNumaralari.join(', ')}` :
+      sonuc.mesaj
+    });
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -159,15 +259,15 @@ export function KayitDetay() {
               <ArrowLeft className="h-4 w-4" aria-hidden="true" />
               Kayıtlara dön
             </Button>
-            {islem.makbuzNo &&
+            {bagisMakbuzlari.length > 0 &&
           <Button
             onClick={() => {
               setMakbuzAcik(true);
-              auditEkle('Makbuz görüntülendi', islem.makbuzNo);
+              auditEkle('Makbuz görüntülendi', islem.makbuzNo ?? bagisMakbuzlari[0].makbuzNo ?? islem.kayitNo);
             }}>
             
                 <Receipt className="h-4 w-4" aria-hidden="true" />
-                Makbuzu görüntüle
+                {bagisMakbuzlari.length > 1 ? 'Makbuzları görüntüle' : 'Makbuzu görüntüle'}
               </Button>
           }
           </>
@@ -251,8 +351,91 @@ export function KayitDetay() {
             </p>
           </Bolum>
 
-          <Bolum baslik="4. Dekont bilgisi">
-            {islem.dekont.dosya || islem.dekont.tarih ? (
+          <Bolum
+            baslik={krediAnalizi ? '4. Kredi talebi, dekontlar ve dağılım' : '4. Dekont bilgisi'}
+            aciklama={krediAnalizi ? 'Kredi hedefi, doğrulanan dekontlar, bekleyen bakiye ve bağış dağılımları birlikte izlenir.' : undefined}>
+            {krediAnalizi ? (
+              <div className="space-y-4">
+                <KrediYuklemeTalepPaneli
+                  islem={islem}
+                  dosyaGoruntule={(dosya) => {
+                    setOnizleme(dosya);
+                    auditEkle('Dekont dosyası görüntülendi', dosya.ad);
+                  }}
+                  odemeDogrula={krediOdemeDogrula}
+                  odemeDogrulanabilir={odemeDogrulanabilir(islem)}
+                  makbuzUret={krediMakbuzUret}
+                  makbuzUretilebilir={makbuzUretilebilir(islem)}
+                  makbuzGoruntule={() => {
+                    setMakbuzAcik(true);
+                    auditEkle('Makbuz görüntülendi', islem.makbuzNo ?? bagisMakbuzlari[0]?.makbuzNo ?? islem.kayitNo);
+                  }} />
+
+                {dekontEklemeYetkisi &&
+                <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">Tamamlayıcı banka dekontu</p>
+                        <p className="text-xs text-muted-foreground">
+                          Aynı EKRD talebine yeni dekont eklenebilir; OCR kontrol akışı korunur.
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant={ekDekontAcik ? 'outline' : 'default'}
+                        size="sm"
+                        onClick={() => {
+                          if (ekDekontAcik) ekDekontSifirla();
+                          setEkDekontAcik(!ekDekontAcik);
+                        }}>
+                        <Plus className="h-4 w-4" aria-hidden="true" />
+                        {ekDekontAcik ? 'Formu kapat' : 'Dekont ekle'}
+                      </Button>
+                    </div>
+
+                    {ekDekontAcik &&
+                    <div className="space-y-4">
+                        <p className={ekDekontKontrolTamamlandi ? 'rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800' : 'rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800'}>
+                          {ekDekontKontrolTamamlandi ?
+                          '✓ Tamamlayıcı dekont kullanıcı tarafından kontrol edildi' :
+                          ekDekontDosya ?
+                          'Tamamlayıcı dekont yüklendi — kontrol bekliyor' :
+                          'Tamamlayıcı dekont yüklenmesi bekleniyor'}
+                        </p>
+                        <DekontBolumu
+                          form={ekDekont}
+                          guncelle={ekDekontGuncelle}
+                          dosya={ekDekontDosya}
+                          dosyaAta={setEkDekontDosya}
+                          kaynakEtiketi={`${islem.kayitNo} · tamamlayıcı dekont`}
+                          beklenenTutar={krediAnalizi.krediTalebiOdemeOzeti.kalanHedef}
+                          tutarKurali="POZITIF_OLMALI"
+                          auditEkle={auditEkle}
+                          mevcutIslemler={islemler}
+                          ocrBilgisi={setEkOcrBilgileri}
+                          gelistirilmisMi
+                          dekontKontrolDurumu={setEkDekontKontrolTamamlandi} />
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setEkDekontAcik(false);
+                              ekDekontSifirla();
+                            }}>
+                            Vazgeç
+                          </Button>
+                          <Button
+                            onClick={tamamlayiciDekontEkle}
+                            disabled={!ekDekontKontrolTamamlandi || !ekDekontDosya}>
+                            Dekontu talebe ekle
+                          </Button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            ) : islem.dekont.dosya || islem.dekont.tarih ? (
               <div className="grid gap-4 lg:grid-cols-2">
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                   <Satir etiket="Dekont no" deger={islem.dekont.dekontNo} mono />
@@ -305,7 +488,50 @@ export function KayitDetay() {
           </Bolum>
 
           <Bolum baslik="5. Makbuz / ödeme belgesi">
-            {islem.makbuzNo ? (
+            {krediAnalizi ? (
+              bagisMakbuzlari.length ? (
+                <div className="space-y-3">
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {bagisMakbuzlari.map((makbuz) =>
+                    <div key={makbuz.makbuzNo ?? `${makbuz.tur}-${makbuz.bagliDekontNo}`} className="rounded-lg border border-border bg-card p-3">
+                        <p className="text-sm font-medium text-foreground">{makbuz.makbuzNo}</p>
+                        {'tur' in makbuz &&
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            {makbuz.tur === 'TAS_OCAGI_PATLATMASI' ? 'Taş Ocağı Patlatması Bağışı' : 'Genel Vakıf Bağışı'} ·{' '}
+                            {'tutar' in makbuz ? formatTL(makbuz.tutar) : formatTL(islem.tutar)}
+                          </p>
+                        }
+                        {'bagliDekontNo' in makbuz && makbuz.bagliDekontNo &&
+                        <p className="mt-1 font-mono text-xs text-muted-foreground">{makbuz.bagliDekontNo}</p>
+                        }
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setMakbuzAcik(true);
+                        auditEkle('Makbuz görüntülendi', islem.makbuzNo ?? bagisMakbuzlari[0]?.makbuzNo ?? islem.kayitNo);
+                      }}
+                    >
+                      <Receipt className="h-4 w-4" aria-hidden="true" />
+                      Tüm makbuzları görüntüle
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => window.print()}>
+                      <Printer className="h-4 w-4" aria-hidden="true" />
+                      Yazdır
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Doğrulanan dekontların bağış makbuzları henüz üretilmemiştir. Yetkili kullanıcı
+                  Ödeme / Makbuz ekranından veya bu detaydaki hızlı işlemlerden makbuz üretebilir.
+                </p>
+              )
+            ) : islem.makbuzNo ? (
               <div className="space-y-3">
                 <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
                   <Satir etiket="Makbuz no" deger={islem.makbuzNo} mono />
@@ -567,9 +793,9 @@ export function KayitDetay() {
                   </div>
 
                   <KuralNotu>
-                    Bu patlatma kullanımları, EKRD kredi yükleme kaydında önceden ödenmiş krediden
-                    karşılanır. Bu nedenle her kullanım için ayrı makbuz üretilmez. Kredi taş
-                    ocağına değil işletmecinin ortak hesabına bağlıdır.
+                    Doğrulanan dekontların ürettiği kullanılabilir krediler EKRD kredi yükleme
+                    kaydından işletmecinin ortak hesabına yazılır. Patlatma kullanımlarında yeniden
+                    makbuz kesilmez.
                   </KuralNotu>
                 </div>
             }
@@ -582,8 +808,8 @@ export function KayitDetay() {
             <p className="text-sm font-medium text-foreground">Hızlı özet</p>
             <dl className="mt-3 grid grid-cols-2 gap-y-2 text-xs">
               <Satir etiket="Tutar" deger={formatTL(islem.tutar)} />
-              <Satir etiket="Makbuz" deger={islem.makbuzNo ?? 'Yok'} mono />
-              <Satir etiket="Dekont" deger={islem.dekont.dekontNo} mono />
+              <Satir etiket="Makbuz" deger={krediAnalizi ? bagisMakbuzlari.length ? `${bagisMakbuzlari.length} adet` : 'Yok' : islem.makbuzNo ?? 'Yok'} mono />
+              <Satir etiket="Dekont" deger={krediAnalizi ? `${krediAnalizi.guncelDekontlar.length} adet` : islem.dekont.dekontNo} mono />
               <Satir etiket="Durum" deger={<IslemDurumRozeti durum={islem.durum} />} />
             </dl>
           </div>

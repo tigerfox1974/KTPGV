@@ -4,15 +4,33 @@ import { BadgeCheck, ChevronDown, ChevronRight, Eye, Receipt } from 'lucide-reac
 import { Button } from '../ui/Button';
 import { BilgiRozeti, IslemDurumRozeti } from '../common/DurumRozeti';
 import { BosDurum } from '../common/BosDurum';
+import { KrediYuklemeTalepPaneli } from './KrediYuklemeTalepPaneli';
 import { useApp } from '../../contexts/AppContext';
 import { DekontDosyasi, Islem } from '../../types';
 import { formatTL, formatTarih } from '../../utils/currency';
+import { krediYuklemeKaydiniCozumle } from '../../utils/krediYukleme';
+import { patlatmaBedeli } from '../../utils/hesaplama';
 
 /** EKRD kredi yükleme kaydının bağlı patlatma hareketleri — ana tabloyu kirletmeden detayda. */
-function KrediYuklemeDetayi({ islem }: {islem: Islem;}) {
-  const { islemler, krediOzeti, krediHareketleri, tasOcagiBul } = useApp();
+function KrediYuklemeDetayi({
+  islem,
+  dosyaGoruntule,
+  makbuzGoruntule,
+  makbuzUret,
+  makbuzUretilebilir,
+  odemeDogrula,
+  odemeDogrulanabilir
+}: {
+  islem: Islem;
+  dosyaGoruntule: (dosya: DekontDosyasi) => void;
+  makbuzGoruntule: (islem: Islem) => void;
+  makbuzUret: (islem: Islem) => void;
+  makbuzUretilebilir: (islem: Islem) => boolean;
+  odemeDogrula: (islem: Islem, dekontId?: string) => void;
+  odemeDogrulanabilir: (islem: Islem) => boolean;
+}) {
+  const { islemler, krediHareketleri, tasOcagiBul } = useApp();
   if (!islem.isletmeciId) return null;
-  const ozet = krediOzeti(islem.isletmeciId);
   const planlar = islemler.filter(
     (i) => i.isletmeciId === islem.isletmeciId && i.eIslemTuru === 'KREDI_PLANLAMA'
   );
@@ -23,20 +41,14 @@ function KrediYuklemeDetayi({ islem }: {islem: Islem;}) {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-4 text-sm">
-        <span>
-          <span className="text-muted-foreground">Yüklenen kredi: </span>
-          <strong className="text-foreground">{ozet.yuklenen}</strong>
-        </span>
-        <span>
-          <span className="text-muted-foreground">Kullanılan kredi: </span>
-          <strong className="text-foreground">{ozet.kullanilan}</strong>
-        </span>
-        <span>
-          <span className="text-muted-foreground">Kalan kredi: </span>
-          <strong className="text-primary">{ozet.kalan}</strong>
-        </span>
-      </div>
+      <KrediYuklemeTalepPaneli
+        islem={islem}
+        dosyaGoruntule={dosyaGoruntule}
+        makbuzGoruntule={() => makbuzGoruntule(islem)}
+        makbuzUret={() => makbuzUret(islem)}
+        makbuzUretilebilir={makbuzUretilebilir(islem)}
+        odemeDogrula={(dekontId) => odemeDogrula(islem, dekontId)}
+        odemeDogrulanabilir={odemeDogrulanabilir(islem)} />
 
       <div className="grid gap-3 lg:grid-cols-3">
         <div className="rounded-md border border-border bg-card p-3">
@@ -92,8 +104,8 @@ function KrediYuklemeDetayi({ islem }: {islem: Islem;}) {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Bu patlatma kullanımları, kredi yükleme kaydında önceden ödenmiş krediden karşılanır. Bu
-        nedenle her kullanım için ayrı makbuz üretilmez.
+        Doğrulanan dekontların ürettiği kullanılabilir krediler işletmecinin ortak hesabına yazılır.
+        Patlatma plan ve kullanım kayıtlarında yeniden makbuz kesilmez.
       </p>
     </div>);
 
@@ -108,7 +120,7 @@ interface OdemeTablosuProps {
   dosyaGoruntule: (dosya: DekontDosyasi) => void;
   makbuzGoruntule: (islem: Islem) => void;
   makbuzUret: (islem: Islem) => void;
-  odemeDogrula: (islem: Islem) => void;
+  odemeDogrula: (islem: Islem, dekontId?: string) => void;
 }
 
 function bentEtiketi(islem: Islem): string {
@@ -137,6 +149,7 @@ export function OdemeTablosu({
   makbuzUret,
   odemeDogrula
 }: OdemeTablosuProps) {
+  const { bau } = useApp();
   const [acikSatir, setAcikSatir] = useState<string | null>(null);
 
   if (!islemler.length) {
@@ -164,7 +177,22 @@ export function OdemeTablosu({
               const acik = acikSatir === islem.id;
               const krediYukleme = islem.eIslemTuru === 'KREDI_YUKLEME';
               const detayVar = !!islem.altBasvurular || krediYukleme;
-              const odemeDurumu = odemeDurumuEtiketi(islem);
+              const krediAnalizi =
+              krediYukleme ?
+              krediYuklemeKaydiniCozumle({
+                islem,
+                birimKrediBedeli: patlatmaBedeli(bau)
+              }) :
+              null;
+              const dekontSayisi = krediAnalizi?.guncelDekontlar.length ?? 1;
+              const makbuzSayisi = krediAnalizi?.bagisMakbuzlari.length ?? (islem.makbuzNo ? 1 : 0);
+              const odemeDurumu = krediAnalizi ?
+              krediAnalizi.bekleyenDekontSayisi > 0 ?
+              `${krediAnalizi.bekleyenDekontSayisi} dekont doğrulama bekliyor` :
+              krediAnalizi.dogrulanmisOzeti.kullanilabilirKrediAdedi > 0 ?
+              'Doğrulanan ödeme krediye işlendi' :
+              'Doğrulandı' :
+              odemeDurumuEtiketi(islem);
               return (
                 <React.Fragment key={islem.id}>
                   <tr className="hover:bg-muted/40">
@@ -197,6 +225,11 @@ export function OdemeTablosu({
                           {islem.altBasvurular.length} rapor · tek ana kayıt
                         </p>
                       }
+                      {krediYukleme && dekontSayisi > 1 &&
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">
+                          {dekontSayisi} bağlı banka dekontu
+                        </p>
+                      }
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
                       {bentEtiketi(islem)}
@@ -211,6 +244,11 @@ export function OdemeTablosu({
                       {islem.dekont.tarih &&
                       <p className="text-[11px] text-muted-foreground">
                           {formatTarih(islem.dekont.tarih)}
+                        </p>
+                      }
+                      {krediYukleme && dekontSayisi > 1 &&
+                      <p className="text-[11px] text-muted-foreground">
+                          +{dekontSayisi - 1} tamamlayıcı dekont
                         </p>
                       }
                       {islem.dekont.dosya ?
@@ -233,7 +271,18 @@ export function OdemeTablosu({
                       {odemeDurumu ? <BilgiRozeti metin={odemeDurumu} ton="notr" /> : <IslemDurumRozeti durum={islem.durum} />}
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
-                      {islem.makbuzNo ?
+                      {krediAnalizi ? makbuzSayisi > 0 ?
+                      <div className="space-y-1">
+                          <p className="whitespace-nowrap font-mono text-xs">{islem.makbuzNo ?? krediAnalizi.bagisMakbuzlari[0]?.makbuzNo ?? '—'}</p>
+                          <BilgiRozeti
+                          metin={krediAnalizi.makbuzEksikleri.length > 0 ? `${makbuzSayisi} üretildi · ${krediAnalizi.makbuzEksikleri.length} bekliyor` : `${makbuzSayisi} makbuz üretildi`}
+                          ton={krediAnalizi.makbuzEksikleri.length > 0 ? 'uyari' : 'olumlu'} />
+
+                        </div> :
+                      <BilgiRozeti
+                        metin={krediAnalizi.dogrulanmisOzeti.dogrulanmisOdemeToplami > 0 ? 'Makbuz bekliyor' : 'Doğrulama sonrası'}
+                        ton="uyari" /> :
+                      islem.makbuzNo ?
                       <div className="space-y-1">
                           <p className="whitespace-nowrap font-mono text-xs">{islem.makbuzNo}</p>
                           <BilgiRozeti metin={islem.makbuzUreten ?? 'Üretildi'} ton="olumlu" />
@@ -244,35 +293,61 @@ export function OdemeTablosu({
                     </td>
                     <td className="whitespace-nowrap px-4 py-3">
                       <div className="flex flex-nowrap justify-end gap-1.5">
-                        {odemeDogrulanabilir(islem) &&
-                        <Button size="sm" variant="outline" className="whitespace-nowrap" onClick={() => odemeDogrula(islem)}>
-                            <BadgeCheck className="h-4 w-4" aria-hidden="true" />
-                            Ödemeyi doğrula
-                          </Button>
-                        }
-                        {islem.makbuzNo ?
-                        <Button size="sm" variant="outline" className="whitespace-nowrap" onClick={() => makbuzGoruntule(islem)}>
-                            <Receipt className="h-4 w-4" aria-hidden="true" />
-                            Makbuzu görüntüle
-                          </Button> :
-
-                        <Button
-                          size="sm"
-                          className="whitespace-nowrap"
-                          onClick={() => makbuzUret(islem)}
-                          disabled={!makbuzUretilebilir(islem)}>
-                          
-                            <Receipt className="h-4 w-4" aria-hidden="true" />
-                            Makbuz üret
-                          </Button>
-                        }
+                        {krediAnalizi ?
+                        <>
+                            {makbuzSayisi > 0 &&
+                          <Button size="sm" variant="outline" className="whitespace-nowrap" onClick={() => makbuzGoruntule(islem)}>
+                              <Receipt className="h-4 w-4" aria-hidden="true" />
+                              Makbuzları görüntüle
+                            </Button>
+                          }
+                            {krediAnalizi.makbuzEksikleri.length > 0 &&
+                          <Button
+                            size="sm"
+                            className="whitespace-nowrap"
+                            onClick={() => makbuzUret(islem)}
+                            disabled={!makbuzUretilebilir(islem)}>
+                              <Receipt className="h-4 w-4" aria-hidden="true" />
+                              Makbuz üret
+                            </Button>
+                          }
+                          </> :
+                        <>
+                            {odemeDogrulanabilir(islem) &&
+                          <Button size="sm" variant="outline" className="whitespace-nowrap" onClick={() => odemeDogrula(islem)}>
+                              <BadgeCheck className="h-4 w-4" aria-hidden="true" />
+                              Ödemeyi doğrula
+                            </Button>
+                          }
+                            {islem.makbuzNo ?
+                          <Button size="sm" variant="outline" className="whitespace-nowrap" onClick={() => makbuzGoruntule(islem)}>
+                              <Receipt className="h-4 w-4" aria-hidden="true" />
+                              Makbuzu görüntüle
+                            </Button> :
+                          <Button
+                            size="sm"
+                            className="whitespace-nowrap"
+                            onClick={() => makbuzUret(islem)}
+                            disabled={!makbuzUretilebilir(islem)}>
+                              <Receipt className="h-4 w-4" aria-hidden="true" />
+                              Makbuz üret
+                            </Button>
+                          }
+                          </>}
                       </div>
                     </td>
                   </tr>
                   {acik && krediYukleme &&
                   <tr className="bg-muted/30">
                       <td colSpan={8} className="px-4 py-4">
-                        <KrediYuklemeDetayi islem={islem} />
+                        <KrediYuklemeDetayi
+                          islem={islem}
+                          dosyaGoruntule={dosyaGoruntule}
+                          makbuzGoruntule={makbuzGoruntule}
+                          makbuzUret={makbuzUret}
+                          makbuzUretilebilir={makbuzUretilebilir}
+                          odemeDogrula={odemeDogrula}
+                          odemeDogrulanabilir={odemeDogrulanabilir} />
                       </td>
                     </tr>
                   }

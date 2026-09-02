@@ -1,4 +1,5 @@
 import { BentKodu, EIslemTuru, FAltTur, Islem } from '../types';
+import { islemBagisMakbuzlariniOku } from './krediYukleme';
 
 const MALI_YIL = 2026;
 
@@ -48,7 +49,11 @@ export function altBasvuruNo(anaKayitNo: string, sira: number): string {
 export function sonrakiMakbuzNo(islemler: Islem[]): string {
   const onEk = `BM-${MALI_YIL}-`;
   const mevcut = islemler.
-  map((i) => i.makbuzNo).
+  flatMap((islem) => {
+    const numaralar = [islem.makbuzNo];
+    islemBagisMakbuzlariniOku(islem).forEach((makbuz) => numaralar.push(makbuz.makbuzNo));
+    return numaralar;
+  }).
   filter((no): no is string => !!no && no.startsWith(onEk)).
   map((no) => parseInt(no.slice(onEk.length), 10)).
   filter((n) => !Number.isNaN(n));

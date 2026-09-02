@@ -13,7 +13,7 @@ export const raporTanimlari: RaporTanimi[] = [
 { id: 'makbuz', ad: 'Makbuz raporu', aciklama: 'Üretilen makbuzlar, üreten kullanıcı ve bağlı kayıtlar.', kapsam: 'BM serisi' },
 { id: 'sigorta', ad: 'Sigorta şirketi bazlı trafik raporu', aciklama: 'Şirket bazında trafik raporu adedi ve tutarı.', kapsam: 'F / Trafik' },
 { id: 'ttrf', ad: 'Toplu TTRF başvuru raporu', aciklama: 'Ana TTRF kayıtları ve bağlı alt başvuru adetleri.', kapsam: 'TTRF serisi' },
-{ id: 'kredi', ad: 'Taş ocağı işletmeci kredi raporu', aciklama: 'İşletmeci bazında yüklenen kredi ve ödeme tutarları.', kapsam: 'E / EKRD' },
+{ id: 'kredi', ad: 'Taş ocağı işletmeci kredi raporu', aciklama: 'İşletmeci bazında kalan kredi ile patlatma bağışı ve genel Vakıf bağışı ayrımı.', kapsam: 'E / EKRD' },
 { id: 'kullanim', ad: 'Taş ocağı kullanım raporu', aciklama: 'Planlanan patlatmalar ve yapıldı olarak işlenmiş patlatmalar.', kapsam: 'E / Plan + Sonuç' },
 { id: 'kalan-kredi', ad: 'Kalan kredi raporu', aciklama: 'İşletmeci hesaplarındaki kalan patlatma kredisi.', kapsam: 'E bendi' },
 { id: 'ajanda', ad: 'Ajanda raporu', aciklama: 'Operasyonel görevlerin durum dağılımı.', kapsam: 'C, Ç, D, E kullanım, F' },

@@ -1,4 +1,5 @@
 import { AjandaKaydi, AuditKaydi, Islem, Kullanici } from '../types';
+import { islemDekontlariniOku } from './krediYukleme';
 
 /**
  * Merkezi yetki mantığı.
@@ -108,10 +109,34 @@ export function islemDegistirilebilirMi(kullanici: Kullanici | null, islem: Isle
   return kullaniciMerkezAdminMi(kullanici) || kullanici.bentler.includes(islem.bent);
 }
 
+function krediYuklemeDogrulanmisDekontVarMi(islem: Islem): boolean {
+  const dekontlar = islemDekontlariniOku(islem);
+  if (dekontlar.some((dekont) => dekont.dogrulamaDurumu === 'DOGRULANDI')) {
+    return true;
+  }
+  return (
+    dekontlar.length === 1 &&
+    !dekontlar[0].dogrulamaDurumu &&
+    (!!islem.makbuzNo ||
+    islem.durum === 'ODEME_DOGRULANDI' ||
+    islem.durum === 'ISLEM_BASLATILABILIR' ||
+    islem.durum === 'TAMAMLANDI')
+  );
+}
+
+function krediYuklemeBekleyenDekontVarMi(islem: Islem): boolean {
+  return islemDekontlariniOku(islem).some(
+    (dekont) => dekont.dogrulamaDurumu !== 'DOGRULANDI' && dekont.dogrulamaDurumu !== 'REDDEDILDI'
+  );
+}
+
 export function makbuzUretilebilirMi(kullanici: Kullanici | null, islem: Islem): boolean {
   if (!kullanici || kullanici.sadeceGoruntule) return false;
   if (!kullanici.makbuzUretebilir) return false;
   if (!maliKayitGorulebilirMi(kullanici, islem)) return false;
+  if (islem.eIslemTuru === 'KREDI_YUKLEME') {
+    return krediYuklemeDogrulanmisDekontVarMi(islem);
+  }
   if (islem.makbuzNo) return false;
   return islem.durum !== 'ODEME_BEKLIYOR';
 }
@@ -124,6 +149,9 @@ export function odemeDogrulanabilirMi(kullanici: Kullanici | null, islem: Islem)
   kullanici.makbuzUretebilir;
   if (!odemeRolu) return false;
   if (!maliKayitGorulebilirMi(kullanici, islem)) return false;
+  if (islem.eIslemTuru === 'KREDI_YUKLEME') {
+    return krediYuklemeBekleyenDekontVarMi(islem);
+  }
   return islem.durum === 'ODEME_BEKLIYOR';
 }
 

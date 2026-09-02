@@ -149,7 +149,7 @@ export const isKurallari: KuralGrubu[] = [
   'Kredi taş ocağına değil, işletmeci/sahip hesabına bağlıdır.',
   'Aynı işletmeciye bağlı farklı taş ocakları ortak krediden düşer.',
   'Kredi yüklemede dekont ve ödeme bilgileri zorunludur.',
-  'Yüklenen kredi, ödeme doğrulanana veya makbuz üretilene kadar "doğrulama bekleyen kredi"dir; kullanılabilir krediye eklenmez.',
+  'Yalnız doğrulanan dekontların karşıladığı tam kredi adedi kullanılabilir olur; tam krediye yetmeyen bakiye aynı talepte bekler.',
   'Kredi kullanımında yalnızca kullanılabilir kredi düşülür.',
   'Kullanılabilir kredi yetersizse patlatma kullanım kaydı oluşturulamaz.',
   'Makbuz kredi yükleme kaydına kesilir; patlatma kullanımında makbuz aranmaz.',

@@ -58,8 +58,9 @@ export function TasOcagiIsletmecileri() {
 
       <KuralNotu baslik="Ortak kredi ve kredi düşüm kuralı">
         Aynı işletmeciye bağlı farklı taş ocaklarında yapılan patlatmalar aynı ortak krediden düşer.
-        Yüklenen kredi, ödeme doğrulanana veya makbuz üretilene kadar kullanılabilir sayılmaz. Kredi
-        düşümü planlama aşamasında değil, patlatma “Yapıldı” olarak işlendiğinde yapılır.
+        Yalnız doğrulanan dekontların karşıladığı tam kredi adedi kullanılabilir sayılır; makbuz bu
+        dekontlara bağlı ayrı mali belgedir. Kredi düşümü planlama aşamasında değil, patlatma
+        “Yapıldı” olarak işlendiğinde yapılır.
       </KuralNotu>
 
       <div className="grid gap-4 lg:grid-cols-2">

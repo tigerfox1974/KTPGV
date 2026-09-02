@@ -13,3 +13,7 @@ Rapor ve audit görünürlüğü aktif kullanıcı kapsamına göre daraltılmal
 - güvenli dışa aktarma ve saklama,
 - silme/retention işlemlerinde açık yetki ve audit,
 - haftalık/aylık/yıllık raporlama.
+
+## Taş ocağı kredi raporu kırılımı
+- `src/pages/Raporlar.tsx` içindeki kredi raporu işletmeci bazında kalan krediyi, doğrulanmış ödemeyi, taş ocağı patlatması bağışını ve genel Vakıf bağışını ayrı göstermelidir.
+- Dışa aktarma demo/simülasyon olarak kalsa bile ekrandaki veri ayrımı doğru kalmalıdır.

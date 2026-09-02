@@ -8,10 +8,13 @@ import { OdemeTablosu } from '../components/islem/OdemeTablosu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/Tabs';
 import { useApp } from '../contexts/AppContext';
 import { DekontDosyasi, Islem } from '../types';
+import { krediYuklemeKaydiniCozumle } from '../utils/krediYukleme';
+import { patlatmaBedeli } from '../utils/hesaplama';
 
 export function OdemeMakbuz() {
   const {
     kullanici,
+    bau,
     gorunurMaliKayitlar,
     makbuzUretilebilir,
     odemeDogrulanabilir,
@@ -26,10 +29,6 @@ export function OdemeMakbuz() {
   if (!kullanici) return null;
 
   const uret = (islem: Islem) => {
-    if (islem.makbuzNo) {
-      toast.error('Bu kayda zaten makbuz üretilmiş', { description: islem.makbuzNo });
-      return;
-    }
     if (!makbuzUretilebilir(islem)) {
       toast.error('Makbuz üretme yetkiniz yok', {
         description:
@@ -37,29 +36,33 @@ export function OdemeMakbuz() {
       });
       return;
     }
-    const no = makbuzUret(islem.id);
-    if (no) {
-      auditEkle('Makbuz üretildi', `${no} / ${islem.kayitNo}`);
-      toast.success('Makbuz üretildi', {
-        description: `Makbuz no: ${no} (sistem tarafından benzersiz üretildi)`
-      });
+    const sonuc = makbuzUret(islem.id);
+    if (!sonuc.basarili) {
+      toast.error('Makbuz üretilemedi', { description: sonuc.mesaj });
+      return;
     }
+    const numaralar = sonuc.makbuzNumaralari?.join(', ');
+    auditEkle('Makbuz üretildi', `${numaralar ?? islem.kayitNo} / ${islem.kayitNo}`);
+    toast.success('Makbuz üretildi', {
+      description: numaralar ? `${sonuc.mesaj} · ${numaralar}` : sonuc.mesaj
+    });
   };
 
-  const dogrula = (islem: Islem) => {
+  const dogrula = (islem: Islem, dekontId?: string) => {
     if (!odemeDogrulanabilir(islem)) {
       toast.error('Ödeme doğrulama yetkiniz yok', {
         description: 'Bu kayıt için ödeme doğrulaması Merkez Admin veya Vakıf Muhasebe tarafından yapılır.'
       });
       return;
     }
-    odemeDogrula(islem.id);
+    const sonuc = odemeDogrula(islem.id, dekontId);
+    if (!sonuc.basarili) {
+      toast.error('Ödeme doğrulanamadı', { description: sonuc.mesaj });
+      return;
+    }
     auditEkle('Ödeme doğrulandı', islem.kayitNo);
     toast.success('Ödeme doğrulandı', {
-      description:
-      islem.eIslemTuru === 'KREDI_YUKLEME' ?
-      `${islem.kayitNo} · ${islem.krediAdedi} kredi kullanılabilir hale geldi.` :
-      islem.kayitNo
+      description: sonuc.mesaj
     });
   };
 
@@ -76,27 +79,50 @@ export function OdemeMakbuz() {
   // Ödeme / Makbuz ekranı yalnız MALİ kayıtları gösterir (E bendinde yalnız EKRD).
   // Ardından kullanıcının rol / birim / bent kapsamı uygulanır.
   const maliKayitlar = gorunurMaliKayitlar;
+  const krediAnalizleri = new Map(
+    maliKayitlar.
+    filter((islem) => islem.eIslemTuru === 'KREDI_YUKLEME').
+    map((islem) => [
+      islem.id,
+      krediYuklemeKaydiniCozumle({
+        islem,
+        birimKrediBedeli: patlatmaBedeli(bau)
+      })] as const)
+  );
+  const krediAnalizi = (islem: Islem) => krediAnalizleri.get(islem.id);
 
   const gruplar = [
   {
     id: 'makbuz-bekleyen',
     etiket: 'Makbuz bekleyenler',
-    kayitlar: maliKayitlar.filter((i) => !i.makbuzNo && i.durum !== 'ODEME_BEKLIYOR')
+    kayitlar: maliKayitlar.filter((i) =>
+      i.eIslemTuru === 'KREDI_YUKLEME' ?
+      (krediAnalizi(i)?.makbuzEksikleri.length ?? 0) > 0 :
+      !i.makbuzNo && i.durum !== 'ODEME_BEKLIYOR')
   },
   {
     id: 'odeme-bekleyen',
     etiket: 'Ödeme doğrulama bekleyenler',
-    kayitlar: maliKayitlar.filter((i) => i.durum === 'ODEME_BEKLIYOR')
+    kayitlar: maliKayitlar.filter((i) =>
+      i.eIslemTuru === 'KREDI_YUKLEME' ?
+      (krediAnalizi(i)?.bekleyenDekontSayisi ?? 0) > 0 :
+      i.durum === 'ODEME_BEKLIYOR')
   },
   {
     id: 'makbuz-kesilen',
     etiket: 'Makbuz kesilenler',
-    kayitlar: maliKayitlar.filter((i) => !!i.makbuzNo)
+    kayitlar: maliKayitlar.filter((i) =>
+      i.eIslemTuru === 'KREDI_YUKLEME' ?
+      (krediAnalizi(i)?.bagisMakbuzlari.length ?? 0) > 0 :
+      !!i.makbuzNo)
   },
   {
     id: 'baslatilabilir',
     etiket: 'İşlem başlatılabilir',
-    kayitlar: maliKayitlar.filter((i) => i.durum === 'ISLEM_BASLATILABILIR')
+    kayitlar: maliKayitlar.filter((i) =>
+      i.eIslemTuru === 'KREDI_YUKLEME' ?
+      (krediAnalizi(i)?.dogrulanmisOzeti.kullanilabilirKrediAdedi ?? 0) > 0 :
+      i.durum === 'ISLEM_BASLATILABILIR')
   },
   { id: 'tumu', etiket: 'Tüm mali kayıtlar', kayitlar: maliKayitlar }];
 
@@ -122,7 +148,7 @@ export function OdemeMakbuz() {
 
       <KuralNotu baslik="Makbuz yetkisi">
         {kullanici.makbuzUretebilir ?
-        `${kullanici.rol} makbuz üretme yetkisine sahiptir. Makbuz numarası sistem tarafından benzersiz üretilir, elle yazılamaz ve aynı kayda ikinci makbuz üretilemez.` :
+        `${kullanici.rol} makbuz üretme yetkisine sahiptir. Makbuz numarası sistem tarafından benzersiz üretilir, elle yazılamaz ve aynı dekont dağılımına ikinci kez makbuz üretilemez.` :
         `${kullanici.rol} makbuz üretemez; makbuz üret butonu pasiftir. Bu ekranda yalnızca ödeme ve makbuz durumu izlenebilir.`}
       </KuralNotu>
 

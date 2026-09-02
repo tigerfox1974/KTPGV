@@ -13,11 +13,11 @@ import {
 '../components/ui/Select';
 import { useApp } from '../contexts/AppContext';
 import { formatTarih } from '../utils/currency';
-
-const DOGRULANMIS = ['ODEME_DOGRULANDI', 'ISLEM_BASLATILABILIR', 'TAMAMLANDI'];
+import { islemBagisMakbuzlariniOku } from '../utils/krediYukleme';
+import { patlatmaBedeli } from '../utils/hesaplama';
 
 export function KrediHareketleri() {
-  const { krediHareketleri, krediOzeti, islemler, isletmeciler, tasOcagiBul } = useApp();
+  const { krediHareketleri, krediOzeti, islemler, isletmeciler, tasOcagiBul, bau } = useApp();
   const [isletmeciId, setIsletmeciId] = useState(isletmeciler[0]?.id ?? '');
 
   const ozet = krediOzeti(isletmeciId);
@@ -34,8 +34,21 @@ export function KrediHareketleri() {
     if (h.tip === 'YUKLEME') bakiye += h.adet;
     if (h.tip === 'KULLANIM') bakiye -= h.adet;
     const kayit = islemler.find((i) => i.kayitNo === h.kayitNo);
-    const dogrulandi = !kayit || !!kayit.makbuzNo || DOGRULANMIS.includes(kayit.durum);
-    return { ...h, onceki, sonraki: bakiye, makbuzNo: kayit?.makbuzNo ?? h.makbuzNo, dogrulandi };
+    const bagisMakbuzlari =
+    kayit?.eIslemTuru === 'KREDI_YUKLEME' ?
+    islemBagisMakbuzlariniOku(kayit, patlatmaBedeli(bau)) :
+    [];
+    return {
+      ...h,
+      onceki,
+      sonraki: bakiye,
+      makbuzNo:
+      bagisMakbuzlari.find((makbuz) => makbuz.tur === 'TAS_OCAGI_PATLATMASI')?.makbuzNo ??
+      kayit?.makbuzNo ??
+      h.makbuzNo,
+      makbuzSayisi: bagisMakbuzlari.length,
+      dogrulandi: true
+    };
   });
 
   return (
@@ -61,7 +74,7 @@ export function KrediHareketleri() {
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <OzetKart
-          etiket="Ödeme alınan kredi"
+          etiket="Doğrulanan yükleme"
           deger={`${ozet.yuklenen}`}
           altMetin="Toplam yüklenen"
           ikon={TrendingUp} />
@@ -160,7 +173,12 @@ export function KrediHareketleri() {
                     </td>
                     <td className="px-4 py-3">{h.tasOcagiId ? tasOcagiBul(h.tasOcagiId)?.ad : '—'}</td>
                     <td className="px-4 py-3 font-mono text-xs">{h.dekontNo ?? '—'}</td>
-                    <td className="px-4 py-3 font-mono text-xs">{h.makbuzNo ?? '—'}</td>
+                    <td className="px-4 py-3 font-mono text-xs">
+                      {h.makbuzNo ?? '—'}
+                      {h.makbuzSayisi > 1 &&
+                      <span className="block text-[11px] text-muted-foreground">{h.makbuzSayisi} makbuz</span>
+                      }
+                    </td>
                     <td className="px-4 py-3 text-right">{h.onceki}</td>
                     <td className="px-4 py-3 text-right font-medium">{h.sonraki}</td>
                     <td className="px-4 py-3 text-muted-foreground">{formatTarih(h.tarih)}</td>
@@ -173,9 +191,9 @@ export function KrediHareketleri() {
 
       <KuralNotu baslik="Makbuz, kullanılabilirlik ve kredi düşümü">
         Makbuz kredi yükleme kaydına kesilir; planlama ve sonuç kayıtlarında yeniden ödeme ve makbuz
-        aranmaz. Yüklenen kredi, ödeme doğrulanana veya makbuz üretilene kadar kullanılamaz. Kredi
-        düşümü yalnızca patlatma “Yapıldı” olarak işlendiğinde yapılır; planlı patlatmalar “sonuç
-        bekliyor” olarak izlenir.
+        aranmaz. Kullanılabilir kredi yalnız doğrulanan dekontlardan doğar. Kredi düşümü yalnızca
+        patlatma “Yapıldı” olarak işlendiğinde yapılır; planlı patlatmalar “sonuç bekliyor” olarak
+        izlenir.
       </KuralNotu>
     </div>);
 

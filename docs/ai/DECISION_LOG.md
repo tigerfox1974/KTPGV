@@ -20,6 +20,17 @@ Her yeni karar aşağıdaki formatta eklenir:
 
 ## Başlangıç kayıtları
 
+### DEC-20260829-003 — Taş ocağı kredi kullanılabilirliği yalnız doğrulanan dekonttan üretilir
+- Tarih: 2026-08-29
+- Modül: E Bendi / Kredi Yükleme / Ödeme Doğrulama
+- Durum: Uygulandı
+- Karar: EKRD kredi talebinde yalnız `dogrulamaDurumu = DOGRULANDI` olan banka dekontları kredi kullanılabilirlik hesabına dahil edilir. Her yeni doğrulanan dekont kümülatif tam kredi sayısındaki artış kadar `YUKLEME` hareketi üretir; aynı kredi ikinci kez yazılmaz. Bağış makbuzları doğrulanan dekont dağılımlarına bağlı olarak üretilir ve ilk patlatma bağışı makbuzu legacy `makbuzNo` aliası olarak korunur.
+- Gerekçe: Çoklu dekontlu kısmi ödeme senaryosunda kredi kullanılabilirliği, bağış makbuzu üretimi ve geriye uyumun aynı anda tutarlı çalışması gerekir.
+- Etki: `src/utils/krediYukleme.ts`, `src/contexts/AppContext.tsx`, Ödeme / Makbuz, Kayıt Detayı, Kredi Hareketleri ve raporlama ekranları.
+- Koruma: Banka dekontu ile bağış makbuzu karıştırılmaz; eksik/fazla ödeme ilk kayıt için engel değildir; diğer bentlerde exact tutar davranışı korunur; OCR çalışma alanı yeniden tasarlanmaz.
+- İlgili iş kuralı: BR-023, BR-024, BR-025, BR-027, BR-028
+- İlgili görev: `tasks/in-progress/tas-ocagi-kredi-yukleme-yenileme/checklist.md`
+
 ### DEC-20260829-002 — Taş ocağı kısmi ve fazla ödeme dağılımı
 - Tarih: 2026-08-29
 - Modül: E Bendi / Kredi Yükleme / Ödeme ve Bağış Makbuzu

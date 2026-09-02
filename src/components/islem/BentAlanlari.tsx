@@ -596,9 +596,9 @@ export function BentAlanlari({
         </dl>
 
         <KuralNotu baslik="Kredi kullanılabilirliği">
-          Kredi yükleme kaydı “Ödeme Doğrulama Bekliyor” durumunda başlar. Ödeme doğrulandığında veya
-          makbuz üretildiğinde kredi kullanılabilir hale gelir. Kredi yükleme mali işlemdir, ajandaya
-          düşmez.
+          Kredi yükleme kaydı “Ödeme Doğrulama Bekliyor” durumunda başlar. Yalnız doğrulanan
+          dekontların karşıladığı tam kredi adedi kullanılabilir hale gelir; eksik bakiye sonraki
+          dekontu bekler. Makbuz ayrı mali belgedir. Kredi yükleme mali işlemdir, ajandaya düşmez.
         </KuralNotu>
       </div>);
 

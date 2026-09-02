@@ -54,9 +54,10 @@ Bu dosya projenin kalıcı hafızasıdır. Zaman içinde alınmış ve geliştir
 - Her gerçekleşen patlatma 1 kredi tüketir.
 - Aynı işletmeci/kişiye bağlı birden fazla taş ocağı ortak kredi havuzunu kullanabilir.
 - Bir kredi talebi hedef tutara ulaşıncaya kadar birden fazla banka dekontuyla ödenebilir; eksik ödeme için tolerans sınırı yoktur.
-- Kısmi ödeme, kümülatif tutarın karşıladığı tam kredi adedi kadar kullanılabilir kredi üretir. Tam krediye yetmeyen bakiye sonraki dekontla birleşmek üzere aynı talepte bekler.
+- Kısmi ödeme, yalnız `dogrulamaDurumu = DOGRULANDI` olan dekontların kümülatif tutarının karşıladığı tam kredi adedi kadar kullanılabilir kredi üretir. Tam krediye yetmeyen bakiye sonraki doğrulanan dekontla birleşmek üzere aynı talepte bekler.
 - Kullanılabilir kredi talep edilen kredi adedini aşmaz; hedefi aşan ödeme ek kredi değil, firma tarafından yapılan genel Vakıf bağışıdır.
 - Tek banka dekontunun krediye ayrılan ve fazla bağış olarak ayrılan bölümleri için ayrı bağış makbuzları üretilebilir.
+- Doğrulanan her yeni banka dekontu yalnız kümülatif tam kredi sayısındaki artış kadar `YUKLEME` hareketi üretir; aynı kredi ikinci kez yazılmaz.
 - Yıl sonu raporunda taş ocağı patlatması bağışları ile firma bazındaki genel Vakıf bağışları ayrı gösterilir.
 
 ## Bent F — Adli ve Trafik Raporları

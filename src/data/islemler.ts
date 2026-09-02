@@ -190,10 +190,11 @@ export const baslangicIslemleri: Islem[] = [
   hesaplamaAciklamasi:
   'BAÜ x %10 = 7.089,30 TL (1 patlatma bedeli) · 7.089,30 TL x 7 kredi = 49.625,10 TL',
   dekont: {
+    id: 'dk-5-1',
     dekontNo: '987654321',
     banka: 'Kıbrıs Vakıflar Bankası',
     tarih: '2026-08-18',
-    odenenTutar: 49625.1,
+    odenenTutar: 50000,
     odemeYapan: 'Ahmet Mehmet',
     dosya: {
       ad: 'kredi-dekont-987654321.pdf',
@@ -201,13 +202,128 @@ export const baslangicIslemleri: Islem[] = [
       boyutKb: 520,
       yontem: 'PERSONEL',
       yuklemeZamani: '18.08.2026 13:31'
-    }
+    },
+    dogrulamaDurumu: 'DOGRULANDI',
+    dogrulamaZamani: '2026-08-18T13:45:00',
+    tutarDagilimi: [
+    {
+      amac: 'TAS_OCAGI_PATLATMASI',
+      tutar: 49625.1,
+      bagliMakbuzNo: 'BM-2026-000144'
+    },
+    {
+      amac: 'GENEL_VAKIF_BAGISI',
+      tutar: 374.9,
+      bagliMakbuzNo: 'BM-2026-000145'
+    }],
+    bagisMakbuzlari: [
+    {
+      makbuzNo: 'BM-2026-000144',
+      tur: 'TAS_OCAGI_PATLATMASI',
+      tutar: 49625.1,
+      bagliDekontId: 'dk-5-1',
+      bagliDekontNo: '987654321',
+      bagliDekontTarihi: '2026-08-18',
+      odemeYapan: 'Ahmet Mehmet',
+      olusturmaTarihi: '2026-08-18'
+    },
+    {
+      makbuzNo: 'BM-2026-000145',
+      tur: 'GENEL_VAKIF_BAGISI',
+      tutar: 374.9,
+      bagliDekontId: 'dk-5-1',
+      bagliDekontNo: '987654321',
+      bagliDekontTarihi: '2026-08-18',
+      odemeYapan: 'Ahmet Mehmet',
+      olusturmaTarihi: '2026-08-18'
+    }]
   },
+  dekontlar: [
+  {
+    id: 'dk-5-1',
+    dekontNo: '987654321',
+    banka: 'Kıbrıs Vakıflar Bankası',
+    tarih: '2026-08-18',
+    odenenTutar: 50000,
+    odemeYapan: 'Ahmet Mehmet',
+    dosya: {
+      ad: 'kredi-dekont-987654321.pdf',
+      tur: 'PDF',
+      boyutKb: 520,
+      yontem: 'PERSONEL',
+      yuklemeZamani: '18.08.2026 13:31'
+    },
+    dogrulamaDurumu: 'DOGRULANDI',
+    dogrulamaZamani: '2026-08-18T13:45:00',
+    tutarDagilimi: [
+    {
+      amac: 'TAS_OCAGI_PATLATMASI',
+      tutar: 49625.1,
+      bagliMakbuzNo: 'BM-2026-000144'
+    },
+    {
+      amac: 'GENEL_VAKIF_BAGISI',
+      tutar: 374.9,
+      bagliMakbuzNo: 'BM-2026-000145'
+    }],
+    bagisMakbuzlari: [
+    {
+      makbuzNo: 'BM-2026-000144',
+      tur: 'TAS_OCAGI_PATLATMASI',
+      tutar: 49625.1,
+      bagliDekontId: 'dk-5-1',
+      bagliDekontNo: '987654321',
+      bagliDekontTarihi: '2026-08-18',
+      odemeYapan: 'Ahmet Mehmet',
+      olusturmaTarihi: '2026-08-18'
+    },
+    {
+      makbuzNo: 'BM-2026-000145',
+      tur: 'GENEL_VAKIF_BAGISI',
+      tutar: 374.9,
+      bagliDekontId: 'dk-5-1',
+      bagliDekontNo: '987654321',
+      bagliDekontTarihi: '2026-08-18',
+      odemeYapan: 'Ahmet Mehmet',
+      olusturmaTarihi: '2026-08-18'
+    }]
+  }],
   makbuzNo: 'BM-2026-000144',
+  bagisMakbuzlari: [
+  {
+    makbuzNo: 'BM-2026-000144',
+    tur: 'TAS_OCAGI_PATLATMASI',
+    tutar: 49625.1,
+    bagliDekontId: 'dk-5-1',
+    bagliDekontNo: '987654321',
+    bagliDekontTarihi: '2026-08-18',
+    odemeYapan: 'Ahmet Mehmet',
+    olusturmaTarihi: '2026-08-18'
+  },
+  {
+    makbuzNo: 'BM-2026-000145',
+    tur: 'GENEL_VAKIF_BAGISI',
+    tutar: 374.9,
+    bagliDekontId: 'dk-5-1',
+    bagliDekontNo: '987654321',
+    bagliDekontTarihi: '2026-08-18',
+    odemeYapan: 'Ahmet Mehmet',
+    olusturmaTarihi: '2026-08-18'
+  }],
   makbuzUreten: 'Vakıf Muhasebe',
   durum: 'TAMAMLANDI',
   isletmeciId: 'im-1',
-  krediAdedi: 7
+  krediAdedi: 7,
+  krediTalebiOdemeOzeti: {
+    hedefTutar: 49625.1,
+    toplamOdenenTutar: 50000,
+    dogrulanmisOdemeToplami: 50000,
+    krediyeAyrilanToplam: 49625.1,
+    kullanilabilirKrediAdedi: 7,
+    bekleyenBakiye: 0,
+    kalanHedef: 0,
+    genelBagisToplami: 374.9
+  }
 },
 {
   id: 'is-6',
@@ -283,10 +399,11 @@ export const baslangicIslemleri: Islem[] = [
   hesaplamaAciklamasi:
   'BAÜ x %10 = 7.089,30 TL (1 patlatma bedeli) · 7.089,30 TL x 3 kredi = 21.267,90 TL',
   dekont: {
+    id: 'dk-8-1',
     dekontNo: '445512309',
     banka: 'Kooperatif Merkez Bankası',
     tarih: '2026-08-19',
-    odenenTutar: 21267.9,
+    odenenTutar: 10000,
     odemeYapan: 'Beyaz Taş Madencilik Ltd.',
     dosya: {
       ad: 'beyaz-tas-dekont.pdf',
@@ -294,10 +411,69 @@ export const baslangicIslemleri: Islem[] = [
       boyutKb: 366,
       yontem: 'QR_LINK',
       yuklemeZamani: '19.08.2026 10:47'
-    }
+    },
+    dogrulamaDurumu: 'DOGRULANDI',
+    dogrulamaZamani: '2026-08-19T11:05:00',
+    tutarDagilimi: [
+    {
+      amac: 'TAS_OCAGI_PATLATMASI',
+      tutar: 10000,
+      bagliMakbuzNo: null
+    }]
   },
+  dekontlar: [
+  {
+    id: 'dk-8-1',
+    dekontNo: '445512309',
+    banka: 'Kooperatif Merkez Bankası',
+    tarih: '2026-08-19',
+    odenenTutar: 10000,
+    odemeYapan: 'Beyaz Taş Madencilik Ltd.',
+    dosya: {
+      ad: 'beyaz-tas-dekont.pdf',
+      tur: 'PDF',
+      boyutKb: 366,
+      yontem: 'QR_LINK',
+      yuklemeZamani: '19.08.2026 10:47'
+    },
+    dogrulamaDurumu: 'DOGRULANDI',
+    dogrulamaZamani: '2026-08-19T11:05:00',
+    tutarDagilimi: [
+    {
+      amac: 'TAS_OCAGI_PATLATMASI',
+      tutar: 10000,
+      bagliMakbuzNo: null
+    }]
+  },
+  {
+    id: 'dk-8-2',
+    dekontNo: '445512310',
+    bankaReferansNo: '19.08.2026/KOOP/9913',
+    banka: 'Kooperatif Merkez Bankası',
+    tarih: '2026-08-20',
+    odenenTutar: 12000,
+    odemeYapan: 'Beyaz Taş Madencilik Ltd.',
+    dosya: {
+      ad: 'beyaz-tas-ek-dekont.pdf',
+      tur: 'PDF',
+      boyutKb: 372,
+      yontem: 'PERSONEL',
+      yuklemeZamani: '20.08.2026 09:12'
+    },
+    dogrulamaDurumu: 'BEKLIYOR'
+  }],
   makbuzNo: null,
-  durum: 'ODEME_BEKLIYOR',
+  durum: 'MAKBUZ_BEKLIYOR',
   isletmeciId: 'im-2',
-  krediAdedi: 3
+  krediAdedi: 3,
+  krediTalebiOdemeOzeti: {
+    hedefTutar: 21267.9,
+    toplamOdenenTutar: 22000,
+    dogrulanmisOdemeToplami: 10000,
+    krediyeAyrilanToplam: 10000,
+    kullanilabilirKrediAdedi: 1,
+    bekleyenBakiye: 2910.7,
+    kalanHedef: 11267.9,
+    genelBagisToplami: 0
+  }
 }];

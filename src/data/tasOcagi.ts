@@ -81,10 +81,11 @@ export const krediHareketleri: KrediHareketi[] = [
   tip: 'YUKLEME',
   adet: 7,
   kayitNo: 'EKRD-2026-000015',
+  dekontId: 'dk-5-1',
   dekontNo: '987654321',
   makbuzNo: 'BM-2026-000144',
   tarih: '2026-08-18',
-  aciklama: '7 patlatmalık ön ödeme alındı, makbuz kesildi.'
+  aciklama: '987654321 doğrulandı; 7 kredi kullanılabilir oldu.'
 },
 {
   id: 'kh-2',
@@ -113,11 +114,12 @@ export const krediHareketleri: KrediHareketi[] = [
   id: 'kh-4',
   isletmeciId: 'im-2',
   tip: 'YUKLEME',
-  adet: 3,
+  adet: 1,
   kayitNo: 'EKRD-2026-000016',
+  dekontId: 'dk-8-1',
   dekontNo: '445512309',
   tarih: '2026-08-19',
-  aciklama: '3 patlatmalık ön ödeme alındı (ödeme doğrulaması bekliyor).'
+  aciklama: '445512309 doğrulandı; 1 kredi kullanılabilir oldu.'
 }];
 
 

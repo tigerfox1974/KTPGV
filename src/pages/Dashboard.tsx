@@ -8,6 +8,8 @@ import { KuralNotu } from '../components/common/KuralNotu';
 import { useApp } from '../contexts/AppContext';
 import { formatTL, formatTarih, formatTarihSaat } from '../utils/currency';
 import { bentler } from '../data/bentler';
+import { krediYuklemeKaydiniCozumle } from '../utils/krediYukleme';
+import { patlatmaBedeli } from '../utils/hesaplama';
 
 export function Dashboard() {
   const {
@@ -21,19 +23,36 @@ export function Dashboard() {
   } = useApp();
   if (!kullanici) return null;
 
-  const toplamGelir = islemler.reduce((t, i) => t + i.tutar, 0);
-  const makbuzsuz = islemler.filter((i) => !i.makbuzNo);
+  const tahsilatTutari = (islem: (typeof islemler)[number]) =>
+  islem.eIslemTuru === 'KREDI_YUKLEME' ?
+  krediYuklemeKaydiniCozumle({
+    islem,
+    birimKrediBedeli: patlatmaBedeli(bau)
+  }).krediTalebiOdemeOzeti.dogrulanmisOdemeToplami :
+  islem.tutar;
+  const toplamGelir = islemler.reduce((toplam, islem) => toplam + tahsilatTutari(islem), 0);
+  const makbuzsuz = islemler.filter(
+    (i) => i.durum === 'MAKBUZ_BEKLIYOR' || (!i.makbuzNo && i.durum !== 'ODEME_BEKLIYOR')
+  );
   const sonIslemler = islemler.slice(0, 5);
   const yaklasanGorevler = ajanda.
   filter((a) => a.durum === 'Planlandı' || a.durum === 'İşlem Başlatılabilir').
   slice(0, 5);
   // Kredi özeti yalnız E bendi kapsamındaki kullanıcılara anlamlıdır.
   const krediKapsami = tumVeriGorebilir || kullanici.bentler.includes('E');
+  const gorunurIsletmeciIdleri = new Set(
+    islemler.
+    filter((islem) => islem.eIslemTuru === 'KREDI_YUKLEME' && !!islem.isletmeciId).
+    map((islem) => islem.isletmeciId)
+  );
+  const gorunurKrediIsletmecileri = isletmeciler.filter((isletmeci) =>
+    gorunurIsletmeciIdleri.has(isletmeci.id)
+  );
   const kalanKrediToplami = krediKapsami ?
-  isletmeciler.reduce((t, i) => t + krediOzeti(i.id).kalan, 0) :
+  gorunurKrediIsletmecileri.reduce((t, i) => t + krediOzeti(i.id).kalan, 0) :
   0;
   const bekleyenKrediToplami = krediKapsami ?
-  isletmeciler.reduce((t, i) => t + krediOzeti(i.id).dogrulamaBekleyen, 0) :
+  gorunurKrediIsletmecileri.reduce((t, i) => t + krediOzeti(i.id).dogrulamaBekleyen, 0) :
   0;
 
   const bentDagilimi = bentler.map((b) => {
@@ -42,7 +61,7 @@ export function Dashboard() {
       kod: b.kod,
       baslik: b.baslik,
       adet: kayitlar.length,
-      tutar: kayitlar.reduce((t, i) => t + i.tutar, 0),
+      tutar: kayitlar.reduce((toplam, islem) => toplam + tahsilatTutari(islem), 0),
       yetkili: kullanici.bentler.includes(b.kod)
     };
   });
@@ -103,7 +122,7 @@ export function Dashboard() {
                     {islem.talepEden} · {formatTarih(islem.olusturmaTarihi)}
                   </p>
                 </div>
-                <span className="text-sm font-medium">{formatTL(islem.tutar)}</span>
+                <span className="text-sm font-medium">{formatTL(tahsilatTutari(islem))}</span>
                 <IslemDurumRozeti durum={islem.durum} />
               </li>
             )}

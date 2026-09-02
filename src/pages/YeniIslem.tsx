@@ -31,6 +31,7 @@ import { hesapla, patlatmaBedeli, raporBedeli } from '../utils/hesaplama';
 import { DekontOcrSonucu, normalizeDekontNo } from '../utils/dekontOcr';
 import { altBasvuruNo, sonrakiKayitNo } from '../utils/numaralandirma';
 import { formatTL, formatTarih, formatTarihSaat } from '../utils/currency';
+import { krediYuklemeKaydiniCozumle, islemDekontlariniOku } from '../utils/krediYukleme';
 
 const BOS_FORM: IslemFormu = {
   bent: '',
@@ -255,16 +256,22 @@ export function YeniIslem() {
 
   const odenen = dekont.odenenTutar ?? 0;
   const tutarUyumlu = odenen > 0 && Math.abs(odenen - sonuc.tutar) < 0.01;
+  const tutarGecerli = krediYukleme ? odenen > 0 : tutarUyumlu;
   const dekontNo = normalizeDekontNo(dekont.dekontNo);
   const bankaReferansNo = normalizeDekontNo(dekont.bankaReferansNo);
   const banka = dekont.banka.trim().toLocaleUpperCase('tr-TR');
+  const tumDekontKayitlari = islemler.flatMap((islem) =>
+    islemDekontlariniOku(islem).map((kayitDekont) => ({ islem, kayitDekont }))
+  );
   const duplicateDekont = krediYukleme && dekontNo && banka ? islemler.find((islem) =>
-    normalizeDekontNo(islem.dekont.dekontNo) === dekontNo &&
-    islem.dekont.banka.trim().toLocaleUpperCase('tr-TR') === banka) : undefined;
+    islemDekontlariniOku(islem).some((kayitDekont) =>
+      normalizeDekontNo(kayitDekont.dekontNo) === dekontNo &&
+      kayitDekont.banka.trim().toLocaleUpperCase('tr-TR') === banka)) : undefined;
   const duplicateReferans = krediYukleme && bankaReferansNo && banka ? islemler.find((islem) =>
-    normalizeDekontNo(islem.dekont.bankaReferansNo ?? '') === bankaReferansNo &&
-    islem.dekont.banka.trim().toLocaleUpperCase('tr-TR') === banka) : undefined;
-  const duplicateDosya = krediYukleme && dosya?.dekontHash ? islemler.find((islem) => islem.dekont.dosya?.dekontHash === dosya.dekontHash) : undefined;
+    islemDekontlariniOku(islem).some((kayitDekont) =>
+      normalizeDekontNo(kayitDekont.bankaReferansNo ?? '') === bankaReferansNo &&
+      kayitDekont.banka.trim().toLocaleUpperCase('tr-TR') === banka)) : undefined;
+  const duplicateDosya = krediYukleme && dosya?.dekontHash ? tumDekontKayitlari.find(({ kayitDekont }) => kayitDekont.dosya?.dekontHash === dosya.dekontHash)?.islem : undefined;
   const gelecekDekontTarihi = krediYukleme && !!dekont.tarih && dekont.tarih > new Date().toISOString().slice(0, 10);
 
   const dekontTamam =
@@ -273,7 +280,7 @@ export function YeniIslem() {
   dekont.banka.trim() !== '' &&
   dekont.tarih !== '' &&
   dekont.odemeYapan.trim() !== '' &&
-  tutarUyumlu &&
+  tutarGecerli &&
   !duplicateDekont &&
   !duplicateReferans &&
   !duplicateDosya &&
@@ -451,6 +458,59 @@ export function YeniIslem() {
     `Patlatma kredisi yükleme — ${form.krediAdedi} kredi` :
     `Planlı patlatma — ${tasOcagiBul(form.tasOcagiId)?.ad ?? ''}`;
 
+    const ilkKrediDekontu =
+    krediYukleme ?
+    {
+      id: `dk-${Date.now()}-ilk`,
+      dekontNo: dekont.dekontNo.trim(),
+      bankaReferansNo: dekont.bankaReferansNo.trim() || undefined,
+      banka: dekont.banka.trim(),
+      tarih: dekont.tarih,
+      odenenTutar: odenen,
+      odemeYapan: dekont.odemeYapan.trim(),
+      dosya,
+      dogrulamaDurumu: 'BEKLIYOR' as const,
+      ocrDurumu: ocrBilgileri.durum,
+      ocrOkunanAlanlar: ocrBilgileri.okunanAlanlar,
+      ocrGuvenBilgileri: ocrBilgileri.guven,
+      ocrDogrulananDegerleri: {
+        dekontNo: dekont.dekontNo.trim(),
+        bankaReferansNo: dekont.bankaReferansNo.trim() || undefined,
+        banka: dekont.banka.trim(),
+        tarih: dekont.tarih,
+        odenenTutar: odenen,
+        odemeYapan: dekont.odemeYapan.trim()
+      }
+    } :
+    null;
+
+    const krediYuklemeTaslagi =
+    krediYukleme && ilkKrediDekontu ?
+    krediYuklemeKaydiniCozumle({
+      islem: {
+        id: `is-${Date.now()}-taslak`,
+        kayitNo,
+        bent: 'E',
+        eIslemTuru: 'KREDI_YUKLEME',
+        baslik: baslikMetni,
+        talepEden: talepEdenAdi || '—',
+        birim: kullanici.birim,
+        olusturan: kullanici.rol,
+        olusturmaTarihi: new Date().toISOString().slice(0, 10),
+        tutar: sonuc.tutar,
+        hesaplamaAciklamasi: sonuc.satirlar.join(' · '),
+        dekont: ilkKrediDekontu,
+        dekontlar: [ilkKrediDekontu],
+        makbuzNo: null,
+        durum: 'ODEME_BEKLIYOR',
+        isletmeciId: form.isletmeciId,
+        krediAdedi: Number(form.krediAdedi)
+      },
+      birimKrediBedeli: patlatmaBedeli(bau),
+      mevcutYuklemeAdedi: 0
+    }) :
+    null;
+
     const yeni: Islem = {
       id: `is-${Date.now()}`,
       kayitNo,
@@ -481,6 +541,7 @@ export function YeniIslem() {
         odemeYapan: isletmeci?.ad ?? '—',
         dosya: null
       } :
+      krediYukleme && ilkKrediDekontu ? ilkKrediDekontu :
       {
         dekontNo: dekont.dekontNo.trim(),
         bankaReferansNo: dekont.bankaReferansNo.trim() || undefined,
@@ -488,25 +549,23 @@ export function YeniIslem() {
         tarih: dekont.tarih,
         odenenTutar: odenen,
         odemeYapan: dekont.odemeYapan.trim(),
-        dosya,
-        ...(krediYukleme ? {
-          ocrDurumu: ocrBilgileri.durum,
-          ocrOkunanAlanlar: ocrBilgileri.okunanAlanlar,
-          ocrGuvenBilgileri: ocrBilgileri.guven
-        } : {})
+        dosya
       },
+      dekontlar: krediYukleme && krediYuklemeTaslagi ? krediYuklemeTaslagi.guncelDekontlar : undefined,
       makbuzNo: null,
       durum: krediPlanlama ?
       'ISLEM_BASLATILABILIR' :
       krediYukleme ?
-      'ODEME_BEKLIYOR' :
+      krediYuklemeTaslagi?.kayitDurumu ?? 'ODEME_BEKLIYOR' :
       'MAKBUZ_BEKLIYOR',
+      bagisMakbuzlari: krediYuklemeTaslagi?.bagisMakbuzlari.length ? krediYuklemeTaslagi.bagisMakbuzlari : undefined,
       sigortaSirketiId: trafik ? form.sigortaSirketiId : undefined,
       altBasvurular,
       adliRaporlar,
       isletmeciId: bent === 'E' ? form.isletmeciId : undefined,
       tasOcagiId: krediPlanlama ? form.tasOcagiId : undefined,
       krediAdedi: bent === 'E' ? Number(form.krediAdedi) : undefined,
+      krediTalebiOdemeOzeti: krediYuklemeTaslagi?.krediTalebiOdemeOzeti,
       notlar: form.notlar.trim() || undefined
     };
 
@@ -523,19 +582,9 @@ export function YeniIslem() {
     }
 
     if (krediYukleme) {
-      krediHareketiEkle({
-        id: `kh-${Date.now()}`,
-        isletmeciId: form.isletmeciId,
-        tip: 'YUKLEME',
-        adet: Number(form.krediAdedi),
-        kayitNo,
-        dekontNo: dekont.dekontNo.trim(),
-        tarih: dekont.tarih,
-        aciklama: `${form.krediAdedi} patlatmalık ön ödeme alındı (doğrulama bekliyor).`
-      });
       auditEkle(
-        'Taş ocağı kredi yüklendi',
-        `${isletmeci?.ad} · +${form.krediAdedi} kredi (doğrulama bekliyor)`
+        'Taş ocağı kredi talebi oluşturuldu',
+        `${isletmeci?.ad} · ${kayitNo} · İlk dekont ${dekont.dekontNo.trim()} · doğrulama bekliyor`
       );
     }
 
@@ -875,6 +924,7 @@ export function YeniIslem() {
           dosyaAta={setDosya}
           kaynakEtiketi={kaynakEtiketi}
           beklenenTutar={sonuc.tutar}
+          tutarKurali={krediYukleme ? 'POZITIF_OLMALI' : 'ESIT_OLMALI'}
           qrOdenecekTutarGoster={form.bent === 'D'}
           auditEkle={auditEkle}
           mevcutIslemler={islemler}

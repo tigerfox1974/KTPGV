@@ -3,9 +3,11 @@ import {
   AjandaDurumu,
   AjandaKaydi,
   AuditKaydi,
+  BagisMakbuzu,
   BentKodu,
   BilgiKaynagi,
   Birim,
+  Dekont,
   DekontDosyasi,
   PatlatmaSonucu,
   Islem,
@@ -29,7 +31,7 @@ import {
 '../data/tasOcagi';
 import { maliYilArsivleri } from '../data/arsiv';
 import { sonrakiKayitNo, sonrakiMakbuzNo } from '../utils/numaralandirma';
-import { VARSAYILAN_BAU } from '../utils/hesaplama';
+import { patlatmaBedeli, VARSAYILAN_BAU } from '../utils/hesaplama';
 import { formatTL, formatTarihSaat } from '../utils/currency';
 import {
   ajandaIslemiYapilabilirMi,
@@ -48,6 +50,7 @@ import {
   odemeDogrulanabilirMi,
   yonetimEkraniGorulebilirMi } from
 '../utils/yetki';
+import { krediYuklemeDekontMukerrerliginiBul, krediYuklemeKaydiniCozumle, krediYuklemeDekontKimligi, islemBagisMakbuzlariniOku, islemDekontlariniOku } from '../utils/krediYukleme';
 
 export interface KrediOzeti {
   /** Ödemesi alınan toplam kredi */
@@ -120,12 +123,41 @@ export interface GerceklesmeSonucu {
   kalanKredi?: number;
 }
 
-const DOGRULANMIS_DURUMLAR = ['ODEME_DOGRULANDI', 'ISLEM_BASLATILABILIR', 'TAMAMLANDI'];
-
 export interface GirisSonucu {
   basarili: boolean;
   mesaj?: string;
 }
+
+export interface IslemSonucu {
+  basarili: boolean;
+  mesaj: string;
+}
+
+export interface OdemeDogrulamaSonucu extends IslemSonucu {
+  dogrulananDekontId?: string;
+  kullanilabilirKrediAdedi?: number;
+  olusanKrediAdedi?: number;
+}
+
+export interface MakbuzUretimSonucu extends IslemSonucu {
+  makbuzNumaralari?: string[];
+}
+
+export type KrediYuklemeDekontKaydiGirdisi = Pick<
+Dekont,
+'dekontNo' |
+'bankaReferansNo' |
+'banka' |
+'tarih' |
+'odenenTutar' |
+'odemeYapan' |
+'dosya' |
+'ocrDurumu' |
+'ocrOkunanAlanlar' |
+'ocrGuvenBilgileri' |
+'ocrIlkDegerleri' |
+'ocrDogrulananDegerleri'
+>;
 
 interface AppContextDegeri {
   kullanici: Kullanici | null;
@@ -167,8 +199,9 @@ interface AppContextDegeri {
   bauGuncelle: (deger: number) => void;
   islemler: Islem[];
   islemEkle: (islem: Islem) => void;
-  makbuzUret: (islemId: string) => string | null;
-  odemeDogrula: (islemId: string) => void;
+  makbuzUret: (islemId: string) => MakbuzUretimSonucu;
+  odemeDogrula: (islemId: string, dekontId?: string) => OdemeDogrulamaSonucu;
+  krediYuklemeDekontEkle: (islemId: string, girdi: KrediYuklemeDekontKaydiGirdisi) => IslemSonucu;
   ajanda: AjandaKaydi[];
   ajandaEkle: (kayit: AjandaKaydi) => void;
   ajandaDurumGuncelle: (id: string, durum: AjandaDurumu) => void;
@@ -228,6 +261,55 @@ export function AppProvider({
   const [sigortalar, setSigortalar] = useState<SigortaSirketi[]>(baslangicSigortalari);
   const [isletmeciler, setIsletmeciler] = useState<Isletmeci[]>(baslangicIsletmecileri);
   const [tasOcaklari, setTasOcaklari] = useState<TasOcagi[]>(baslangicOcaklari);
+  const birimKrediBedeli = useMemo(() => patlatmaBedeli(bau), [bau]);
+
+  const yuklemeHareketAdedi = useCallback(
+    (hareketler: KrediHareketi[], kayitNo: string) =>
+    hareketler.
+    filter((hareket) => hareket.tip === 'YUKLEME' && hareket.kayitNo === kayitNo).
+    reduce((toplam, hareket) => toplam + hareket.adet, 0),
+    []
+  );
+
+  const krediYuklemeAnaliziniOlustur = useCallback(
+    (islem: Islem, hareketler: KrediHareketi[] = krediHareketleri) =>
+    krediYuklemeKaydiniCozumle({
+      islem,
+      birimKrediBedeli,
+      mevcutYuklemeAdedi: yuklemeHareketAdedi(hareketler, islem.kayitNo)
+    }),
+    [birimKrediBedeli, krediHareketleri, yuklemeHareketAdedi]
+  );
+
+  const krediYuklemeKaydiniGuncelle = useCallback(
+    (
+      islem: Islem,
+      hareketler: KrediHareketi[] = krediHareketleri,
+      makbuzUreten?: string,
+      bagisMakbuzlari?: BagisMakbuzu[]
+    ): Islem => {
+      const girdi = bagisMakbuzlari ? { ...islem, bagisMakbuzlari } : islem;
+      const analiz = krediYuklemeKaydiniCozumle({
+        islem: girdi,
+        birimKrediBedeli,
+        mevcutYuklemeAdedi: yuklemeHareketAdedi(hareketler, islem.kayitNo)
+      });
+      return {
+        ...islem,
+        dekont: analiz.guncelDekontlar[0] ?? islem.dekont,
+        dekontlar: analiz.guncelDekontlar,
+        bagisMakbuzlari: analiz.bagisMakbuzlari.length ? analiz.bagisMakbuzlari : undefined,
+        krediTalebiOdemeOzeti: analiz.krediTalebiOdemeOzeti,
+        makbuzNo: analiz.makbuzNoAlias,
+        makbuzUreten:
+        analiz.bagisMakbuzlari.length ?
+        makbuzUreten ?? islem.makbuzUreten :
+        islem.makbuzUreten,
+        durum: analiz.kayitDurumu
+      };
+    },
+    [birimKrediBedeli, krediHareketleri, yuklemeHareketAdedi]
+  );
 
   const auditYaz = useCallback((kullaniciAdi: string, eylem: string, hedef: string) => {
     setAuditKayitlari((eski) => [
@@ -377,47 +459,283 @@ export function AppProvider({
   );
 
   const makbuzUret = useCallback(
-    (islemId: string) => {
+    (islemId: string): MakbuzUretimSonucu => {
       const hedef = islemler.find((i) => i.id === islemId);
-      if (!hedef || hedef.makbuzNo) return null;
+      if (!hedef) {
+        return { basarili: false, mesaj: 'Makbuz üretilecek kayıt bulunamadı.' };
+      }
+      if (!makbuzUretilebilirMi(kullanici, hedef)) {
+        return { basarili: false, mesaj: 'Bu kayıt için makbuz üretme yetkiniz yok.' };
+      }
+
+      if (hedef.eIslemTuru === 'KREDI_YUKLEME') {
+        const analiz = krediYuklemeAnaliziniOlustur(hedef);
+        if (!analiz.makbuzEksikleri.length) {
+          return {
+            basarili: false,
+            mesaj:
+            analiz.bagisMakbuzlari.length > 0 ?
+            'Bu kredi talebi için bekleyen bağış makbuzu bulunmuyor.' :
+            'Önce en az bir dekont doğrulanmalıdır.'
+          };
+        }
+
+        const uretilenMakbuzlar: string[] = [];
+        let guncelIslemler = islemler.slice();
+
+        for (const eksik of analiz.makbuzEksikleri) {
+          const sonDurum = guncelIslemler.find((islem) => islem.id === islemId);
+          if (!sonDurum) {
+            return { basarili: false, mesaj: 'Kayıt güncellenirken bulunamadı.' };
+          }
+          const yeniNo = sonrakiMakbuzNo(guncelIslemler);
+          const yeniMakbuz: BagisMakbuzu = {
+            makbuzNo: yeniNo,
+            tur: eksik.tur,
+            tutar: eksik.tutar,
+            bagliDekontId: eksik.bagliDekontId,
+            bagliDekontNo: eksik.bagliDekontNo,
+            bagliDekontReferansi: eksik.bagliDekontReferansi,
+            bagliDekontTarihi: eksik.bagliDekontTarihi,
+            odemeYapan: eksik.odemeYapan,
+            olusturmaTarihi: new Date().toISOString().slice(0, 10)
+          };
+          uretilenMakbuzlar.push(yeniNo);
+          const guncelMakbuzlar = [...islemBagisMakbuzlariniOku(sonDurum, birimKrediBedeli), yeniMakbuz];
+          const guncelKayit = krediYuklemeKaydiniGuncelle(
+            { ...sonDurum, bagisMakbuzlari: guncelMakbuzlar },
+            krediHareketleri,
+            kullanici?.rol,
+            guncelMakbuzlar
+          );
+          guncelIslemler = guncelIslemler.map((islem) => islem.id === islemId ? guncelKayit : islem);
+        }
+
+        setIslemler(guncelIslemler);
+        auditEkle(
+          'Bağış makbuzları üretildi',
+          `${hedef.kayitNo} · ${uretilenMakbuzlar.join(', ')}`
+        );
+        return {
+          basarili: true,
+          mesaj: `${uretilenMakbuzlar.length} bağış makbuzu üretildi.`,
+          makbuzNumaralari: uretilenMakbuzlar
+        };
+      }
+
+      if (hedef.makbuzNo) {
+        return { basarili: false, mesaj: `Bu kayda zaten makbuz üretilmiş: ${hedef.makbuzNo}` };
+      }
+
       const uretilen = sonrakiMakbuzNo(islemler);
       setIslemler((eski) =>
-      eski.map((i) =>
-      i.id === islemId ?
-      {
-        ...i,
-        makbuzNo: uretilen,
-        makbuzUreten: kullanici?.rol,
-        durum: 'ISLEM_BASLATILABILIR' as const
-      } :
-      i
-      )
+        eski.map((i) =>
+          i.id === islemId ?
+          {
+            ...i,
+            makbuzNo: uretilen,
+            makbuzUreten: kullanici?.rol,
+            durum: 'ISLEM_BASLATILABILIR' as const
+          } :
+          i
+        )
       );
-      if (hedef.eIslemTuru === 'KREDI_YUKLEME') {
-        auditEkle(
-          'Taş ocağı kredi kullanılabilir yapıldı',
-          `${hedef.talepEden} · ${hedef.krediAdedi} kredi (makbuz ${uretilen})`
-        );
-      }
-      return uretilen;
+      return {
+        basarili: true,
+        mesaj: `Makbuz üretildi: ${uretilen}`,
+        makbuzNumaralari: [uretilen]
+      };
     },
-    [islemler, kullanici, auditEkle]
+    [
+    islemler,
+    kullanici,
+    auditEkle,
+    krediHareketleri,
+    krediYuklemeAnaliziniOlustur,
+    krediYuklemeKaydiniGuncelle,
+    birimKrediBedeli]
   );
 
   const odemeDogrula = useCallback(
-    (islemId: string) => {
+    (islemId: string, dekontId?: string): OdemeDogrulamaSonucu => {
       const hedef = islemler.find((i) => i.id === islemId);
-      setIslemler((eski) =>
-      eski.map((i) => i.id === islemId ? { ...i, durum: 'ODEME_DOGRULANDI' as const } : i)
-      );
-      if (hedef?.eIslemTuru === 'KREDI_YUKLEME') {
-        auditEkle(
-          'Taş ocağı kredi kullanılabilir yapıldı',
-          `${hedef.talepEden} · ${hedef.krediAdedi} kredi (ödeme doğrulandı)`
-        );
+      if (!hedef) {
+        return { basarili: false, mesaj: 'Ödeme doğrulanacak kayıt bulunamadı.' };
       }
+      if (!odemeDogrulanabilirMi(kullanici, hedef)) {
+        return { basarili: false, mesaj: 'Bu kayıt için ödeme doğrulama yetkiniz yok.' };
+      }
+
+      if (hedef.eIslemTuru === 'KREDI_YUKLEME') {
+        const tumDekontlar = islemDekontlariniOku(hedef);
+        const hedefKaydi = tumDekontlar.
+        map((dekont, sira) => ({
+          dekont,
+          kimlik: krediYuklemeDekontKimligi(dekont, sira)
+        })).
+        find(
+          ({ dekont, kimlik }) =>
+          (dekontId ? kimlik === dekontId || dekont.id === dekontId : true) &&
+          dekont.dogrulamaDurumu !== 'DOGRULANDI' &&
+          dekont.dogrulamaDurumu !== 'REDDEDILDI'
+        );
+
+        if (!hedefKaydi) {
+          return { basarili: false, mesaj: 'Doğrulanacak uygun dekont bulunamadı.' };
+        }
+
+        const dogrulamaZamani = new Date().toISOString();
+        const guncelDekontlar = tumDekontlar.map((dekont, sira) =>
+          krediYuklemeDekontKimligi(dekont, sira) === hedefKaydi.kimlik ?
+          {
+            ...dekont,
+            dogrulamaDurumu: 'DOGRULANDI' as const,
+            dogrulamaZamani
+          } :
+          dekont
+        );
+        const geciciKayit = { ...hedef, dekont: guncelDekontlar[0] ?? hedef.dekont, dekontlar: guncelDekontlar };
+        const mevcutYuklemeAdedi = yuklemeHareketAdedi(krediHareketleri, hedef.kayitNo);
+        const analiz = krediYuklemeKaydiniCozumle({
+          islem: geciciKayit,
+          birimKrediBedeli,
+          mevcutYuklemeAdedi
+        });
+        const guncelKayit = krediYuklemeKaydiniGuncelle(geciciKayit, krediHareketleri);
+
+        setIslemler((eski) => eski.map((islem) => islem.id === islemId ? guncelKayit : islem));
+
+        if (analiz.yeniYuklemeAdedi > 0) {
+          setKrediHareketleri((eski) => [
+            {
+              id: `kh-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+              isletmeciId: hedef.isletmeciId ?? '',
+              tip: 'YUKLEME',
+              adet: analiz.yeniYuklemeAdedi,
+              kayitNo: hedef.kayitNo,
+              dekontId: hedefKaydi.dekont.id ?? hedefKaydi.kimlik,
+              dekontNo: hedefKaydi.dekont.dekontNo,
+              tarih: hedefKaydi.dekont.tarih,
+              aciklama: `${hedefKaydi.dekont.dekontNo} doğrulandı; ${analiz.yeniYuklemeAdedi} kredi kullanılabilir oldu.`
+            },
+            ...eski]
+          );
+          auditEkle(
+            'Taş ocağı kredi kullanılabilir oldu',
+            `${hedef.talepEden} · +${analiz.yeniYuklemeAdedi} kredi · ${hedefKaydi.dekont.dekontNo}`
+          );
+        }
+
+        auditEkle('Dekont doğrulandı', `${hedef.kayitNo} · ${hedefKaydi.dekont.dekontNo}`);
+        return {
+          basarili: true,
+          mesaj:
+          analiz.yeniYuklemeAdedi > 0 ?
+          `${hedefKaydi.dekont.dekontNo} doğrulandı ve ${analiz.yeniYuklemeAdedi} kredi kullanılabilir oldu.` :
+          `${hedefKaydi.dekont.dekontNo} doğrulandı. Tam krediye yetmeyen bakiye beklemeye alındı.`,
+          dogrulananDekontId: hedefKaydi.dekont.id ?? hedefKaydi.kimlik,
+          kullanilabilirKrediAdedi: analiz.dogrulanmisOzeti.kullanilabilirKrediAdedi,
+          olusanKrediAdedi: analiz.yeniYuklemeAdedi
+        };
+      }
+
+      setIslemler((eski) =>
+        eski.map((i) => i.id === islemId ? { ...i, durum: 'ODEME_DOGRULANDI' as const } : i)
+      );
+      return { basarili: true, mesaj: `${hedef.kayitNo} ödemesi doğrulandı.` };
     },
-    [islemler, auditEkle]
+    [
+    islemler,
+    kullanici,
+    auditEkle,
+    krediHareketleri,
+    birimKrediBedeli,
+    krediYuklemeKaydiniGuncelle,
+    yuklemeHareketAdedi]
+  );
+
+  const krediYuklemeDekontEkle = useCallback(
+    (islemId: string, girdi: KrediYuklemeDekontKaydiGirdisi): IslemSonucu => {
+      const hedef = islemler.find((islem) => islem.id === islemId);
+      if (!hedef || hedef.eIslemTuru !== 'KREDI_YUKLEME') {
+        return { basarili: false, mesaj: 'Tamamlayıcı dekont eklenecek kredi talebi bulunamadı.' };
+      }
+      if (!islemDegistirilebilirMi(kullanici, hedef)) {
+        return { basarili: false, mesaj: 'Bu kredi talebine dekont ekleme yetkiniz yok.' };
+      }
+      if (!girdi.dosya) {
+        return { basarili: false, mesaj: 'Dekont dosyası olmadan tamamlayıcı kayıt eklenemez.' };
+      }
+      if (!girdi.dekontNo.trim() || !girdi.banka.trim() || !girdi.tarih || !girdi.odemeYapan.trim()) {
+        return { basarili: false, mesaj: 'Dekont no, banka, tarih ve ödeme yapan alanları zorunludur.' };
+      }
+      if (girdi.odenenTutar <= 0) {
+        return { basarili: false, mesaj: 'Dekont tutarı sıfırdan büyük olmalıdır.' };
+      }
+      if (girdi.tarih > new Date().toISOString().slice(0, 10)) {
+        return { basarili: false, mesaj: 'Dekont tarihi gelecekte olamaz.' };
+      }
+
+      const mukerrerlik = krediYuklemeDekontMukerrerliginiBul({
+        islemler,
+        dekontNo: girdi.dekontNo,
+        bankaReferansNo: girdi.bankaReferansNo,
+        banka: girdi.banka,
+        dosyaHash: girdi.dosya?.dekontHash,
+        tarih: girdi.tarih,
+        odenenTutar: girdi.odenenTutar,
+        odemeYapan: girdi.odemeYapan
+      });
+      if (mukerrerlik.duplicateDekont) {
+        return {
+          basarili: false,
+          mesaj: `Bu dekont no zaten kullanılmış: ${mukerrerlik.duplicateDekont.islem.kayitNo}`
+        };
+      }
+      if (mukerrerlik.duplicateReferans) {
+        return {
+          basarili: false,
+          mesaj: `Bu banka referansı zaten kullanılmış: ${mukerrerlik.duplicateReferans.islem.kayitNo}`
+        };
+      }
+      if (mukerrerlik.duplicateDosya) {
+        return {
+          basarili: false,
+          mesaj: `Bu dijital dekont dosyası zaten kullanılmış: ${mukerrerlik.duplicateDosya.islem.kayitNo}`
+        };
+      }
+
+      const yeniDekont: Dekont = {
+        id: `dk-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+        dekontNo: girdi.dekontNo.trim(),
+        bankaReferansNo: girdi.bankaReferansNo?.trim() || undefined,
+        banka: girdi.banka.trim(),
+        tarih: girdi.tarih,
+        odenenTutar: girdi.odenenTutar,
+        odemeYapan: girdi.odemeYapan.trim(),
+        dosya: girdi.dosya,
+        dogrulamaDurumu: 'BEKLIYOR',
+        ocrDurumu: girdi.ocrDurumu,
+        ocrOkunanAlanlar: girdi.ocrOkunanAlanlar,
+        ocrGuvenBilgileri: girdi.ocrGuvenBilgileri,
+        ocrIlkDegerleri: girdi.ocrIlkDegerleri,
+        ocrDogrulananDegerleri: girdi.ocrDogrulananDegerleri
+      };
+      const guncelDekontlar = [...islemDekontlariniOku(hedef), yeniDekont];
+      const guncelKayit = krediYuklemeKaydiniGuncelle({
+        ...hedef,
+        dekont: guncelDekontlar[0] ?? hedef.dekont,
+        dekontlar: guncelDekontlar
+      });
+
+      setIslemler((eski) => eski.map((islem) => islem.id === islemId ? guncelKayit : islem));
+      auditEkle('Tamamlayıcı dekont eklendi', `${hedef.kayitNo} · ${yeniDekont.dekontNo}`);
+      return {
+        basarili: true,
+        mesaj: `${yeniDekont.dekontNo} dekontu kredi talebine eklendi.`
+      };
+    },
+    [islemler, kullanici, auditEkle, krediYuklemeKaydiniGuncelle]
   );
 
   const ajandaEkle = useCallback(
@@ -447,11 +765,16 @@ export function AppProvider({
       const hareketler = krediHareketleri.filter((h) => h.isletmeciId === isletmeciId);
       const yuklemeler = hareketler.filter((h) => h.tip === 'YUKLEME');
       const yuklenen = yuklemeler.reduce((t, h) => t + h.adet, 0);
-      const dogrulamaBekleyen = yuklemeler.reduce((t, h) => {
-        const kayit = islemler.find((i) => i.kayitNo === h.kayitNo);
-        const dogrulandi =
-        !kayit || !!kayit.makbuzNo || DOGRULANMIS_DURUMLAR.includes(kayit.durum);
-        return dogrulandi ? t : t + h.adet;
+      const krediKayitlari = islemler.filter(
+        (islem) => islem.isletmeciId === isletmeciId && islem.eIslemTuru === 'KREDI_YUKLEME'
+      );
+      const dogrulamaBekleyen = krediKayitlari.reduce((toplam, kayit) => {
+        const analiz = krediYuklemeKaydiniCozumle({
+          islem: kayit,
+          birimKrediBedeli,
+          mevcutYuklemeAdedi: yuklemeHareketAdedi(hareketler, kayit.kayitNo)
+        });
+        return toplam + Math.max((kayit.krediAdedi ?? 0) - analiz.dogrulanmisOzeti.kullanilabilirKrediAdedi, 0);
       }, 0);
       const gerceklesmeler = hareketler.filter((h) => h.tip === 'KULLANIM');
       const kullanilan = gerceklesmeler.reduce((t, h) => t + h.adet, 0);
@@ -461,17 +784,17 @@ export function AppProvider({
       const planlanan = hareketler.
       filter((h) => h.tip === 'PLAN' && !raporlananPlanlar.includes(h.kayitNo)).
       reduce((t, h) => t + h.adet, 0);
-      const kullanilabilir = yuklenen - dogrulamaBekleyen;
+      const kullanilabilir = yuklenen;
       return {
         yuklenen,
         kullanilabilir,
         kullanilan,
         planlanan,
-        kalan: kullanilabilir - kullanilan,
+        kalan: Math.max(kullanilabilir - kullanilan, 0),
         dogrulamaBekleyen
       };
     },
-    [krediHareketleri, islemler]
+    [krediHareketleri, islemler, birimKrediBedeli, yuklemeHareketAdedi]
   );
 
   /**
@@ -911,11 +1234,14 @@ export function AppProvider({
     gorunurIslemler.forEach((i) => {
       numaralar.add(i.kayitNo);
       if (i.makbuzNo) numaralar.add(i.makbuzNo);
+      islemBagisMakbuzlariniOku(i, birimKrediBedeli).forEach((makbuz) => {
+        if (makbuz.makbuzNo) numaralar.add(makbuz.makbuzNo);
+      });
       i.altBasvurular?.forEach((alt) => numaralar.add(alt.no));
       i.adliRaporlar?.forEach((r) => numaralar.add(r.no));
     });
     return auditKayitlari.filter((a) => auditKaydiGorulebilirMi(kullanici, a, numaralar));
-  }, [auditKayitlari, gorunurIslemler, kullanici]);
+  }, [auditKayitlari, gorunurIslemler, kullanici, birimKrediBedeli]);
 
   const deger = useMemo<AppContextDegeri>(
     () => ({
@@ -957,6 +1283,7 @@ export function AppProvider({
       islemEkle,
       makbuzUret,
       odemeDogrula,
+      krediYuklemeDekontEkle,
       ajanda,
       ajandaEkle,
       ajandaDurumGuncelle,
@@ -1022,6 +1349,7 @@ export function AppProvider({
     islemEkle,
     makbuzUret,
     odemeDogrula,
+    krediYuklemeDekontEkle,
     ajanda,
     ajandaEkle,
     ajandaDurumGuncelle,

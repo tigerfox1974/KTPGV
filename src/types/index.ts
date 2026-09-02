@@ -98,7 +98,92 @@ export interface DekontDosyasi {
   kaynakVeri?: ArrayBuffer;
 }
 
+export type DekontAlanAdi =
+'dekontNo' |
+'bankaReferansNo' |
+'banka' |
+'tarih' |
+'odenenTutar' |
+'odemeYapan';
+
+export type DekontAlanKaynagi = 'PDF_METIN' | 'OCR' | 'KULLANICI' | 'KART_VERISI';
+
+export type DekontAlanDurumu = 'OKUNDU' | 'KONTROL_GEREKLI' | 'DUZELTILDI' | 'DOGRULANDI';
+
+export type DekontAlanDegeri = string | number;
+
+export interface DekontAlanDegerleri {
+  dekontNo?: string;
+  bankaReferansNo?: string;
+  banka?: string;
+  tarih?: string;
+  odenenTutar?: number;
+  odemeYapan?: string;
+}
+
+export interface DekontNormalizedBbox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface DekontSupheliKarakter {
+  index: number;
+  karakter: string;
+  guven?: number;
+  alternatifler?: string[];
+}
+
+export interface DekontAlanAdayi {
+  id: string;
+  alan: DekontAlanAdi;
+  degerMetni: string;
+  deger?: DekontAlanDegeri;
+  kaynak: DekontAlanKaynagi;
+  guven?: number;
+  sayfa?: number;
+  bbox?: DekontNormalizedBbox;
+  supheliKarakterler?: DekontSupheliKarakter[];
+}
+
+export interface DekontKonumluAlan {
+  alan: DekontAlanAdi;
+  ocrDegeri?: string;
+  guncelDeger?: DekontAlanDegeri;
+  kaynak: DekontAlanKaynagi;
+  durum: DekontAlanDurumu;
+  guven?: number;
+  sayfa?: number;
+  bbox?: DekontNormalizedBbox;
+  alternatifAdaylar?: DekontAlanAdayi[];
+  supheliKarakterler?: DekontSupheliKarakter[];
+}
+
+export type DekontDogrulamaDurumu = 'BEKLIYOR' | 'KONTROL_EDILDI' | 'DOGRULANDI' | 'REDDEDILDI';
+
+export type BagisMakbuzTuru = 'TAS_OCAGI_PATLATMASI' | 'GENEL_VAKIF_BAGISI';
+
+export interface DekontTutarDagilimi {
+  amac: BagisMakbuzTuru;
+  tutar: number;
+  bagliMakbuzNo?: string | null;
+}
+
+export interface BagisMakbuzu {
+  makbuzNo: string | null;
+  tur: BagisMakbuzTuru;
+  tutar: number;
+  bagliDekontId?: string;
+  bagliDekontNo?: string;
+  bagliDekontReferansi?: string;
+  bagliDekontTarihi?: string;
+  odemeYapan?: string;
+  olusturmaTarihi?: string;
+}
+
 export interface Dekont {
+  id?: string;
   dekontNo: string;
   bankaReferansNo?: string;
   banka: string;
@@ -106,9 +191,18 @@ export interface Dekont {
   odenenTutar: number;
   odemeYapan: string;
   dosya: DekontDosyasi | null;
+  dogrulamaDurumu?: DekontDogrulamaDurumu;
+  dogrulamaZamani?: string;
+  tutarDagilimi?: DekontTutarDagilimi[];
+  bagisMakbuzlari?: BagisMakbuzu[];
   ocrDurumu?: 'BEKLIYOR' | 'OKUNUYOR' | 'BASARILI' | 'KISMI' | 'BASARISIZ';
-  ocrOkunanAlanlar?: string[];
-  ocrGuvenBilgileri?: Partial<Record<'dekontNo' | 'bankaReferansNo' | 'banka' | 'tarih' | 'odenenTutar' | 'odemeYapan', number>>;
+  ocrOkunanAlanlar?: DekontAlanAdi[];
+  ocrGuvenBilgileri?: Partial<Record<DekontAlanAdi, number>>;
+  ocrAlanModelleri?: Partial<Record<DekontAlanAdi, DekontKonumluAlan>>;
+  /** OCR'ın ilk okuduğu ham/aday değerler — kullanıcı düzeltmesini ezmeden saklanır. */
+  ocrIlkDegerleri?: Partial<DekontAlanDegerleri>;
+  /** Kullanıcı veya görevli tarafından son doğrulanan değerler. */
+  ocrDogrulananDegerleri?: Partial<DekontAlanDegerleri>;
 }
 
 export type IslemDurumu =
@@ -118,6 +212,17 @@ export type IslemDurumu =
 'ISLEM_BASLATILABILIR' |
 'TAMAMLANDI' |
 'IPTAL';
+
+export interface KrediTalebiOdemeOzeti {
+  hedefTutar: number;
+  toplamOdenenTutar: number;
+  dogrulanmisOdemeToplami: number;
+  krediyeAyrilanToplam: number;
+  kullanilabilirKrediAdedi: number;
+  bekleyenBakiye: number;
+  kalanHedef: number;
+  genelBagisToplami: number;
+}
 
 export interface TrafikAltBasvuru {
   no: string;
@@ -162,8 +267,14 @@ export interface Islem {
   gorevSuresi?: number;
   tutar: number;
   hesaplamaAciklamasi: string;
+  /** Geriye uyumlu tek dekont alanı — eski demo kayıtları ve mevcut ekranlar bunu kullanır. */
   dekont: Dekont;
+  /** Çoklu dekontlu kredi talepleri için genişletilmiş liste. */
+  dekontlar?: Dekont[];
+  /** Geriye uyumlu tek makbuz alanı — mevcut ekranlar bozulmadan korunur. */
   makbuzNo: string | null;
+  /** Amaç bazlı bir veya birden fazla bağış makbuzu modeli. */
+  bagisMakbuzlari?: BagisMakbuzu[];
   makbuzUreten?: string;
   durum: IslemDurumu;
   sigortaSirketiId?: string;
@@ -172,6 +283,7 @@ export interface Islem {
   isletmeciId?: string;
   tasOcagiId?: string;
   krediAdedi?: number;
+  krediTalebiOdemeOzeti?: KrediTalebiOdemeOzeti;
   /** Gerçekleşme kaydının bağlı olduğu plan kaydı (EKPL). */
   planKayitNo?: string;
   /** Varsa belge / bildirim no. */
@@ -236,6 +348,7 @@ export interface KrediHareketi {
   adet: number;
   kayitNo: string;
   tasOcagiId?: string;
+  dekontId?: string;
   dekontNo?: string;
   makbuzNo?: string;
   /** Gerçekleşme hareketinin bağlı olduğu plan kaydı. */

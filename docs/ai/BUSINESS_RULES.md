@@ -76,7 +76,7 @@ KTPGV bir vakıftır. Vakfa hangi amaçla ödeme yapılırsa yapılsın alınan 
 Taş ocağı patlatma kredi talebinin hedef tutarı, talep edilen kredi adedi ile güncel bir kredi bedelinin çarpımıdır. Firma hedef tutara ulaşıncaya kadar bir veya birden fazla banka dekontu sunabilir. Eksik ödeme için kuruş, oran veya başka bir tolerans sınırı uygulanmaz; her dekont ayrı kaydedilir ve aynı kredi talebiyle ilişkilendirilir.
 
 ## BR-025 — Kısmi ödeme tam kredi kadar kullanılabilirlik üretir
-Kısmi ödemede bütün kredi talebi bloke edilmez. Kredi talebine ayrılan kümülatif ödeme toplamının tam kredi bedeline karşılık gelen kısmı kadar kredi firmaya kullanılabilir olarak eklenir. Bir tam krediye yetmeyen bakiye aynı talepte bekletilir ve sonraki dekontlarla birleştirilir. Kullanılabilir kredi adedi `floor(krediye ayrılan toplam ödeme / bir kredi bedeli)` hesabıyla belirlenir ve talep edilen kredi adedini aşamaz.
+Kısmi ödemede bütün kredi talebi bloke edilmez. Yalnız `dogrulamaDurumu = DOGRULANDI` olan dekontların kredi talebine ayrılan kümülatif ödeme toplamının tam kredi bedeline karşılık gelen kısmı kadar kredi firmaya kullanılabilir olarak eklenir. Bir tam krediye yetmeyen bakiye aynı talepte bekletilir ve sonraki doğrulanan dekontlarla birleştirilir. Kullanılabilir kredi adedi `floor(krediye ayrılan toplam ödeme / bir kredi bedeli)` hesabıyla belirlenir ve talep edilen kredi adedini aşamaz.
 
 ## BR-026 — Fazla ödeme genel Vakıf bağışıdır
 Taş ocağı kredi talebinin henüz karşılanmamış hedef tutarını aşan ödeme ek patlatma kredisi üretmez. Aşan bölüm ilgili firma veya işletmeci tarafından yapılmış genel Vakıf bağışı olarak kaydedilir.
