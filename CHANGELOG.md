@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-02 — README modül geliştirme aşamaları
+- Kök `README.md` proje tanıtımı, başlarken adımları ve modül geliştirme aşamaları (Düzeltildi / Güncellendi / Zenginleştirildi / Temel) tablosuyla genişletildi.
+- Modül dokümanlarına ve ROADMAP/CHANGELOG/DECISION_LOG dosyalarına bağlantılar eklendi.
+
+> Bu kayıt kapsamında çalışan uygulama kodunda işlevsel değişiklik yapılmamıştır.
+
 ## 2026-09-02 — Taş ocağı dekont OCR inceleme çalışma alanı (Faz 6-8)
 - `src/utils/dekontOcr.ts` genişletilerek Tesseract kelime koordinatları ve güven değerleri korunur hale getirildi; PDF metin öğeleri normalize edilmiş ortak belge koordinat modeline dönüştürüldü.
 - Alan başına alternatif OCR adayları, şüpheli karakter işaretleme ve seçili bölgeyi tekrar okuma (`dekontBolgesiniTekrarOku`) desteği eklendi.
