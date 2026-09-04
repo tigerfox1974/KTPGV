@@ -20,6 +20,28 @@ Her yeni karar aşağıdaki formatta eklenir:
 
 ## Başlangıç kayıtları
 
+### DEC-20260904-002 — mp_screen URL parametresiyle şifresiz oturum açma kapatıldı
+- Tarih: 2026-09-04
+- Modül: Kimlik doğrulama / Giriş
+- Durum: Uygulandı
+- Karar: `App.tsx` içinde `?mp_screen=...` URL parametresinden gerçek kullanıcıya (ör. admin) `giris()` ve şifre kontrolü olmadan doğrudan oturum açan kod tamamen kaldırıldı. `useScreenInit.js` yalnızca `import.meta.env.DEV` iken çalışacak şekilde ek olarak kilitlendi. `canvas.manifest.js` içindeki her ekrana gömülü `state: { kullaniciAdi: ... }` kullanıcı bootstrap verileri kaldırıldı.
+- Gerekçe: Bu link herhangi bir ziyaretçinin şifre girmeden admin dahil herhangi bir seeded kullanıcı olarak oturum açmasına izin veriyordu (kimlik doğrulama atlatma).
+- Etki: `src/App.tsx`, `src/useScreenInit.js`, `src/canvas.manifest.js`.
+- Koruma: Kullanıcının açık talimatıyla `src/pages/Giris.tsx` içindeki demo kullanıcı adı/şifre listesi bu aşamada KALDIRILMADI; proje son aşamaya gelene kadar bilinçli olarak tutulacak.
+- İlgili iş kuralı: Kullanıcı adı/şifre ile giriş modeli (PROJECT_MEMORY.md).
+- İlgili görev: —
+
+### DEC-20260904-001 — AppContext ile mutasyonlar arasına repository/adaptör katmanı eklendi
+- Tarih: 2026-09-04
+- Modül: Mimari / Tüm bentler (ortak veri katmanı)
+- Durum: Uygulandı
+- Karar: `src/services/repository/` altında `KtpgvRepository` arayüzü ve bunu karşılayan `MockKtpgvRepository` sınıfı oluşturuldu. Kimlik doğrulama (`girisYap`), yetki denetimi (makbuz üretme/ödeme doğrulama/kayıt değiştirme kontrolleri), kayıt/audit yazımı ve `sonrakiKayitNo`/`sonrakiMakbuzNo` numaralandırma üretimi bu katmana taşındı. `src/data/*` artık yalnızca repository'nin başlangıç (seed) verisi olarak kullanılıyor; çalışma zamanı gerçek durumu repository içinde tutuluyor. `AppContext.tsx` artık mutasyon mantığını kendi içinde uygulamıyor; repository'yi çağırıp sonuç durumunu React state'ine "ayna" (mirror) olarak yansıtıyor.
+- Gerekçe: Kod incelemesinde auth/yetki/audit/numaralandırma mantığının tarayıcı belleğindeki dizilerde uygulanmasının, dokümante edilen çok-kullanıcılı merkezi mimariyi (bkz. `ARCHITECTURE.md`, `DATABASE_GUIDE.md`) engellediği belirtildi.
+- Etki: `src/contexts/AppContext.tsx`, yeni `src/services/repository/{types,mockRepository,index}.ts`. Sayfa/komponent dosyalarında (`src/pages/*`, `src/components/*`) herhangi bir değişiklik yapılmadı; `useApp()` üzerinden dışa açılan fonksiyon imzaları (senkron) korunmuştur.
+- Koruma: Mevcut iş kuralları (önce ödeme sonra işlem, kısmi kredi/bağış makbuzu ayrımı, yetki filtreleri) davranışsal olarak değiştirilmedi; yalnızca uygulandığı kod konumu taşındı. Repository şu an bellek içi/senkron demo uygulamasıdır; gerçek Supabase entegrasyonu ayrı ve kontrollü bir görevde ele alınmalıdır (`AppContext` çağrılarının o aşamada asenkrona çevrilmesi gerekebilir).
+- İlgili iş kuralı: —
+- İlgili görev: —
+
 ### DEC-20260829-003 — Taş ocağı kredi kullanılabilirliği yalnız doğrulanan dekonttan üretilir
 - Tarih: 2026-08-29
 - Modül: E Bendi / Kredi Yükleme / Ödeme Doğrulama

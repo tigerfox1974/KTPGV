@@ -1,8 +1,5 @@
-import React from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from './components/ui/Sonner';
-import { useScreenInit } from './useScreenInit.js';
-import { kullanicilar } from './data/kullanicilar';
 import { AppProvider, useApp } from './contexts/AppContext';
 import { AppLayout } from './components/layout/AppLayout';
 import { YetkiKapisi } from './components/common/YetkiKapisi';
@@ -171,12 +168,8 @@ function Yonlendirici() {
 }
 
 export function App() {
-  const screenInit = useScreenInit();
-  const baslangicKullanicisi =
-  kullanicilar.find((k) => k.kullaniciAdi === screenInit?.kullaniciAdi) ?? null;
-
   return (
-    <AppProvider baslangicKullanicisi={baslangicKullanicisi}>
+    <AppProvider>
       <BrowserRouter>
         <Yonlendirici />
         <Toaster position="top-right" />

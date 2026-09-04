@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-09-04 — mp_screen ile şifresiz oturum açma kapatıldı
+- `src/App.tsx`: `?mp_screen=...` URL parametresinden gerçek kullanıcıya giriş yapan bootstrap kodu kaldırıldı; uygulama her zaman `Giriş` ekranından başlar.
+- `src/useScreenInit.js`: yalnızca `import.meta.env.DEV` iken çalışacak şekilde ek güvenlik kilidi eklendi.
+- `src/canvas.manifest.js`: her ekrana gömülü `state: { kullaniciAdi }` bootstrap verileri kaldırıldı.
+- Not: Kullanıcı talebiyle `src/pages/Giris.tsx` içindeki demo kullanıcı adı/şifre listesi bu aşamada değiştirilmedi (proje son aşamaya kadar bilinçli olarak korunuyor).
+- Doğrulama: `npx vite build` başarılı.
+
+## 2026-09-04 — Repository/adaptör katmanı (auth, yetki, audit, numaralandırma)
+- `src/services/repository/types.ts` içinde `KtpgvRepository` sözleşmesi ve ilgili sonuç/istek tipleri tanımlandı.
+- `src/services/repository/mockRepository.ts` içinde `MockKtpgvRepository` sınıfı eklendi; kimlik doğrulama, yetki denetimi (makbuz/ödeme/kayıt değiştirme), kayıt/audit yazımı ve `sonrakiKayitNo`/`sonrakiMakbuzNo` üretimi bu sınıfa taşındı. `src/data/*` artık yalnızca bu sınıfın başlangıç (seed) verisidir.
+- `src/contexts/AppContext.tsx` yeniden yazıldı: iş kuralı mantığı kaldırıldı, tüm mutasyonlar `repository` üzerinden çağrılıp React state'i sonucu yansıtacak şekilde tazeleniyor. Dışa açılan `useApp()` fonksiyon imzaları değişmedi; sayfa/komponent dosyalarında değişiklik yapılmadı.
+- Doğrulama: `npm run test:kredi-yukleme` 14/14, `npx tsc --noEmit` (yalnız değişiklikten bağımsız önceden var olan uyarılar/hatalar), `npx vite build` başarılı.
+- Karar kaydı: `docs/ai/DECISION_LOG.md` → DEC-20260904-001. Mimari rehber güncellendi: `docs/ai/ARCHITECTURE.md`.
+
 ## 2026-09-02 — README modül geliştirme aşamaları
 - Kök `README.md` proje tanıtımı, başlarken adımları ve modül geliştirme aşamaları (Düzeltildi / Güncellendi / Zenginleştirildi / Temel) tablosuyla genişletildi.
 - Modül dokümanlarına ve ROADMAP/CHANGELOG/DECISION_LOG dosyalarına bağlantılar eklendi.
