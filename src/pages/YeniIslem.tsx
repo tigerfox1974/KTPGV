@@ -51,6 +51,7 @@ const BOS_FORM: IslemFormu = {
   sigortaSirketiId: '',
   isletmeciId: '',
   tasOcagiId: '',
+  bilgiKaynagi: '',
   notlar: ''
 };
 
@@ -114,14 +115,14 @@ export function YeniIslem() {
     bau,
     islemler,
     islemEkle,
+    islemBul,
     ajanda,
     ajandaEkle,
     auditEkle,
     krediOzeti,
-    krediHareketiEkle,
+    patlatmaPlanla,
     sigortaBul,
-    isletmeciBul,
-    tasOcagiBul
+    isletmeciBul
   } = useApp();
 
   const [form, setForm] = useState<IslemFormu>(BOS_FORM);
@@ -346,6 +347,7 @@ export function YeniIslem() {
           !!form.tasOcagiId &&
           !!form.operasyonTarihi &&
           !!form.operasyonSaati &&
+          !!form.bilgiKaynagi &&
           Number(form.krediAdedi) > 0);
 
       }
@@ -360,7 +362,10 @@ export function YeniIslem() {
       if (!form.fAltTur) return false;
       return !trafik || !!form.sigortaSirketiId;
     }
-    if (form.bent === 'E') return !!form.eIslemTuru && !!form.isletmeciId;
+    if (form.bent === 'E') {
+      if (!form.eIslemTuru || !form.isletmeciId) return false;
+      return !krediPlanlama || !!form.bilgiKaynagi;
+    }
     return true;
   })();
 
@@ -433,6 +438,40 @@ export function YeniIslem() {
 
   const kaydet = () => {
     if (!kullanici || !kaydedilebilir) return;
+
+    // E bendi patlatma planlama tek merkezden y\u00fcr\u00fcr; kay\u0131t/ajanda/kredi hareketi burada elle kurulmaz.
+    if (krediPlanlama) {
+      if (!form.bilgiKaynagi) return;
+      const planSonucu = patlatmaPlanla({
+        isletmeciId: form.isletmeciId,
+        tasOcagiId: form.tasOcagiId,
+        tarih: form.operasyonTarihi,
+        saat: form.operasyonSaati,
+        adet: Number(form.krediAdedi),
+        bilgiKaynagi: form.bilgiKaynagi,
+        aciklama: form.notlar.trim() || undefined,
+        dosya: null
+      });
+      if (!planSonucu.basarili) {
+        toast.error('Patlatma planlanamad\u0131', { description: planSonucu.mesaj });
+        return;
+      }
+      if (planSonucu.krediYetersiz) {
+        toast.warning('Plan olu\u015fturuldu \u2014 kredi yetersiz', {
+          description:
+          'Patlatma \u201cYap\u0131ld\u0131\u201d olarak i\u015flenmeden \u00f6nce kredi y\u00fckleme / \u00f6deme do\u011frulama / makbuz s\u00fcreci tamamlanmal\u0131d\u0131r.'
+        });
+      } else {
+        toast.success('Patlatma takvime eklendi', {
+          description: `Kay\u0131t no: ${planSonucu.kayitNo} \u00b7 Durum: Sonu\u00e7 Bekliyor \u00b7 Kredi bu a\u015famada d\u00fc\u015f\u00fclmedi.`
+        });
+      }
+      const olusanKayit = planSonucu.kayitNo ? islemBul(planSonucu.kayitNo) : undefined;
+      if (olusanKayit) setSonKayit(olusanKayit);
+      sifirla();
+      return;
+    }
+
     const bent = form.bent as BentKodu;
     const kayitNo = sonrakiKayitNo(islemler, bent, form.fAltTur, form.eIslemTuru);
 
@@ -454,9 +493,7 @@ export function YeniIslem() {
 
     const baslikMetni = baslikGorunur ?
     form.baslik.trim() :
-    krediYukleme ?
-    `Patlatma kredisi yükleme — ${form.krediAdedi} kredi` :
-    `Planlı patlatma — ${tasOcagiBul(form.tasOcagiId)?.ad ?? ''}`;
+    `Patlatma kredisi yükleme — ${form.krediAdedi} kredi`;
 
     const ilkKrediDekontu =
     krediYukleme ?
@@ -528,20 +565,9 @@ export function YeniIslem() {
       etkinlikAdi: form.etkinlikAdi.trim() || undefined,
       polisSayisi: bent === 'D' ? Number(form.polisSayisi) : undefined,
       gorevSuresi: bent === 'D' ? Number(form.gorevSuresi) : undefined,
-      tutar: krediPlanlama ? 0 : sonuc.tutar,
-      hesaplamaAciklamasi: krediPlanlama ?
-      'Patlatma planı — kredi henüz düşülmedi. Kredi düşümü patlatma “Yapıldı” olarak işlendiğinde yapılır.' :
-      sonuc.satirlar.join(' · '),
-      dekont: krediPlanlama ?
-      {
-        dekontNo: 'Ön ödemeli kredi',
-        banka: '—',
-        tarih: '',
-        odenenTutar: 0,
-        odemeYapan: isletmeci?.ad ?? '—',
-        dosya: null
-      } :
-      krediYukleme && ilkKrediDekontu ? ilkKrediDekontu :
+      tutar: sonuc.tutar,
+      hesaplamaAciklamasi: sonuc.satirlar.join(' · '),
+      dekont: krediYukleme && ilkKrediDekontu ? ilkKrediDekontu :
       {
         dekontNo: dekont.dekontNo.trim(),
         bankaReferansNo: dekont.bankaReferansNo.trim() || undefined,
@@ -553,9 +579,7 @@ export function YeniIslem() {
       },
       dekontlar: krediYukleme && krediYuklemeTaslagi ? krediYuklemeTaslagi.guncelDekontlar : undefined,
       makbuzNo: null,
-      durum: krediPlanlama ?
-      'ISLEM_BASLATILABILIR' :
-      krediYukleme ?
+      durum: krediYukleme ?
       krediYuklemeTaslagi?.kayitDurumu ?? 'ODEME_BEKLIYOR' :
       'MAKBUZ_BEKLIYOR',
       bagisMakbuzlari: krediYuklemeTaslagi?.bagisMakbuzlari.length ? krediYuklemeTaslagi.bagisMakbuzlari : undefined,
@@ -563,7 +587,6 @@ export function YeniIslem() {
       altBasvurular,
       adliRaporlar,
       isletmeciId: bent === 'E' ? form.isletmeciId : undefined,
-      tasOcagiId: krediPlanlama ? form.tasOcagiId : undefined,
       krediAdedi: bent === 'E' ? Number(form.krediAdedi) : undefined,
       krediTalebiOdemeOzeti: krediYuklemeTaslagi?.krediTalebiOdemeOzeti,
       notlar: form.notlar.trim() || undefined
@@ -588,35 +611,13 @@ export function YeniIslem() {
       );
     }
 
-    if (krediPlanlama) {
-      krediHareketiEkle({
-        id: `kh-${Date.now()}`,
-        isletmeciId: form.isletmeciId,
-        tip: 'PLAN',
-        adet: Number(form.krediAdedi),
-        kayitNo,
-        tasOcagiId: form.tasOcagiId,
-        tarih: form.operasyonTarihi,
-        aciklama: `${
-        tasOcagiBul(form.tasOcagiId)?.ad} — planlı patlatma, sonuç bekliyor. Kredi düşülmedi.`
-
-      });
-      auditEkle(
-        'Patlatma planlandı',
-        `${kayitNo} · ${tasOcagiBul(form.tasOcagiId)?.ad} · ${form.krediAdedi} kredi sonuç bekliyor`
-      );
-    }
-
-    const ajandayaDuser =
-    bent === 'C' || bent === 'Ç' || bent === 'D' || bent === 'F' || krediPlanlama;
+    const ajandayaDuser = bent === 'C' || bent === 'Ç' || bent === 'D' || bent === 'F';
     if (ajandayaDuser) {
       ajandaEkle({
         id: `aj-${Date.now()}`,
         kayitNo,
         bent,
-        islemTuru: krediPlanlama ?
-        'Patlatma planlama' :
-        bent === 'F' ?
+        islemTuru: bent === 'F' ?
         `${trafik ? 'Trafik' : 'Adli'} polis raporu${
         raporSayisi > 1 ? ` (${raporSayisi} rapor)` : ''}` :
 
@@ -626,14 +627,9 @@ export function YeniIslem() {
         birim: kullanici.birim,
         tarih: form.operasyonTarihi,
         saat: form.operasyonSaati || '09:00',
-        yer: krediPlanlama ? tasOcagiBul(form.tasOcagiId)?.ad ?? '—' : form.yer.trim() || '—',
-        durum: krediPlanlama ? 'Sonuç Bekliyor' : 'Planlandı',
-        odemeDurumu: krediPlanlama ?
-        `Ön ödemeli kredi · ${form.krediAdedi} kredi planlandı, sonuç bekliyor` :
-        `Ödeme alındı · Makbuz bekliyor · ${formatTL(yeni.tutar)}`,
-        isletmeciId: krediPlanlama ? form.isletmeciId : undefined,
-        tasOcagiId: krediPlanlama ? form.tasOcagiId : undefined,
-        planlananAdet: krediPlanlama ? Number(form.krediAdedi) : undefined
+        yer: form.yer.trim() || '—',
+        durum: 'Planlandı',
+        odemeDurumu: `Ödeme alındı · Makbuz bekliyor · ${formatTL(yeni.tutar)}`
       });
     }
 

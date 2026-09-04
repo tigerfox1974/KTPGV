@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-09-04 — E bendi patlatma planlama tek merkezden yürütüldü
+- `src/pages/YeniIslem.tsx`: E bendi "Patlatma Planlama" akışı artık kayıt/ajanda/kredi hareketini elle kurmuyor; `patlatmaPlanla` (AppContext) çağrılıyor ve oluşan kayıt `islemBul` ile geri okunuyor. Kredi yetersiz uyarı toast'ı `PatlatmaPlanFormu` ile aynı hale getirildi.
+- `src/components/islem/BentAlanlari.tsx`: `IslemFormu`'na `bilgiKaynagi` alanı eklendi; E bendi patlatma planlama bölümüne `BilgiKaynagiSecimi` seçici eklendi (yeni zorunlu alan).
+- `docs/modules/E_BENDI_TAS_OCAGI.md` iki giriş noktasının aynı sözleşmeyi paylaştığını belirtecek şekilde güncellendi.
+- Doğrulama: `npx tsc --noEmit` (yalnız değişiklikten bağımsız önceden var olan hatalar), `npx vite build` başarılı.
+- Karar kaydı: `docs/ai/DECISION_LOG.md` → DEC-20260904-003.
+
 ## 2026-09-04 — mp_screen ile şifresiz oturum açma kapatıldı
 - `src/App.tsx`: `?mp_screen=...` URL parametresinden gerçek kullanıcıya giriş yapan bootstrap kodu kaldırıldı; uygulama her zaman `Giriş` ekranından başlar.
 - `src/useScreenInit.js`: yalnızca `import.meta.env.DEV` iken çalışacak şekilde ek güvenlik kilidi eklendi.

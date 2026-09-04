@@ -20,6 +20,17 @@ Her yeni karar aşağıdaki formatta eklenir:
 
 ## Başlangıç kayıtları
 
+### DEC-20260904-003 — E bendi patlatma planlama tek merkezden (`patlatmaPlanla`) yürütüldü
+- Tarih: 2026-09-04
+- Modül: E Bendi / Taş Ocağı / Patlatma Planlama
+- Durum: Uygulandı
+- Karar: `src/pages/YeniIslem.tsx` içindeki E bendi "Patlatma Planlama" (`KREDI_PLANLAMA`) akışı, kayıt/ajanda/kredi hareketi kayıtlarını elle oluşturmayı bıraktı; artık `AppContext` içindeki `patlatmaPlanla` fonksiyonunu çağırıyor — `src/components/tasocagi/PatlatmaPlanFormu.tsx` ile aynı sözleşme. Bu akışın çalışabilmesi için `IslemFormu` tipine ve E bendi ekranına (bkz. `BentAlanlari.tsx`) zorunlu "Bilgi kaynağı" seçici alanı eklendi (`PatlatmaPlanFormu`'nda zaten vardı).
+- Gerekçe: İki ayrı giriş noktası (YeniIslem ve PatlatmaPlanFormu) aynı iş kuralını bağımsız olarak uyguluyordu; YeniIslem yolunda bilgi kaynağı hiç toplanmıyordu, kredi yetersiz uyarısı gösterilmiyordu ve audit metinleri farklıydı. Bu, gelecekte `patlatmaPlanla` içinde yapılacak bir kural değişikliğinin YeniIslem yoluna yansımaması riskini taşıyordu.
+- Etki: `src/pages/YeniIslem.tsx`, `src/components/islem/BentAlanlari.tsx`, `docs/modules/E_BENDI_TAS_OCAGI.md`. `src/components/tasocagi/PatlatmaPlanFormu.tsx` ve `src/pages/PatlatmaTakvimi.tsx` zaten merkezi yolu kullandığı için değişmedi.
+- Koruma: A/B/C/Ç/D/F bentleri ve E bendinin kredi yükleme/gerçekleşme akışları değiştirilmedi. Kullanıcı onayıyla YeniIslem ekranına yeni zorunlu "Bilgi kaynağı" alanı eklendi (UI değişikliği).
+- İlgili iş kuralı: Patlatma bilgisi sözlü/telefon/yazılı/personel/diğer kaynaklardan gelebilir ve kaynak kaydedilir (BUSINESS_RULES.md / E_BENDI_TAS_OCAGI.md).
+- İlgili görev: —
+
 ### DEC-20260904-002 — mp_screen URL parametresiyle şifresiz oturum açma kapatıldı
 - Tarih: 2026-09-04
 - Modül: Kimlik doğrulama / Giriş

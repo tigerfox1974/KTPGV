@@ -14,8 +14,9 @@ import { KuralNotu } from '../common/KuralNotu';
 import { BilgiRozeti } from '../common/DurumRozeti';
 import { TrafikAltBasvurular } from './TrafikAltBasvurular';
 import { AdliRaporlar } from './AdliRaporlar';
+import { BilgiKaynagiSecimi } from '../tasocagi/BilgiKaynagiSecimi';
 import { KrediOzeti, useApp } from '../../contexts/AppContext';
-import { AdliRapor, BentKodu, EIslemTuru, FAltTur, TrafikAltBasvuru } from '../../types';
+import { AdliRapor, BentKodu, BilgiKaynagi, EIslemTuru, FAltTur, TrafikAltBasvuru } from '../../types';
 import { formatTL } from '../../utils/currency';
 
 export interface IslemFormu {
@@ -37,6 +38,8 @@ export interface IslemFormu {
   sigortaSirketiId: string;
   isletmeciId: string;
   tasOcagiId: string;
+  /** Yalnızca E bendi patlatma planlamasında zorunludur (bkz. patlatmaPlanla). */
+  bilgiKaynagi: BilgiKaynagi | '';
   notlar: string;
 }
 
@@ -307,6 +310,16 @@ export function BentAlanlari({
                 ekranından beslenir. Kredi bu hesapta tutulur; talep eden alanı buradan dolar.
               </p>
             </div>
+
+            {krediPlanlama &&
+            <div className="sm:max-w-sm">
+                <BilgiKaynagiSecimi
+                id="e-bilgi-kaynagi"
+                deger={form.bilgiKaynagi}
+                degistir={(v) => guncelle('bilgiKaynagi', v)} />
+              
+              </div>
+            }
 
             {krediOzeti && <KrediOzetKutusu ozet={krediOzeti} />}
           </div>
