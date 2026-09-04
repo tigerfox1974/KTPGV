@@ -1,6 +1,8 @@
+import type { ComponentType } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Toaster } from './components/ui/Sonner';
 import { AppProvider, useApp } from './contexts/AppContext';
+import { rotaKayitlari, type RotaKaydi, type RotaSayfaKimligi } from './data/routeRegistry';
 import { AppLayout } from './components/layout/AppLayout';
 import { YetkiKapisi } from './components/common/YetkiKapisi';
 import { Giris } from './pages/Giris';
@@ -23,6 +25,40 @@ import { MaliYilArsiv } from './pages/MaliYilArsiv';
 import { AuditLog } from './pages/AuditLog';
 import { IsKurallari } from './pages/IsKurallari';
 
+const sayfaBilesenleri: Record<RotaSayfaKimligi, ComponentType> = {
+  DASHBOARD: Dashboard,
+  YENI_ISLEM: YeniIslem,
+  KAYITLAR: Kayitlar,
+  KAYIT_DETAY: KayitDetay,
+  ODEME_MAKBUZ: OdemeMakbuz,
+  SIGORTA_SIRKETLERI: SigortaSirketleri,
+  TAS_OCAGI_ISLETMECILERI: TasOcagiIsletmecileri,
+  TAS_OCAGI_KARTLARI: TasOcagiKartlari,
+  KREDI_HAREKETLERI: KrediHareketleri,
+  PATLATMA_TAKVIMI: PatlatmaTakvimi,
+  AJANDA: Ajanda,
+  RAPORLAR: Raporlar,
+  KULLANICI_YONETIMI: KullaniciYonetimi,
+  BIRIM_YONETIMI: BirimYonetimi,
+  YETKILER: Yetkiler,
+  MALI_YIL_ARSIV: MaliYilArsiv,
+  AUDIT_LOG: AuditLog,
+  IS_KURALLARI: IsKurallari
+};
+
+function rotaElementi(rota: RotaKaydi) {
+  const Sayfa = sayfaBilesenleri[rota.sayfa];
+  const icerik = <Sayfa />;
+  if (rota.koruma === 'menu') {
+    return (
+      <YetkiKapisi menu={rota.menuId} baslik={rota.etiket}>
+        {icerik}
+      </YetkiKapisi>
+    );
+  }
+  return icerik;
+}
+
 function Yonlendirici() {
   const { kullanici } = useApp();
 
@@ -31,136 +67,9 @@ function Yonlendirici() {
   return (
     <Routes>
       <Route element={<AppLayout />}>
-        <Route
-          path="/dashboard"
-          element={
-          <YetkiKapisi menu="dashboard" baslik="Dashboard">
-              <Dashboard />
-            </YetkiKapisi>
-          } />
-        
-        <Route
-          path="/yeni-islem"
-          element={
-          <YetkiKapisi menu="yeni-islem" baslik="Yeni İşlem">
-              <YeniIslem />
-            </YetkiKapisi>
-          } />
-        
-        <Route
-          path="/kayitlar"
-          element={
-          <YetkiKapisi menu="kayitlar" baslik="Kayıtlar">
-              <Kayitlar />
-            </YetkiKapisi>
-          } />
-        
-        <Route
-          path="/kayitlar/:kayitNo"
-          element={
-          <YetkiKapisi menu="kayitlar" baslik="Kayıt Detayı">
-              <KayitDetay />
-            </YetkiKapisi>
-          } />
-        
-        <Route
-          path="/odeme-makbuz"
-          element={
-          <YetkiKapisi menu="odeme-makbuz" baslik="Ödeme / Makbuz">
-              <OdemeMakbuz />
-            </YetkiKapisi>
-          } />
-        
-        <Route
-          path="/sigorta-sirketleri"
-          element={
-          <YetkiKapisi menu="sigorta" baslik="Sigorta Şirketi Kartları">
-              <SigortaSirketleri />
-            </YetkiKapisi>
-          } />
-        
-        <Route
-          path="/tas-ocagi-isletmecileri"
-          element={
-          <YetkiKapisi menu="isletmeciler" baslik="Taş Ocağı İşletmecileri">
-              <TasOcagiIsletmecileri />
-            </YetkiKapisi>
-          } />
-        
-        <Route
-          path="/tas-ocagi-kartlari"
-          element={
-          <YetkiKapisi menu="tas-ocaklari" baslik="Taş Ocağı Kartları">
-              <TasOcagiKartlari />
-            </YetkiKapisi>
-          } />
-        
-        <Route
-          path="/kredi-hareketleri"
-          element={
-          <YetkiKapisi menu="kredi-hareketleri" baslik="Taş Ocağı Kredi Hareketleri">
-              <KrediHareketleri />
-            </YetkiKapisi>
-          } />
-        
-        <Route
-          path="/patlatma-takvimi"
-          element={
-          <YetkiKapisi menu="patlatma-takvimi" baslik="Patlatma Takvimi">
-              <PatlatmaTakvimi />
-            </YetkiKapisi>
-          } />
-        
-        <Route
-          path="/ajanda"
-          element={
-          <YetkiKapisi menu="ajanda" baslik="Ajanda">
-              <Ajanda />
-            </YetkiKapisi>
-          } />
-        
-        <Route
-          path="/raporlar"
-          element={
-          <YetkiKapisi menu="raporlar" baslik="Raporlar">
-              <Raporlar />
-            </YetkiKapisi>
-          } />
-        
-        <Route path="/kullanici-yonetimi" element={<KullaniciYonetimi />} />
-        <Route path="/birim-yonetimi" element={<BirimYonetimi />} />
-        <Route
-          path="/yetkiler"
-          element={
-          <YetkiKapisi menu="yetkiler" baslik="Kullanıcı / Rol / Birim Yetkileri">
-              <Yetkiler />
-            </YetkiKapisi>
-          } />
-        
-        <Route
-          path="/mali-yil-arsiv"
-          element={
-          <YetkiKapisi menu="arsiv" baslik="Mali Yıl Arşiv">
-              <MaliYilArsiv />
-            </YetkiKapisi>
-          } />
-        
-        <Route
-          path="/audit-log"
-          element={
-          <YetkiKapisi menu="audit" baslik="Audit Log">
-              <AuditLog />
-            </YetkiKapisi>
-          } />
-        
-        <Route
-          path="/is-kurallari"
-          element={
-          <YetkiKapisi menu="kurallar" baslik="İş Kuralları">
-              <IsKurallari />
-            </YetkiKapisi>
-          } />
-        
+        {rotaKayitlari.map((rota) => (
+          <Route key={rota.rotaId} path={rota.yol} element={rotaElementi(rota)} />
+        ))}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>
     </Routes>);

@@ -1,3 +1,4 @@
+// Tasarım/tuval yerleşim kaydıdır; runtime route veya auth kaynağı değildir.
 export const manifest = {
   screens: {
     scr_4f5ete: { name: "Giriş", route: "/", position: { "x": 160, "y": 220 } },

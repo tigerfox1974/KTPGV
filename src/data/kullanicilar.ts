@@ -1,23 +1,7 @@
 import { Kullanici, RolKodu } from '../types';
+import { menuler as sidebarMenuleri } from './menuler';
 
-export const TUM_MENULER = [
-'dashboard',
-'yeni-islem',
-'kayitlar',
-'odeme-makbuz',
-'sigorta',
-'isletmeciler',
-'tas-ocaklari',
-'kredi-hareketleri',
-'patlatma-takvimi',
-'ajanda',
-'raporlar',
-'kullanici-yonetimi',
-'birim-yonetimi',
-'yetkiler',
-'arsiv',
-'audit',
-'kurallar'];
+export const TUM_MENULER = sidebarMenuleri.map((menu) => menu.id);
 
 
 /** Kullanıcı ve birim yönetimi ekranlarına erişebilen menü kimlikleri. */

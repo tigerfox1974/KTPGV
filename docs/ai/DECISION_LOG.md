@@ -20,6 +20,17 @@ Her yeni karar aşağıdaki formatta eklenir:
 
 ## Başlangıç kayıtları
 
+### DEC-20260904-004 — Route/menu/protection tek kaynakta (`routeRegistry`) toplandı
+- Tarih: 2026-09-04
+- Modül: Route yönetimi / Menü / Yetki kapısı
+- Durum: Uygulandı
+- Karar: `src/data/routeRegistry.ts` dosyası eklenerek path, menu id, etiket, koruma gereksinimi ve sidebar grup/ikon bilgileri tek typed kayıt altında toplandı. `src/App.tsx` route wiring'i bu kayıtlardan üretilecek şekilde değiştirildi; `src/data/menuler.ts` manuel menü listesi kaldırılarak registry'den türetildi. Ek olarak `src/data/kullanicilar.ts` içindeki `TUM_MENULER` listesi menü kaynağından türetildi.
+- Gerekçe: Route/path/menu-id bilgisinin birden çok dosyada tutulması drift riski doğuruyordu. Tracer AI yorumu bu riski hedefledi.
+- Etki: `src/data/routeRegistry.ts` (yeni), `src/App.tsx`, `src/data/menuler.ts`, `src/data/kullanicilar.ts`, `docs/modules/ROUTES_SOURCE_MAP.md`.
+- Koruma: Runtime auth akışı `canvas.manifest` bağımlılığından tamamen ayrıldı; `src/useScreenInit.js` no-op uyumluluk kancası olarak bırakıldı, `src/canvas.manifest.js` yalnız tasarım/tuval metadatası olarak işaretlendi.
+- İlgili iş kuralı: Menüden gizlemek yetmez; route/ekran erişimi yetki kapısıyla korunur (BUSINESS_RULES / Yetki ilkeleri).
+- İlgili görev: —
+
 ### DEC-20260904-003 — E bendi patlatma planlama tek merkezden (`patlatmaPlanla`) yürütüldü
 - Tarih: 2026-09-04
 - Modül: E Bendi / Taş Ocağı / Patlatma Planlama

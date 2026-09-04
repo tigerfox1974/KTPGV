@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-09-04 — Route/menu/source-map tek kaynaklaştırma (typed registry)
+- `src/data/routeRegistry.ts` eklendi: route `yol`, `menuId`, `etiket`, `koruma` ve sidebar grup/ikon bilgileri tek typed kaynakta toplandı.
+- `src/App.tsx`: route tanımları manuel bloklar yerine `rotaKayitlari` üzerinden üretiliyor; korumalı ekranlar registry içindeki `koruma: 'menu'` işaretine göre `YetkiKapisi` ile sarılıyor.
+- `src/data/menuler.ts`: sidebar menü listesi manuel tanım yerine registry'den türetiliyor.
+- `src/data/kullanicilar.ts`: `TUM_MENULER` sabiti manuel string listesi yerine `menuler` kaynağından türetiliyor; menu id tekrarları azaltıldı.
+- `src/useScreenInit.js`: runtime davranış no-op uyumluluk kancasına indirildi; route/auth akışına etkisi kaldırıldı.
+- `src/canvas.manifest.js`: runtime route/auth kaynağı olmadığı açıkça notlandı.
+- `docs/modules/ROUTES_SOURCE_MAP.md`: doküman ikincil kaynak olarak güncellendi; runtime tek kaynağın `routeRegistry` olduğu belirtildi.
+- Doğrulama: `npx vite build` başarılı (bilinen chunk-size uyarısı dışında hata yok), ilgili dosyalarda `get_errors` temiz.
+- Karar kaydı: `docs/ai/DECISION_LOG.md` → DEC-20260904-004.
+
 ## 2026-09-04 — E bendi patlatma planlama tek merkezden yürütüldü
 - `src/pages/YeniIslem.tsx`: E bendi "Patlatma Planlama" akışı artık kayıt/ajanda/kredi hareketini elle kurmuyor; `patlatmaPlanla` (AppContext) çağrılıyor ve oluşan kayıt `islemBul` ile geri okunuyor. Kredi yetersiz uyarı toast'ı `PatlatmaPlanFormu` ile aynı hale getirildi.
 - `src/components/islem/BentAlanlari.tsx`: `IslemFormu`'na `bilgiKaynagi` alanı eklendi; E bendi patlatma planlama bölümüne `BilgiKaynagiSecimi` seçici eklendi (yeni zorunlu alan).
