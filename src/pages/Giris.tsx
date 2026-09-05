@@ -125,7 +125,7 @@ export function Giris() {
                   className="flex w-full items-center justify-between gap-3 rounded-md border border-border px-3 py-2 text-left text-sm transition-colors hover:border-primary/40 hover:bg-primary/5">
                   
                     <span className="font-mono text-xs text-muted-foreground">
-                      {k.kullaniciAdi} / {k.sifre}
+                      {k.kullaniciAdi}
                     </span>
                     <span className="truncate font-medium text-foreground">
                       {k.rol}
