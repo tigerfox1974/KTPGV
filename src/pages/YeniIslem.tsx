@@ -31,7 +31,7 @@ import { hesapla, patlatmaBedeli, raporBedeli } from '../utils/hesaplama';
 import { DekontOcrSonucu, normalizeDekontNo } from '../utils/dekontOcr';
 import { altBasvuruNo, sonrakiKayitNo } from '../utils/numaralandirma';
 import { formatTL, formatTarih, formatTarihSaat } from '../utils/currency';
-import { krediYuklemeKaydiniCozumle, islemDekontlariniOku } from '../utils/krediYukleme';
+import { islemDekontlariniOku } from '../utils/krediYukleme';
 
 const BOS_FORM: IslemFormu = {
   bent: '',
@@ -114,10 +114,9 @@ export function YeniIslem() {
     kullanici,
     bau,
     islemler,
-    islemEkle,
+    islemOlustur,
     islemBul,
     ajanda,
-    ajandaEkle,
     auditEkle,
     krediOzeti,
     patlatmaPlanla,
@@ -472,170 +471,46 @@ export function YeniIslem() {
       return;
     }
 
-    const bent = form.bent as BentKodu;
-    const kayitNo = sonrakiKayitNo(islemler, bent, form.fAltTur, form.eIslemTuru);
-
-    const altBasvurular: TrafikAltBasvuru[] | undefined = trafik ?
-    trafikSatirlari.map((satir, i) => ({
-      ...satir,
-      no: altBasvuruNo(kayitNo, i + 1),
-      raporTutari: raporBedeli(bau)
-    })) :
-    undefined;
-
-    const adliRaporlar: AdliRapor[] | undefined = adli ?
-    adliSatirlari.map((satir, i) => ({
-      ...satir,
-      no: altBasvuruNo(kayitNo, i + 1),
-      raporTutari: raporBedeli(bau)
-    })) :
-    undefined;
-
-    const baslikMetni = baslikGorunur ?
-    form.baslik.trim() :
-    `Patlatma kredisi yükleme — ${form.krediAdedi} kredi`;
-
-    const ilkKrediDekontu =
-    krediYukleme ?
-    {
-      id: `dk-${Date.now()}-ilk`,
-      dekontNo: dekont.dekontNo.trim(),
-      bankaReferansNo: dekont.bankaReferansNo.trim() || undefined,
-      banka: dekont.banka.trim(),
-      tarih: dekont.tarih,
+    const sonucKayit = islemOlustur({
+      bent: form.bent as BentKodu,
+      fAltTur: form.fAltTur || undefined,
+      eIslemTuru: form.eIslemTuru || undefined,
+      baslik: form.baslik,
+      talepEden: talepEdenAdi || '—',
+      operasyonTarihi: form.operasyonTarihi || undefined,
+      operasyonSaati: form.operasyonSaati || undefined,
+      yer: form.yer || undefined,
+      etkinlikAdi: form.etkinlikAdi || undefined,
+      polisSayisi: form.bent === 'D' ? Number(form.polisSayisi) : undefined,
+      gorevSuresi: form.bent === 'D' ? Number(form.gorevSuresi) : undefined,
+      tutar: sonuc.tutar,
+      hesaplamaSatirlari: sonuc.satirlar,
+      dekontNo: dekont.dekontNo,
+      bankaReferansNo: dekont.bankaReferansNo || undefined,
+      banka: dekont.banka,
+      dekontTarihi: dekont.tarih,
       odenenTutar: odenen,
-      odemeYapan: dekont.odemeYapan.trim(),
-      dosya,
-      dogrulamaDurumu: 'BEKLIYOR' as const,
+      odemeYapan: dekont.odemeYapan,
+      dekontDosyasi: dosya,
       ocrDurumu: ocrBilgileri.durum,
       ocrOkunanAlanlar: ocrBilgileri.okunanAlanlar,
       ocrGuvenBilgileri: ocrBilgileri.guven,
-      ocrDogrulananDegerleri: {
-        dekontNo: dekont.dekontNo.trim(),
-        bankaReferansNo: dekont.bankaReferansNo.trim() || undefined,
-        banka: dekont.banka.trim(),
-        tarih: dekont.tarih,
-        odenenTutar: odenen,
-        odemeYapan: dekont.odemeYapan.trim()
-      }
-    } :
-    null;
-
-    const krediYuklemeTaslagi =
-    krediYukleme && ilkKrediDekontu ?
-    krediYuklemeKaydiniCozumle({
-      islem: {
-        id: `is-${Date.now()}-taslak`,
-        kayitNo,
-        bent: 'E',
-        eIslemTuru: 'KREDI_YUKLEME',
-        baslik: baslikMetni,
-        talepEden: talepEdenAdi || '—',
-        birim: kullanici.birim,
-        olusturan: kullanici.rol,
-        olusturmaTarihi: new Date().toISOString().slice(0, 10),
-        tutar: sonuc.tutar,
-        hesaplamaAciklamasi: sonuc.satirlar.join(' · '),
-        dekont: ilkKrediDekontu,
-        dekontlar: [ilkKrediDekontu],
-        makbuzNo: null,
-        durum: 'ODEME_BEKLIYOR',
-        isletmeciId: form.isletmeciId,
-        krediAdedi: Number(form.krediAdedi)
-      },
-      birimKrediBedeli: patlatmaBedeli(bau),
-      mevcutYuklemeAdedi: 0
-    }) :
-    null;
-
-    const yeni: Islem = {
-      id: `is-${Date.now()}`,
-      kayitNo,
-      bent,
-      fAltTur: form.fAltTur || undefined,
-      eIslemTuru: form.eIslemTuru || undefined,
-      baslik: baslikMetni,
-      talepEden: talepEdenAdi || '—',
-      birim: kullanici.birim,
-      olusturan: kullanici.rol,
-      olusturmaTarihi: new Date().toISOString().slice(0, 10),
-      operasyonTarihi: form.operasyonTarihi || undefined,
-      operasyonSaati: form.operasyonSaati || undefined,
-      yer: form.yer.trim() || undefined,
-      etkinlikAdi: form.etkinlikAdi.trim() || undefined,
-      polisSayisi: bent === 'D' ? Number(form.polisSayisi) : undefined,
-      gorevSuresi: bent === 'D' ? Number(form.gorevSuresi) : undefined,
-      tutar: sonuc.tutar,
-      hesaplamaAciklamasi: sonuc.satirlar.join(' · '),
-      dekont: krediYukleme && ilkKrediDekontu ? ilkKrediDekontu :
-      {
-        dekontNo: dekont.dekontNo.trim(),
-        bankaReferansNo: dekont.bankaReferansNo.trim() || undefined,
-        banka: dekont.banka.trim(),
-        tarih: dekont.tarih,
-        odenenTutar: odenen,
-        odemeYapan: dekont.odemeYapan.trim(),
-        dosya
-      },
-      dekontlar: krediYukleme && krediYuklemeTaslagi ? krediYuklemeTaslagi.guncelDekontlar : undefined,
-      makbuzNo: null,
-      durum: krediYukleme ?
-      krediYuklemeTaslagi?.kayitDurumu ?? 'ODEME_BEKLIYOR' :
-      'MAKBUZ_BEKLIYOR',
-      bagisMakbuzlari: krediYuklemeTaslagi?.bagisMakbuzlari.length ? krediYuklemeTaslagi.bagisMakbuzlari : undefined,
       sigortaSirketiId: trafik ? form.sigortaSirketiId : undefined,
-      altBasvurular,
-      adliRaporlar,
-      isletmeciId: bent === 'E' ? form.isletmeciId : undefined,
-      krediAdedi: bent === 'E' ? Number(form.krediAdedi) : undefined,
-      krediTalebiOdemeOzeti: krediYuklemeTaslagi?.krediTalebiOdemeOzeti,
-      notlar: form.notlar.trim() || undefined
-    };
+      trafikAltBasvurular: trafik ? trafikSatirlari : undefined,
+      adliRaporlar: adli ? adliSatirlari : undefined,
+      isletmeciId: form.bent === 'E' ? form.isletmeciId : undefined,
+      krediAdedi: form.bent === 'E' ? Number(form.krediAdedi) : undefined,
+      notlar: form.notlar || undefined
+    });
 
-    islemEkle(yeni);
-    auditEkle('Kayıt oluşturuldu', kayitNo);
-
-    if (trafik) {
-      auditEkle('Trafik ana TTRF oluşturuldu', `${kayitNo} · ${sigortaSirketi?.ad}`);
-      if (altBasvurular && altBasvurular.length > 1) {
-        altBasvurular.
-        slice(1).
-        forEach((alt) => auditEkle('Trafik ek rapor oluşturuldu', `${alt.no} · ${alt.plaka}`));
-      }
+    if (!sonucKayit.basarili || !sonucKayit.kayit) {
+      toast.error('İşlem kaydı oluşturulamadı', { description: sonucKayit.mesaj });
+      return;
     }
 
-    if (krediYukleme) {
-      auditEkle(
-        'Taş ocağı kredi talebi oluşturuldu',
-        `${isletmeci?.ad} · ${kayitNo} · İlk dekont ${dekont.dekontNo.trim()} · doğrulama bekliyor`
-      );
-    }
-
-    const ajandayaDuser = bent === 'C' || bent === 'Ç' || bent === 'D' || bent === 'F';
-    if (ajandayaDuser) {
-      ajandaEkle({
-        id: `aj-${Date.now()}`,
-        kayitNo,
-        bent,
-        islemTuru: bent === 'F' ?
-        `${trafik ? 'Trafik' : 'Adli'} polis raporu${
-        raporSayisi > 1 ? ` (${raporSayisi} rapor)` : ''}` :
-
-        bentler.find((b) => b.kod === bent)?.baslik ?? '',
-        baslik: form.etkinlikAdi.trim() || yeni.baslik,
-        talepEden: talepEdenAdi || '—',
-        birim: kullanici.birim,
-        tarih: form.operasyonTarihi,
-        saat: form.operasyonSaati || '09:00',
-        yer: form.yer.trim() || '—',
-        durum: 'Planlandı',
-        odemeDurumu: `Ödeme alındı · Makbuz bekliyor · ${formatTL(yeni.tutar)}`
-      });
-    }
-
-    setSonKayit(yeni);
+    setSonKayit(sonucKayit.kayit);
     toast.success('İşlem kaydı oluşturuldu', {
-      description: `Kayıt no: ${kayitNo} · Numara sistem tarafından üretildi.`
+      description: `Kayıt no: ${sonucKayit.kayitNo} · Numara sistem tarafından üretildi.`
     });
     sifirla();
   };

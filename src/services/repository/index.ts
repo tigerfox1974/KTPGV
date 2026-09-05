@@ -15,6 +15,8 @@ export type {
   OdemeDogrulamaSonucu,
   PlanGirdisi,
   PlanSonucu,
+  YeniIslemGirdisi,
+  YeniIslemSonucu,
   SonucGirdisi
 } from './types';
 

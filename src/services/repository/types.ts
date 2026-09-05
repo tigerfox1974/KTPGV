@@ -1,11 +1,15 @@
 import {
+  AdliRapor,
   AjandaDurumu,
   AjandaKaydi,
   AuditKaydi,
   BentKodu,
+  DekontAlanAdi,
   Birim,
   Dekont,
   DekontDosyasi,
+  EIslemTuru,
+  FAltTur,
   Isletmeci,
   Islem,
   KrediHareketi,
@@ -14,6 +18,7 @@ import {
   PatlatmaSonucu,
   BilgiKaynagi,
   SigortaSirketi,
+  TrafikAltBasvuru,
   TasOcagi
 } from '../../types';
 
@@ -111,6 +116,43 @@ export interface IslemSonucu {
   mesaj: string;
 }
 
+export interface YeniIslemGirdisi {
+  bent: BentKodu;
+  fAltTur?: FAltTur;
+  eIslemTuru?: EIslemTuru;
+  baslik: string;
+  talepEden: string;
+  operasyonTarihi?: string;
+  operasyonSaati?: string;
+  yer?: string;
+  etkinlikAdi?: string;
+  polisSayisi?: number;
+  gorevSuresi?: number;
+  tutar: number;
+  hesaplamaSatirlari: string[];
+  dekontNo: string;
+  bankaReferansNo?: string;
+  banka: string;
+  dekontTarihi: string;
+  odenenTutar: number;
+  odemeYapan: string;
+  dekontDosyasi: DekontDosyasi | null;
+  ocrDurumu?: 'BEKLIYOR' | 'OKUNUYOR' | 'BASARILI' | 'KISMI' | 'BASARISIZ';
+  ocrOkunanAlanlar?: DekontAlanAdi[];
+  ocrGuvenBilgileri?: Partial<Record<DekontAlanAdi, number>>;
+  sigortaSirketiId?: string;
+  trafikAltBasvurular?: TrafikAltBasvuru[];
+  adliRaporlar?: AdliRapor[];
+  isletmeciId?: string;
+  krediAdedi?: number;
+  notlar?: string;
+}
+
+export interface YeniIslemSonucu extends IslemSonucu {
+  kayitNo?: string;
+  kayit?: Islem;
+}
+
 export interface KayitSonucu {
   basarili: boolean;
   mesaj?: string;
@@ -164,6 +206,7 @@ export interface KtpgvRepository {
   // --- İşlemler --------------------------------------------------------------
   islemleriGetir(): Islem[];
   islemEkle(aktifKullanici: Kullanici | null, islem: Islem): void;
+  islemOlustur(aktifKullanici: Kullanici | null, girdi: YeniIslemGirdisi): YeniIslemSonucu;
   makbuzUret(aktifKullanici: Kullanici | null, islemId: string): MakbuzUretimSonucu;
   odemeDogrula(aktifKullanici: Kullanici | null, islemId: string, dekontId?: string): OdemeDogrulamaSonucu;
   krediYuklemeDekontEkle(
