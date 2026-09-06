@@ -1,4 +1,3 @@
-import React from 'react';
 import { Toaster as SonnerToaster, ToasterProps } from 'sonner';
 import { cn } from '../../utils/cn';
 

@@ -9,8 +9,8 @@ export interface MenuOgesi {
   grup: MenuGrubu;
 }
 
-function sidebarRotasiMi(rota: RotaKaydi): rota is RotaKaydi & { sidebar: NonNullable<RotaKaydi['sidebar']> } {
-  return !!rota.sidebar;
+function sidebarRotasiMi(rota: RotaKaydi): rota is RotaKaydi & { sidebar: { grup: MenuGrubu; ikon: LucideIcon } } {
+  return 'sidebar' in rota;
 }
 
 export const menuler: MenuOgesi[] = rotaKayitlari.filter(sidebarRotasiMi).map((rota) => ({

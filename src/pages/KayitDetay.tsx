@@ -493,7 +493,7 @@ export function KayitDetay() {
                 <div className="space-y-3">
                   <div className="grid gap-3 sm:grid-cols-2">
                     {bagisMakbuzlari.map((makbuz) =>
-                    <div key={makbuz.makbuzNo ?? `${makbuz.tur}-${makbuz.bagliDekontNo}`} className="rounded-lg border border-border bg-card p-3">
+                    <div key={makbuz.makbuzNo ?? (('tur' in makbuz) ? `${makbuz.tur}-${makbuz.bagliDekontNo}` : makbuz.makbuzNo)} className="rounded-lg border border-border bg-card p-3">
                         <p className="text-sm font-medium text-foreground">{makbuz.makbuzNo}</p>
                         {'tur' in makbuz &&
                         <p className="mt-1 text-xs text-muted-foreground">
@@ -545,7 +545,7 @@ export function KayitDetay() {
                     size="sm"
                     onClick={() => {
                       setMakbuzAcik(true);
-                      auditEkle('Makbuz görüntülendi', islem.makbuzNo);
+                      auditEkle('Makbuz görüntülendi', islem.makbuzNo ?? islem.kayitNo);
                     }}
                   >
                     <Receipt className="h-4 w-4" aria-hidden="true" />

@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface CokluSecimProps {
   baslik: string;
   aciklama?: string;

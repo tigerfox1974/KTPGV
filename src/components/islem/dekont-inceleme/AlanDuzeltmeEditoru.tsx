@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeftRight, Check, MapPinned, PenSquare, ScanSearch, Wand2 } from 'lucide-react';
 import type {
   DekontAlanAdi,

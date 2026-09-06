@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';

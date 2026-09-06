@@ -1,4 +1,3 @@
-import React from 'react';
 import type { DekontAlanAdi, DekontKonumluAlan } from '../../../types';
 import {
   DEKONT_ALAN_ETIKETLERI,
