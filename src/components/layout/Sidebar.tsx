@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { ShieldCheck, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { menuGruplari, menuler } from '../../data/menuler';
 import { useApp } from '../../contexts/AppContext';
 
@@ -27,9 +27,9 @@ export function Sidebar({ acik, kapat }: SidebarProps) {
         }
         aria-label="Ana menü">
         
-        <div className="flex items-center gap-3 border-b border-sidebar-border px-5 py-4">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10">
-            <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+                <div className="flex items-center gap-3 border-b border-sidebar-border px-5 py-4">
+          <span className="flex h-9 w-9 items-center justify-center">
+            <img src="/polvak3Dlogo-64.png" alt="KTPGV Logo" className="h-7 w-auto" />
           </span>
           <div className="min-w-0 flex-1">
             <p className="font-heading text-sm font-semibold leading-tight">KTPGV</p>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LogIn, ShieldCheck } from 'lucide-react';
+import { LogIn } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Label } from '../components/ui/Label';
@@ -30,9 +30,9 @@ export function Giris() {
   return (
     <div className="flex min-h-screen w-full flex-col bg-muted/40 lg:flex-row">
       <div className="flex flex-col justify-between bg-sidebar px-6 py-10 text-sidebar-foreground sm:px-12 lg:w-[46%]">
-        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10">
-            <ShieldCheck className="h-5 w-5" aria-hidden="true" />
+            <img src="/polvak3Dlogo-64.png" alt="KTPGV Logo" className="h-6 w-auto" />
           </span>
           <div>
             <p className="font-heading text-sm font-semibold">KTPGV</p>
