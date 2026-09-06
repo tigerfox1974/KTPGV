@@ -16,7 +16,7 @@ Kredi hareketleri `YUKLEME`, `PLAN`, `KULLANIM` tipleriyle izlenir. İşletmeci 
 - Gerçekleşen patlatma kredi bakiyesinden 1 düşer.
 - Patlatma bilgisi sözlü/telefon/yazılı/personel/diğer kaynaklardan gelebilir ve kaynak kaydedilir.
 - Sonuç sade kullanıcı diliyle Yapıldı/Yapılmadı/Ertelendi/İptal olarak tutulur.
-- E bendi patlatma planlama (EKPL) tek merkezden yürür: hem `src/pages/YeniIslem.tsx` hem `src/components/tasocagi/PatlatmaPlanFormu.tsx` girişleri `AppContext` içindeki `patlatmaPlanla` fonksiyonunu çağırır. Kayıt/ajanda/kredi hareketi ve numaralandırma yalnız bu fonksiyonda oluşur; ekranlar yalnız girdi toplar ve dönen sonucu (başarı/uyarı/audit/kayıt no) gösterir.
+- Patlatma planlama (EKPL) ve patlatma sonucu işleme (EKGR) tek giriş noktasından yürür: Patlatma Takvimi ekranı (`src/pages/PatlatmaTakvimi.tsx` üzerinden `PatlatmaPlanFormu`, `PatlatmaYapildiModali`, `PatlatmaSonucModali`). `AppContext` içindeki `patlatmaPlanla` / `patlatmaGerceklesmeIsle` / `patlatmaSonucIsle` fonksiyonları kayıt/ajanda/kredi hareketi ve numaralandırmayı üretir; ekranlar yalnız girdi toplar ve dönen sonucu (başarı/uyarı/audit/kayıt no) gösterir. Yeni İşlem ekranı E bendinde yalnız kredi yükleme (EKRD) kaydı açar; planlama/sonuç girişleri oradan kaldırıldı (bkz. DEC-20260906-002).
 
 ## Kredi talebi ve ödeme dağılımı
 

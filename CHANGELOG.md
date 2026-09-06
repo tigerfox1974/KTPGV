@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-06 — E bendi patlatma girişleri Patlatma Takvimi'nde toplandı
+- `src/pages/YeniIslem.tsx`: E bendi "Patlatma Planla" ve "Patlatma Sonucunu İşle" işlem türleri kaldırıldı; E bendi yalnız "Kredi Yükle" akışıyla açılır ve işlem türü otomatik seçili gelir. Sonuç bekleyen plan listesi, "Plan kaydı olmadan sonuç işle" butonu ve `PatlatmaYapildiModali` kullanımı Yeni İşlem'den çıkarıldı.
+- `src/components/islem/BentAlanlari.tsx`: E bendi işlem türü seçici ve bilgi kaynağı seçici kaldırıldı; planlama operasyon/hesaplama bölümleri silindi; E için "Patlatma işlemleri nerede?" kural notu eklendi. Kredi yükleme hesaplama görünümü korundu.
+- Patlatma planlama (EKPL) ve patlatma sonucu işleme (EKGR) tek giriş noktası olarak Patlatma Takvimi ekranında yürümeye devam eder; repository sözleşmeleri değişmedi.
+- Doğrulama: `npx tsc --noEmit` temiz, `npm run lint` (0 hata, bilinen 14 Fast Refresh uyarısı), `npm run build` başarılı, `test:kredi-yukleme` 14/14, `test:parser` 7/7, `test:d-bendi` 9/9.
+
 ## 2026-09-06 — D bendi çoklu görev dilimi
 - `src/types/index.ts`: `GorevDilimi` tipi ve `Islem.gorevDilimleri` alanı eklendi; eski `polisSayisi`/`gorevSuresi` alanları geriye dönük korundu.
 - `src/utils/hesaplama.ts`: D bendi hesabı çoklu dilim toplamına geçti (`BAÜ x %0,5 x toplam polis-saat`); açıklama satırlarında her dilim ayrı gösteriliyor. Dilim verilmeyen eski veri tek dilim olarak işleniyor; diğer bentlerin hesaplama dalı değiştirilmedi.

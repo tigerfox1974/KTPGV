@@ -11,11 +11,9 @@ import {
   SelectValue } from
 '../ui/Select';
 import { KuralNotu } from '../common/KuralNotu';
-import { BilgiRozeti } from '../common/DurumRozeti';
 import { Button } from '../ui/Button';
 import { TrafikAltBasvurular } from './TrafikAltBasvurular';
 import { AdliRaporlar } from './AdliRaporlar';
-import { BilgiKaynagiSecimi } from '../tasocagi/BilgiKaynagiSecimi';
 import { KrediOzeti, useApp } from '../../contexts/AppContext';
 import { AdliRapor, BentKodu, BilgiKaynagi, EIslemTuru, FAltTur, TrafikAltBasvuru } from '../../types';
 import { formatTL } from '../../utils/currency';
@@ -206,7 +204,7 @@ export function BentAlanlari({
   dilimEkle,
   dilimKaldir
 }: BentAlanlariProps) {
-  const { sigortalar, isletmeciler, tasOcaklari } = useApp();
+  const { sigortalar, isletmeciler } = useApp();
   const { bent } = form;
 
   if (!bent) return null;
@@ -214,7 +212,6 @@ export function BentAlanlari({
   const trafik = bent === 'F' && form.fAltTur === 'TRAFIK';
   const adli = bent === 'F' && form.fAltTur === 'ADLI';
   const krediYukleme = bent === 'E' && form.eIslemTuru === 'KREDI_YUKLEME';
-  const krediPlanlama = bent === 'E' && form.eIslemTuru === 'KREDI_PLANLAMA';
 
   /* ---------------------------- İŞLEM KAYNAĞI ---------------------------- */
   if (bolum === 'kaynak') {
@@ -239,26 +236,11 @@ export function BentAlanlari({
         }
 
         {bent === 'E' &&
-        <div className="sm:max-w-md">
-            <Label htmlFor="e-islem-turu">E bendi işlem türü</Label>
-            <Select
-            value={form.eIslemTuru || undefined}
-            onValueChange={(v) => guncelle('eIslemTuru', v as EIslemTuru)}>
-            
-              <SelectTrigger id="e-islem-turu" className="mt-1.5">
-                <SelectValue placeholder="Lütfen işlem türü seçiniz" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="KREDI_YUKLEME">Kredi Yükle</SelectItem>
-                <SelectItem value="KREDI_PLANLAMA">Patlatma Planla</SelectItem>
-                <SelectItem value="KREDI_GERCEKLESME">Patlatma Sonucunu İşle</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Kredi düşümü planlama aşamasında değil, patlatma “Yapıldı” olarak işlendiğinde
-              yapılır.
-            </p>
-          </div>
+        <KuralNotu baslik="Patlatma işlemleri nerede?">
+            Patlatma planlama ve patlatma sonucu işleme yalnızca Patlatma Takvimi ekranından
+            yapılır. Bu ekranda E bendi yalnız kredi yükleme kaydı açar; kredi düşümü patlatma
+            “Yapıldı” olarak işlendiğinde yapılır.
+          </KuralNotu>
         }
 
         {trafik &&
@@ -333,16 +315,6 @@ export function BentAlanlari({
                 ekranından beslenir. Kredi bu hesapta tutulur; talep eden alanı buradan dolar.
               </p>
             </div>
-
-            {krediPlanlama &&
-            <div className="sm:max-w-sm">
-                <BilgiKaynagiSecimi
-                id="e-bilgi-kaynagi"
-                deger={form.bilgiKaynagi}
-                degistir={(v) => guncelle('bilgiKaynagi', v)} />
-              
-              </div>
-            }
 
             {krediOzeti && <KrediOzetKutusu ozet={krediOzeti} />}
           </div>
@@ -434,52 +406,7 @@ export function BentAlanlari({
 
     }
 
-    if (!krediPlanlama) return null;
-
-    // E — patlatma planlama
-    const isletmeciTasOcaklari = tasOcaklari.filter(
-      (t) => t.isletmeciId === form.isletmeciId && t.aktif
-    );
-
-    return (
-      <div className="space-y-4">
-        <div className="sm:max-w-sm">
-          <Label htmlFor="tas-ocagi">Taş ocağı</Label>
-          <Select
-            value={form.tasOcagiId || undefined}
-            onValueChange={(v) => guncelle('tasOcagiId', v)}
-            disabled={!form.isletmeciId}>
-            
-            <SelectTrigger id="tas-ocagi" className="mt-1.5">
-              <SelectValue
-                placeholder={
-                form.isletmeciId ? 'Lütfen taş ocağı seçiniz' : 'Önce işletmeci seçiniz'
-                } />
-              
-            </SelectTrigger>
-            <SelectContent>
-              {isletmeciTasOcaklari.map((t) =>
-              <SelectItem key={t.id} value={t.id}>
-                  {t.ad} · {t.bolge}
-                </SelectItem>
-              )}
-            </SelectContent>
-          </Select>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {form.isletmeciId ?
-            `Yalnızca seçilen işletmeciye bağlı ${isletmeciTasOcaklari.length} aktif taş ocağı listelenir.` :
-            'İşletmeci seçildikten sonra yalnızca ona bağlı taş ocakları listelenir.'}
-          </p>
-        </div>
-
-        <OperasyonAlanlari
-          form={form}
-          guncelle={guncelle}
-          tarihEtiketi="Planlanan patlatma tarihi"
-          saatEtiketi="Planlanan patlatma saati"
-          yerVar={false} />
-        
-      </div>);
+    return null;
 
   }
 
@@ -675,55 +602,6 @@ export function BentAlanlari({
 
   }
 
-  if (!krediPlanlama) return null;
-
-  const planlanacak = Number(form.krediAdedi) || 0;
-  const yeterli = !!krediOzeti && planlanacak > 0 && planlanacak <= krediOzeti.kalan;
-
-  return (
-    <div className="space-y-4">
-      <div className="sm:max-w-xs">
-        <Label htmlFor="kredi-adedi">Planlanan patlatma adedi</Label>
-        <Input
-          id="kredi-adedi"
-          type="number"
-          min={1}
-          step={1}
-          value={form.krediAdedi}
-          onChange={(e) => guncelle('krediAdedi', e.target.value)}
-          className="mt-1.5" />
-        
-      </div>
-
-      <div className="rounded-lg border border-border bg-muted/30 p-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm font-medium text-foreground">Kredi yeterlilik kontrolü</p>
-          {krediOzeti && planlanacak > 0 &&
-          <BilgiRozeti
-            metin={yeterli ? 'Kredi yeterli' : 'Kredi yetersiz'}
-            ton={yeterli ? 'olumlu' : 'hata'} />
-
-          }
-        </div>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {krediOzeti ?
-          `Kalan kullanılabilir kredi: ${krediOzeti.kalan} · Planlanan / sonuç bekleyen: ${krediOzeti.planlanan} · Bu planda: ${planlanacak}` :
-          'Kontrol için işletmeci seçilmelidir.'}
-        </p>
-        {krediOzeti && planlanacak > krediOzeti.kalan &&
-        <p className="mt-2 text-sm text-rose-700">
-            Kullanılabilir kredi yetersiz. Plan kaydı açılabilir ancak patlatma “Yapıldı” olarak
-            işlenmeden önce kredi yükleme / ödeme doğrulama / makbuz süreci tamamlanmalıdır.
-          </p>
-        }
-      </div>
-
-      <KuralNotu baslik="Kredi düşüm kuralı">
-        Planlama aşamasında kredi düşülmez, yalnızca “planlanan / sonuç bekleyen” olarak izlenir.
-        Kredi düşümü, patlatma “Yapıldı” olarak işlendiğinde yapılır. Bu işlem en pratik şekilde
-        Patlatma Takvimi ekranındaki kart üzerinden yürütülür. Planlama ve kullanım için yeniden
-        ödeme veya dekont istenmez.
-      </KuralNotu>
-    </div>);
+  return null;
 
 }
