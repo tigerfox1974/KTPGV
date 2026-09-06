@@ -233,6 +233,13 @@ export interface TrafikAltBasvuru {
   raporTutari: number;
 }
 
+/** D bendi çoklu görev dilimi — her dilim bağımsız polis sayısı + görev süresi taşır. */
+export interface GorevDilimi {
+  id: string;
+  polisSayisi: number;
+  gorevSuresi: number;
+}
+
 export interface AdliRapor {
   no: string;
   basvuran: string;
@@ -265,6 +272,8 @@ export interface Islem {
   etkinlikAdi?: string;
   polisSayisi?: number;
   gorevSuresi?: number;
+  /** D bendi çoklu görev dilimleri — eski tek polisSayisi/gorevSuresi alanları geriye dönük korunur. */
+  gorevDilimleri?: GorevDilimi[];
   tutar: number;
   hesaplamaAciklamasi: string;
   /** Geriye uyumlu tek dekont alanı — eski demo kayıtları ve mevcut ekranlar bunu kullanır. */

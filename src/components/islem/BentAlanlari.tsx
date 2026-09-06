@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { Plus, Trash2 } from 'lucide-react';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
 import { ParaInput } from '../ui/ParaInput';
@@ -11,6 +12,7 @@ import {
 '../ui/Select';
 import { KuralNotu } from '../common/KuralNotu';
 import { BilgiRozeti } from '../common/DurumRozeti';
+import { Button } from '../ui/Button';
 import { TrafikAltBasvurular } from './TrafikAltBasvurular';
 import { AdliRaporlar } from './AdliRaporlar';
 import { BilgiKaynagiSecimi } from '../tasocagi/BilgiKaynagiSecimi';
@@ -44,6 +46,15 @@ export interface IslemFormu {
 
 export type BentBolumu = 'kaynak' | 'rapor' | 'operasyon' | 'hesaplama';
 
+/** D bendi görev dilimi satırı — form string değerleri + gösterim için polis-saat/satır tutarı. */
+export interface GorevDilimiSatiri {
+  id: string;
+  polisSayisi: string;
+  gorevSuresi: string;
+  polisSaat: number;
+  tutar: number;
+}
+
 interface BentAlanlariProps {
   bolum: BentBolumu;
   form: IslemFormu;
@@ -59,6 +70,10 @@ interface BentAlanlariProps {
   adliGuncelle: (sira: number, alan: keyof AdliRapor, deger: string) => void;
   adliEkle: () => void;
   adliKaldir: (sira: number) => void;
+  dilimSatirlari: GorevDilimiSatiri[];
+  dilimGuncelle: (sira: number, alan: 'polisSayisi' | 'gorevSuresi', deger: string) => void;
+  dilimEkle: () => void;
+  dilimKaldir: (sira: number) => void;
 }
 
 function OperasyonAlanlari({
@@ -69,15 +84,15 @@ function OperasyonAlanlari({
   yerEtiketi,
   saatVar = true,
   yerVar = true
-
-
-
-
-
-
-
-
-}: {form: IslemFormu;guncelle: BentAlanlariProps['guncelle'];tarihEtiketi: string;saatEtiketi?: string;yerEtiketi?: string;saatVar?: boolean;yerVar?: boolean;}) {
+}: {
+  form: IslemFormu;
+  guncelle: BentAlanlariProps['guncelle'];
+  tarihEtiketi: string;
+  saatEtiketi?: string;
+  yerEtiketi?: string;
+  saatVar?: boolean;
+  yerVar?: boolean;
+}) {
   return (
     <div className="space-y-3">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -88,82 +103,87 @@ function OperasyonAlanlari({
             type="date"
             value={form.operasyonTarihi}
             onChange={(e) => guncelle('operasyonTarihi', e.target.value)}
-            className="mt-1.5" />
-          
+            className="mt-1.5"
+          />
         </div>
-        {saatVar &&
-        <div>
+        {saatVar && (
+          <div>
             <Label htmlFor="operasyon-saati">{saatEtiketi}</Label>
             <Input
-            id="operasyon-saati"
-            type="time"
-            value={form.operasyonSaati}
-            onChange={(e) => guncelle('operasyonSaati', e.target.value)}
-            className="mt-1.5" />
-          
+              id="operasyon-saati"
+              type="time"
+              value={form.operasyonSaati}
+              onChange={(e) => guncelle('operasyonSaati', e.target.value)}
+              className="mt-1.5"
+            />
           </div>
-        }
-        {yerVar &&
-        <div>
+        )}
+        {yerVar && (
+          <div>
             <Label htmlFor="operasyon-yeri">{yerEtiketi}</Label>
             <Input
-            id="operasyon-yeri"
-            value={form.yer}
-            onChange={(e) => guncelle('yer', e.target.value)}
-            placeholder="Örn. Palm Beach Otel — Gazimağusa"
-            className="mt-1.5" />
-          
+              id="operasyon-yeri"
+              value={form.yer}
+              onChange={(e) => guncelle('yer', e.target.value)}
+              placeholder="Örn. Palm Beach Otel — Gazimağusa"
+              className="mt-1.5"
+            />
           </div>
-        }
+        )}
       </div>
       <p className="text-xs text-muted-foreground">
         Bu tarih ajandayı besler. Dekont tarihi mali belge tarihidir ve bu alandan bağımsızdır.
       </p>
-    </div>);
-
+    </div>
+  );
 }
 
-function KrediOzetKutusu({ ozet }: {ozet: KrediOzeti;}) {
+function KrediOzetKutusu({ ozet }: { ozet: KrediOzeti }) {
   const kalemler = [
-  { etiket: 'Yüklenen kredi', deger: ozet.yuklenen, ton: 'notr' as const },
-  { etiket: 'Doğrulama bekleyen', deger: ozet.dogrulamaBekleyen, ton: 'uyari' as const },
-  { etiket: 'Planlanan / rapor bekleyen', deger: ozet.planlanan, ton: 'uyari' as const },
-  { etiket: 'Gerçekleşmiş kullanılan', deger: ozet.kullanilan, ton: 'notr' as const },
-  { etiket: 'Kalan kullanılabilir', deger: ozet.kalan, ton: 'vurgu' as const }];
+    { etiket: 'Yüklenen kredi', deger: ozet.yuklenen, ton: 'notr' as const },
+    { etiket: 'Doğrulama bekleyen', deger: ozet.dogrulamaBekleyen, ton: 'uyari' as const },
+    { etiket: 'Planlanan / rapor bekleyen', deger: ozet.planlanan, ton: 'uyari' as const },
+    { etiket: 'Gerçekleşmiş kullanılan', deger: ozet.kullanilan, ton: 'notr' as const },
+    { etiket: 'Kalan kullanılabilir', deger: ozet.kalan, ton: 'vurgu' as const }
+  ];
 
   return (
     <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
-      {kalemler.map((k) =>
-      <div
-        key={k.etiket}
-        className={`rounded-lg border p-3 ${
-        k.ton === 'vurgu' ?
-        'border-primary/30 bg-primary/5' :
-        k.ton === 'uyari' ?
-        'border-amber-200 bg-amber-50' :
-        'border-border bg-muted/30'}`
-        }>
-        
+      {kalemler.map((k) => (
+        <div
+          key={k.etiket}
+          className={`rounded-lg border p-3 ${
+            k.ton === 'vurgu'
+              ? 'border-primary/30 bg-primary/5'
+              : k.ton === 'uyari'
+              ? 'border-amber-200 bg-amber-50'
+              : 'border-border bg-muted/30'
+          }`}>
           <p className="text-xs text-muted-foreground">{k.etiket}</p>
           <p
-          className={`mt-1 font-heading text-lg font-semibold ${
-          k.ton === 'vurgu' ?
-          'text-primary' :
-          k.ton === 'uyari' ?
-          'text-amber-700' :
-          'text-foreground'}`
-          }>
-          
+            className={`mt-1 font-heading text-lg font-semibold ${
+              k.ton === 'vurgu'
+                ? 'text-primary'
+                : k.ton === 'uyari'
+                ? 'text-amber-700'
+                : 'text-foreground'
+            }`}>
             {k.deger} kredi
           </p>
         </div>
-      )}
-    </div>);
-
+      ))}
+    </div>
+  );
 }
 
-function pozitifTamSayiMi(deger: string): boolean {
-  return /^\d+$/.test(deger) && Number(deger) > 0;
+/** D bendi dilim polis sayısı: 1-999 arası pozitif tam sayı (en fazla 3 basamak). */
+function dilimPolisGecerliMi(deger: string): boolean {
+  return /^\d{1,3}$/.test(deger) && Number(deger) >= 1 && Number(deger) <= 999;
+}
+
+/** D bendi dilim görev süresi: 1-99 arası pozitif tam saat (en fazla 2 basamak). */
+function dilimSureGecerliMi(deger: string): boolean {
+  return /^\d{1,2}$/.test(deger) && Number(deger) >= 1 && Number(deger) <= 99;
 }
 
 export function BentAlanlari({
@@ -180,7 +200,11 @@ export function BentAlanlari({
   adliSatirlari,
   adliGuncelle,
   adliEkle,
-  adliKaldir
+  adliKaldir,
+  dilimSatirlari,
+  dilimGuncelle,
+  dilimEkle,
+  dilimKaldir
 }: BentAlanlariProps) {
   const { sigortalar, isletmeciler, tasOcaklari } = useApp();
   const { bent } = form;
@@ -510,53 +534,88 @@ export function BentAlanlari({
   }
 
   if (bent === 'D') {
-    const polisHatasi = form.polisSayisi !== '' && !pozitifTamSayiMi(form.polisSayisi);
-    const sureHatasi = form.gorevSuresi !== '' && !pozitifTamSayiMi(form.gorevSuresi);
     return (
       <div className="space-y-3">
-        <div className="grid gap-4 sm:max-w-xl sm:grid-cols-2">
-          <div>
-            <Label htmlFor="polis-sayisi">Polis sayısı (pozitif tam sayı)</Label>
-            <Input
-              id="polis-sayisi"
-              type="number"
-              min={1}
-              step={1}
-              value={form.polisSayisi}
-              onChange={(e) => guncelle('polisSayisi', e.target.value)}
-              aria-invalid={polisHatasi}
-              className="mt-1.5" />
-            {polisHatasi &&
-            <p className="mt-1 text-xs text-rose-700">Polis sayısı 1, 2, 3 gibi pozitif tam sayı olmalıdır.</p>
-            }
-            
-          </div>
-          <div>
-            <Label htmlFor="gorev-suresi">Görev süresi (tam saat)</Label>
-            <Input
-              id="gorev-suresi"
-              type="number"
-              min={1}
-              step={1}
-              value={form.gorevSuresi}
-              onChange={(e) => guncelle('gorevSuresi', e.target.value)}
-              aria-invalid={sureHatasi}
-              className="mt-1.5" />
-            {sureHatasi &&
-            <p className="mt-1 text-xs text-rose-700">Görev süresi 1, 2, 3 gibi pozitif tam saat olmalıdır.</p>
-            }
-            
-          </div>
+        <div className="space-y-3">
+          {dilimSatirlari.map((satir, index) => {
+            const polisHatasi = satir.polisSayisi !== '' && !dilimPolisGecerliMi(satir.polisSayisi);
+            const sureHatasi = satir.gorevSuresi !== '' && !dilimSureGecerliMi(satir.gorevSuresi);
+            return (
+              <div key={satir.id} className="rounded-lg border border-border bg-muted/30 p-3">
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="w-28">
+                    <Label htmlFor={`dilim-${index}-polis`}>Dilim {index + 1} · Polis sayısı</Label>
+                    <Input
+                      id={`dilim-${index}-polis`}
+                      type="number"
+                      min={1}
+                      max={999}
+                      step={1}
+                      value={satir.polisSayisi}
+                      onChange={(e) => dilimGuncelle(index, 'polisSayisi', e.target.value)}
+                      aria-invalid={polisHatasi}
+                      className="mt-1.5 px-2.5 text-center" />
+                    {polisHatasi &&
+                    <p className="mt-1 text-xs text-rose-700">1-999 arası pozitif tam sayı.</p>
+                    }
+                    
+                  </div>
+                  <div className="w-28">
+                    <Label htmlFor={`dilim-${index}-sure`}>Görev süresi (saat)</Label>
+                    <Input
+                      id={`dilim-${index}-sure`}
+                      type="number"
+                      min={1}
+                      max={99}
+                      step={1}
+                      value={satir.gorevSuresi}
+                      onChange={(e) => dilimGuncelle(index, 'gorevSuresi', e.target.value)}
+                      aria-invalid={sureHatasi}
+                      className="mt-1.5 px-2.5 text-center" />
+                    {sureHatasi &&
+                    <p className="mt-1 text-xs text-rose-700">1-99 arası pozitif tam saat.</p>
+                    }
+                    
+                  </div>
+                  <div className="w-28">
+                    <p className="text-xs text-muted-foreground">Polis-saat</p>
+                    <p className="mt-1 font-heading text-base font-semibold text-foreground">
+                      {satir.polisSaat}
+                    </p>
+                  </div>
+                  <div className="w-36">
+                    <p className="text-xs text-muted-foreground">Dilim tutarı</p>
+                    <p className="mt-1 font-heading text-base font-semibold text-primary">
+                      {formatTL(satir.tutar)}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant="ghost"
+                    disabled={dilimSatirlari.length <= 1}
+                    onClick={() => dilimKaldir(index)}
+                    aria-label={`Dilim ${index + 1} kaldır`}>
+                    
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    Kaldır
+                  </Button>
+                </div>
+              </div>);
+
+          })}
         </div>
-        <p className="text-xs text-muted-foreground">
-          Ücret hesabında polis sayısı tam kişi, görev süresi tam saat girilir. 1,5 / 1.5 / 2,5
-          gibi değerler kabul edilmez.
-        </p>
-        {form.polisSayisi === '1' && form.gorevSuresi === '1' &&
-        <p className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
-            Başlangıç hesabı: 1 polis × 1 saat
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={dilimEkle}>
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Görev Dilimi Ekle
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            En az 1 görev dilimi zorunludur. Polis sayısı 1-999, görev süresi 1-99 pozitif tam saat
+            olmalıdır; 1,5 / 1.5 / 2,5 gibi buçuklu saat kabul edilmez.
           </p>
-        }
+        </div>
       </div>);
 
   }

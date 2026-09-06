@@ -372,6 +372,9 @@ export class MockKtpgvRepository implements KtpgvRepository {
       etkinlikAdi: girdi.etkinlikAdi?.trim() || undefined,
       polisSayisi: girdi.bent === 'D' ? girdi.polisSayisi : undefined,
       gorevSuresi: girdi.bent === 'D' ? girdi.gorevSuresi : undefined,
+      gorevDilimleri: girdi.bent === 'D' && girdi.gorevDilimleri?.length
+        ? girdi.gorevDilimleri
+        : undefined,
       tutar: girdi.tutar,
       hesaplamaAciklamasi: girdi.hesaplamaSatirlari.join(' · '),
       dekont: krediYukleme && ilkKrediDekontu ? ilkKrediDekontu : temelDekont,

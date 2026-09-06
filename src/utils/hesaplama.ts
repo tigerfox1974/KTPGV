@@ -1,4 +1,4 @@
-import { BentKodu, FAltTur } from '../types';
+import { BentKodu, FAltTur, GorevDilimi } from '../types';
 import { formatTL, formatTLHassas } from './currency';
 
 /** Varsayılan brüt asgari ücret (BAÜ) — sistem ayarı. */
@@ -12,6 +12,8 @@ export interface HesaplamaGirdi {
   adet?: number;
   polisSayisi?: number;
   gorevSuresi?: number;
+  /** D bendi çoklu görev dilimleri — verilirse polisSayisi/gorevSuresi yerine kullanılır. */
+  gorevDilimleri?: GorevDilimi[];
   krediAdedi?: number;
 }
 
@@ -89,25 +91,49 @@ export function hesapla(girdi: HesaplamaGirdi): HesaplamaSonuc {
   }
 
   if (bent === 'D') {
-    const polis = girdi.polisSayisi ?? 0;
-    const sure = girdi.gorevSuresi ?? 0;
     const hatalar: string[] = [];
-    if (!Number.isInteger(polis) || polis <= 0)
-    hatalar.push('Polis sayısı pozitif tam sayı olmalıdır. Yarım personel girilemez.');
-    if (!Number.isInteger(sure) || sure <= 0)
-    hatalar.push('Görev süresi pozitif tam saat olmalıdır. Buçuklu saat girilemez.');
+    const girilenDilimler = girdi.gorevDilimleri ?? [];
+    // Çoklu dilim verilmediyse eski tek polisSayisi/gorevSuresi alanı geriye dönük tek dilim olarak işlenir.
+    const dilimler: GorevDilimi[] = girilenDilimler.length > 0
+      ? girilenDilimler
+      : [
+        {
+          id: 'legacy',
+          polisSayisi: girdi.polisSayisi ?? 0,
+          gorevSuresi: girdi.gorevSuresi ?? 0
+        }
+      ];
+    let toplamPolisSaat = 0;
+    const dilimSatirlari: string[] = [];
+    dilimler.forEach((dilim, sira) => {
+      const polis = dilim.polisSayisi;
+      const sure = dilim.gorevSuresi;
+      const polisGecerli = Number.isInteger(polis) && polis >= 1 && polis <= 999;
+      const sureGecerli = Number.isInteger(sure) && sure >= 1 && sure <= 99;
+      if (!polisGecerli)
+      hatalar.push(`Dilim ${sira + 1}: polis sayısı 1-999 arası pozitif tam sayı olmalıdır (${polis ?? 'boş'}).`);
+      if (!sureGecerli)
+      hatalar.push(`Dilim ${sira + 1}: görev süresi 1-99 arası pozitif tam saat olmalıdır (${sure ?? 'boş'}).`);
+      if (polisGecerli && sureGecerli) {
+        toplamPolisSaat += polis * sure;
+        dilimSatirlari.push(
+          `Dilim ${sira + 1}: ${polis} polis x ${sure} saat = ${polis * sure} polis-saat`);
+      } else {
+        dilimSatirlari.push(`Dilim ${sira + 1}: geçersiz değer`);
+      }
+    });
     const saatlik = bau * 0.005;
     return {
-      gecerli: hatalar.length === 0,
-      tutar: polis * sure * saatlik,
+      gecerli: hatalar.length === 0 && toplamPolisSaat > 0,
+      tutar: toplamPolisSaat * saatlik,
       birimTutar: saatlik,
-      formul: 'Polis Sayısı x Görev Süresi x BAÜ x %0,5',
+      formul: 'BAÜ x %0,5 x Toplam Polis-Saat',
       satirlar: [
       `BAÜ: ${formatTL(bau)}`,
       `BAÜ x %0,5 = ${formatTLHassas(saatlik)} (kişi/saat tutarı)`,
-      `${polis || 0} polis x ${sure || 0} saat x ${formatTLHassas(saatlik)} = ${formatTL(
-        polis * sure * saatlik
-      )}`],
+      ...dilimSatirlari,
+      `Toplam polis-saat: ${toplamPolisSaat}`,
+      `Toplam tutar: ${formatTL(toplamPolisSaat * saatlik)}`],
 
       hatalar
     };

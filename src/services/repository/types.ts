@@ -10,6 +10,7 @@ import {
   DekontDosyasi,
   EIslemTuru,
   FAltTur,
+  GorevDilimi,
   Isletmeci,
   Islem,
   KrediHareketi,
@@ -128,6 +129,8 @@ export interface YeniIslemGirdisi {
   etkinlikAdi?: string;
   polisSayisi?: number;
   gorevSuresi?: number;
+  /** D bendi çoklu görev dilimleri — verilmezse eski polisSayisi/gorevSuresi alanları kullanılır. */
+  gorevDilimleri?: GorevDilimi[];
   tutar: number;
   hesaplamaSatirlari: string[];
   dekontNo: string;

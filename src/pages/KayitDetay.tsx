@@ -306,11 +306,31 @@ export function KayitDetay() {
               <Satir etiket="Operasyon saati" deger={islem.operasyonSaati ?? '—'} />
               <Satir etiket="Yer / adres" deger={islem.yer ?? '—'} />
               {islem.etkinlikAdi && <Satir etiket="Etkinlik / faaliyet" deger={islem.etkinlikAdi} />}
-              {islem.polisSayisi !== undefined &&
-              <Satir etiket="Polis sayısı" deger={`${islem.polisSayisi} kişi`} />
-              }
-              {islem.gorevSuresi !== undefined &&
-              <Satir etiket="Görev süresi" deger={`${islem.gorevSuresi} saat`} />
+              {islem.gorevDilimleri?.length ?
+              <>
+                <dt className="text-muted-foreground">Görev dilimleri</dt>
+                <dd className="col-span-2 sm:col-span-3">
+                  <ul className="space-y-1">
+                    {islem.gorevDilimleri.map((dilim, sira) => {
+                      const polisSaat = dilim.polisSayisi * dilim.gorevSuresi;
+                      return (
+                        <li key={dilim.id} className="text-foreground">
+                          Dilim {sira + 1}: {dilim.polisSayisi} polis × {dilim.gorevSuresi} saat ={' '}
+                          {polisSaat} polis-saat · {formatTL(polisSaat * bau * 0.005)}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </dd>
+              </> :
+              <>
+                {islem.polisSayisi !== undefined &&
+                <Satir etiket="Polis sayısı" deger={`${islem.polisSayisi} kişi`} />
+                }
+                {islem.gorevSuresi !== undefined &&
+                <Satir etiket="Görev süresi" deger={`${islem.gorevSuresi} saat`} />
+                }
+              </>
               }
               {islem.sigortaSirketiId &&
               <Satir etiket="Sigorta şirketi" deger={sigortaBul(islem.sigortaSirketiId)?.ad} />

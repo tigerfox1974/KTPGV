@@ -9,6 +9,7 @@
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "test:kredi-yukleme": "tsx scripts/kredi-yukleme-regression.ts",
     "test:parser": "tsx scripts/dekont-parser-regression.ts",
+    "test:d-bendi": "tsx scripts/d-bendi-hesaplama-regression.ts",
     "preview": "npx vite preview"
   },
   "dependencies": {

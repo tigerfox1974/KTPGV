@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue } from
 '../components/ui/Select';
-import { BentAlanlari, IslemFormu } from '../components/islem/BentAlanlari';
+import { BentAlanlari, GorevDilimiSatiri, IslemFormu } from '../components/islem/BentAlanlari';
 import { BOS_DEKONT, DekontBolumu, DekontFormu } from '../components/islem/DekontBolumu';
 import { HesaplamaKutusu } from '../components/islem/HesaplamaKutusu';
 import {
@@ -74,10 +74,20 @@ const BOS_ADLI: AdliRapor = {
   raporTutari: 0
 };
 
+/** D bendi görev dilimi — yeni satır 1 polis × 1 saat başlangıç değeriyle açılır. */
+function yeniDilim(): GorevDilimiSatiri {
+  return {
+    id: `gd-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+    polisSayisi: '1',
+    gorevSuresi: '1',
+    polisSaat: 0,
+    tutar: 0
+  };
+}
+
 /** Bent seçildiğinde gelen en düşük geçerli değerler — placeholder değil, gerçek form değeri. */
 function bentVarsayilanlari(bent: BentKodu): Partial<IslemFormu> {
   if (bent === 'C' || bent === 'Ç') return { adet: '1' };
-  if (bent === 'D') return { polisSayisi: '1', gorevSuresi: '1' };
   if (bent === 'E') return { krediAdedi: '1' };
   return {};
 }
@@ -131,6 +141,7 @@ export function YeniIslem() {
   const [ocrBilgileri, setOcrBilgileri] = useState<Pick<DekontOcrSonucu, 'durum' | 'okunanAlanlar' | 'guven'>>({ durum: 'BASARISIZ', okunanAlanlar: [], guven: {} });
   const [trafikSatirlari, setTrafikSatirlari] = useState<TrafikAltBasvuru[]>([]);
   const [adliSatirlari, setAdliSatirlari] = useState<AdliRapor[]>([]);
+  const [dilimler, setDilimler] = useState<GorevDilimiSatiri[]>([]);
   const [sonKayit, setSonKayit] = useState<Islem | null>(null);
   const [raporBaslangici, setRaporBaslangici] = useState<PatlatmaBaslangici | null>(null);
   const navigate = useNavigate();
@@ -206,6 +217,15 @@ export function YeniIslem() {
     }
   }, [adli]);
 
+  // D bendi seçildiğinde en az bir görev dilimi başlatılır; başka bente geçilince dilimler temizlenir.
+  useEffect(() => {
+    if (form.bent === 'D') {
+      setDilimler((eski) => eski.length ? eski : [yeniDilim()]);
+    } else {
+      setDilimler([]);
+    }
+  }, [form.bent]);
+
   const raporSayisi = trafik ? trafikSatirlari.length : adli ? adliSatirlari.length : 0;
 
   const sonuc = useMemo(
@@ -216,11 +236,16 @@ export function YeniIslem() {
       bau,
       manuelTutar: form.manuelTutar ?? 0,
       adet: form.bent === 'F' ? raporSayisi : form.adet ? Number(form.adet) : 0,
-      polisSayisi: form.polisSayisi ? Number(form.polisSayisi) : 0,
-      gorevSuresi: form.gorevSuresi ? Number(form.gorevSuresi) : 0,
+      gorevDilimleri: form.bent === 'D' ?
+      dilimler.map((d) => ({
+        id: d.id,
+        polisSayisi: Number(d.polisSayisi) || 0,
+        gorevSuresi: Number(d.gorevSuresi) || 0
+      })) :
+      undefined,
       krediAdedi: form.krediAdedi ? Number(form.krediAdedi) : 0
     }),
-    [form, bau, raporSayisi]
+    [form, bau, raporSayisi, dilimler]
   );
 
   const kayitNoOnizleme = form.bent ?
@@ -239,6 +264,17 @@ export function YeniIslem() {
     raporTutari: raporBedeli(bau)
   }));
 
+  const gosterilenDilimler = dilimler.map((dilim) => {
+    const polis = Number(dilim.polisSayisi) || 0;
+    const sure = Number(dilim.gorevSuresi) || 0;
+    const polisSaat = polis * sure;
+    return {
+      ...dilim,
+      polisSaat,
+      tutar: polisSaat * bau * 0.005
+    };
+  });
+
   const trafikGuncelle = (sira: number, alan: keyof TrafikAltBasvuru, deger: string) =>
   setTrafikSatirlari((eski) =>
   eski.map((satir, i) => i === sira ? { ...satir, [alan]: deger } : satir)
@@ -253,6 +289,14 @@ export function YeniIslem() {
   );
   const adliEkle = () => setAdliSatirlari((eski) => [...eski, { ...BOS_ADLI }]);
   const adliKaldir = (sira: number) => setAdliSatirlari((eski) => eski.filter((_, i) => i !== sira));
+
+  const dilimGuncelle = (sira: number, alan: 'polisSayisi' | 'gorevSuresi', deger: string) =>
+  setDilimler((eski) =>
+  eski.map((dilim, i) => i === sira ? { ...dilim, [alan]: deger } : dilim)
+  );
+  const dilimEkle = () => setDilimler((eski) => [...eski, yeniDilim()]);
+  const dilimKaldir = (sira: number) =>
+  setDilimler((eski) => eski.length > 1 ? eski.filter((_, i) => i !== sira) : eski);
 
   const odenen = dekont.odenenTutar ?? 0;
   const tutarUyumlu = odenen > 0 && Math.abs(odenen - sonuc.tutar) < 0.01;
@@ -433,6 +477,7 @@ export function YeniIslem() {
     setOcrBilgileri({ durum: 'BASARISIZ', okunanAlanlar: [], guven: {} });
     setTrafikSatirlari([]);
     setAdliSatirlari([]);
+    setDilimler([]);
   };
 
   const kaydet = () => {
@@ -481,8 +526,15 @@ export function YeniIslem() {
       operasyonSaati: form.operasyonSaati || undefined,
       yer: form.yer || undefined,
       etkinlikAdi: form.etkinlikAdi || undefined,
-      polisSayisi: form.bent === 'D' ? Number(form.polisSayisi) : undefined,
-      gorevSuresi: form.bent === 'D' ? Number(form.gorevSuresi) : undefined,
+      polisSayisi: form.bent === 'D' && dilimler[0] ? Number(dilimler[0].polisSayisi) : undefined,
+      gorevSuresi: form.bent === 'D' && dilimler[0] ? Number(dilimler[0].gorevSuresi) : undefined,
+      gorevDilimleri: form.bent === 'D' && dilimler.length ?
+      dilimler.map((d) => ({
+        id: d.id,
+        polisSayisi: Number(d.polisSayisi) || 0,
+        gorevSuresi: Number(d.gorevSuresi) || 0
+      })) :
+      undefined,
       tutar: sonuc.tutar,
       hesaplamaSatirlari: sonuc.satirlar,
       dekontNo: dekont.dekontNo,
@@ -562,7 +614,11 @@ export function YeniIslem() {
     adliSatirlari: gosterilenAdli,
     adliGuncelle,
     adliEkle,
-    adliKaldir
+    adliKaldir,
+    dilimSatirlari: gosterilenDilimler,
+    dilimGuncelle,
+    dilimEkle,
+    dilimKaldir
   };
 
   const bolumler: {baslik: string;aciklama?: string;icerik: React.ReactNode;}[] = [];
@@ -583,6 +639,7 @@ export function YeniIslem() {
             setDekont(BOS_DEKONT);
             setTrafikSatirlari([]);
             setAdliSatirlari([]);
+            setDilimler([]);
           }}>
           
             <SelectTrigger id="bent" className="mt-1.5">
