@@ -1,8 +1,8 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
 import { ParaInput } from '../ui/ParaInput';
+import { Button } from '../ui/Button';
 import {
   Select,
   SelectContent,
@@ -18,6 +18,12 @@ import { BilgiKaynagiSecimi } from '../tasocagi/BilgiKaynagiSecimi';
 import { KrediOzeti, useApp } from '../../contexts/AppContext';
 import { AdliRapor, BentKodu, BilgiKaynagi, EIslemTuru, FAltTur, TrafikAltBasvuru } from '../../types';
 import { formatTL } from '../../utils/currency';
+import { D_BENDI_GOREV_SAATI_MAX, D_BENDI_POLIS_SAYISI_MAX } from '../../utils/hesaplama';
+
+export interface DGorevDilimiFormu {
+  polisSayisi: string;
+  gorevSuresi: string;
+}
 
 export interface IslemFormu {
   bent: BentKodu | '';
@@ -32,8 +38,7 @@ export interface IslemFormu {
   yer: string;
   manuelTutar: number | null;
   adet: string;
-  polisSayisi: string;
-  gorevSuresi: string;
+  dGorevDilimleri: DGorevDilimiFormu[];
   krediAdedi: string;
   sigortaSirketiId: string;
   isletmeciId: string;
@@ -52,6 +57,7 @@ interface BentAlanlariProps {
   krediOzeti: KrediOzeti | null;
   patlatmaBedeliTutar: number;
   raporBedeliTutar: number;
+  dBirimTutar: number;
   trafikSatirlari: TrafikAltBasvuru[];
   trafikGuncelle: (sira: number, alan: keyof TrafikAltBasvuru, deger: string) => void;
   trafikEkle: () => void;
@@ -167,6 +173,10 @@ function pozitifTamSayiMi(deger: string): boolean {
   return /^\d+$/.test(deger) && Number(deger) > 0;
 }
 
+function maxDegeriAsiyorMu(deger: string, maxDeger: number): boolean {
+  return /^\d+$/.test(deger) && Number(deger) > maxDeger;
+}
+
 export function BentAlanlari({
   bolum,
   form,
@@ -174,6 +184,7 @@ export function BentAlanlari({
   krediOzeti,
   patlatmaBedeliTutar,
   raporBedeliTutar,
+  dBirimTutar,
   trafikSatirlari,
   trafikGuncelle,
   trafikEkle,
@@ -511,51 +522,149 @@ export function BentAlanlari({
   }
 
   if (bent === 'D') {
-    const polisHatasi = form.polisSayisi !== '' && !pozitifTamSayiMi(form.polisSayisi);
-    const sureHatasi = form.gorevSuresi !== '' && !pozitifTamSayiMi(form.gorevSuresi);
+    const gorevDilimleri =
+    form.dGorevDilimleri.length > 0 ?
+    form.dGorevDilimleri :
+    [{ polisSayisi: '', gorevSuresi: '' }];
+
+    const gorevDilimiGuncelle = (
+      sira: number,
+      alan: keyof DGorevDilimiFormu,
+      deger: string
+    ) => {
+      guncelle(
+        'dGorevDilimleri',
+        gorevDilimleri.map((dilim, index) => index === sira ? { ...dilim, [alan]: deger } : dilim)
+      );
+    };
+
+    const gorevDilimiEkle = () => {
+      guncelle('dGorevDilimleri', [...gorevDilimleri, { polisSayisi: '', gorevSuresi: '' }]);
+    };
+
+    const gorevDilimiKaldir = (sira: number) => {
+      if (gorevDilimleri.length <= 1) return;
+      guncelle(
+        'dGorevDilimleri',
+        gorevDilimleri.filter((_, index) => index !== sira)
+      );
+    };
+
+    const toplamAraToplam = gorevDilimleri.reduce((toplam, dilim) => {
+      if (
+      !pozitifTamSayiMi(dilim.polisSayisi) ||
+      maxDegeriAsiyorMu(dilim.polisSayisi, D_BENDI_POLIS_SAYISI_MAX) ||
+      !pozitifTamSayiMi(dilim.gorevSuresi) ||
+      maxDegeriAsiyorMu(dilim.gorevSuresi, D_BENDI_GOREV_SAATI_MAX))
+      {
+        return toplam;
+      }
+      return toplam + Number(dilim.polisSayisi) * Number(dilim.gorevSuresi) * dBirimTutar;
+    }, 0);
+
     return (
       <div className="space-y-3">
-        <div className="grid gap-4 sm:max-w-xl sm:grid-cols-2">
-          <div>
-            <Label htmlFor="polis-sayisi">Polis sayısı (pozitif tam sayı)</Label>
-            <Input
-              id="polis-sayisi"
-              type="number"
-              min={1}
-              step={1}
-              value={form.polisSayisi}
-              onChange={(e) => guncelle('polisSayisi', e.target.value)}
-              aria-invalid={polisHatasi}
-              className="mt-1.5" />
-            {polisHatasi &&
-            <p className="mt-1 text-xs text-rose-700">Polis sayısı 1, 2, 3 gibi pozitif tam sayı olmalıdır.</p>
-            }
-            
-          </div>
-          <div>
-            <Label htmlFor="gorev-suresi">Görev süresi (tam saat)</Label>
-            <Input
-              id="gorev-suresi"
-              type="number"
-              min={1}
-              step={1}
-              value={form.gorevSuresi}
-              onChange={(e) => guncelle('gorevSuresi', e.target.value)}
-              aria-invalid={sureHatasi}
-              className="mt-1.5" />
-            {sureHatasi &&
-            <p className="mt-1 text-xs text-rose-700">Görev süresi 1, 2, 3 gibi pozitif tam saat olmalıdır.</p>
-            }
-            
-          </div>
+        {gorevDilimleri.map((dilim, index) => {
+          const polisHatasi = dilim.polisSayisi !== '' &&
+          (!pozitifTamSayiMi(dilim.polisSayisi) ||
+          maxDegeriAsiyorMu(dilim.polisSayisi, D_BENDI_POLIS_SAYISI_MAX));
+          const sureHatasi = dilim.gorevSuresi !== '' &&
+          (!pozitifTamSayiMi(dilim.gorevSuresi) ||
+          maxDegeriAsiyorMu(dilim.gorevSuresi, D_BENDI_GOREV_SAATI_MAX));
+
+          const araToplamGoster =
+          !polisHatasi &&
+          !sureHatasi &&
+          pozitifTamSayiMi(dilim.polisSayisi) &&
+          pozitifTamSayiMi(dilim.gorevSuresi);
+
+          const araToplam =
+          araToplamGoster ?
+          Number(dilim.polisSayisi) * Number(dilim.gorevSuresi) * dBirimTutar :
+          0;
+
+          return (
+            <div key={`d-gorev-dilimi-${index}`} className="rounded-lg border border-border bg-muted/20 p-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-medium text-foreground">Görev dilimi {index + 1}</p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => gorevDilimiKaldir(index)}
+                  disabled={gorevDilimleri.length <= 1}>
+                  Dilimi kaldır
+                </Button>
+              </div>
+
+              <div className="mt-3 grid gap-4 sm:max-w-xl sm:grid-cols-2">
+                <div>
+                  <Label htmlFor={`polis-sayisi-${index}`}>Polis sayısı (1 - {D_BENDI_POLIS_SAYISI_MAX})</Label>
+                  <Input
+                    id={`polis-sayisi-${index}`}
+                    type="number"
+                    min={1}
+                    max={D_BENDI_POLIS_SAYISI_MAX}
+                    step={1}
+                    value={dilim.polisSayisi}
+                    onChange={(e) => gorevDilimiGuncelle(index, 'polisSayisi', e.target.value)}
+                    aria-invalid={polisHatasi}
+                    className="mt-1.5" />
+                  {polisHatasi &&
+                  <p className="mt-1 text-xs text-rose-700">
+                      {maxDegeriAsiyorMu(dilim.polisSayisi, D_BENDI_POLIS_SAYISI_MAX) ?
+                    `Polis sayısı en fazla ${D_BENDI_POLIS_SAYISI_MAX} olabilir.` :
+                    'Polis sayısı 1, 2, 3 gibi pozitif tam sayı olmalıdır.'}
+                    </p>
+                  }
+                </div>
+
+                <div>
+                  <Label htmlFor={`gorev-suresi-${index}`}>Görev süresi (1 - {D_BENDI_GOREV_SAATI_MAX} saat)</Label>
+                  <Input
+                    id={`gorev-suresi-${index}`}
+                    type="number"
+                    min={1}
+                    max={D_BENDI_GOREV_SAATI_MAX}
+                    step={1}
+                    value={dilim.gorevSuresi}
+                    onChange={(e) => gorevDilimiGuncelle(index, 'gorevSuresi', e.target.value)}
+                    aria-invalid={sureHatasi}
+                    className="mt-1.5" />
+                  {sureHatasi &&
+                  <p className="mt-1 text-xs text-rose-700">
+                      {maxDegeriAsiyorMu(dilim.gorevSuresi, D_BENDI_GOREV_SAATI_MAX) ?
+                    `Görev süresi en fazla ${D_BENDI_GOREV_SAATI_MAX} saat olabilir.` :
+                    'Görev süresi 1, 2, 3 gibi pozitif tam saat olmalıdır.'}
+                    </p>
+                  }
+                </div>
+              </div>
+
+              {araToplamGoster &&
+              <p className="mt-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-foreground">
+                  Ara toplam: {dilim.polisSayisi} polis x {dilim.gorevSuresi} saat ={' '}
+                  <strong>{formatTL(araToplam)}</strong>
+                </p>
+              }
+            </div>
+          );
+        })}
+
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={gorevDilimiEkle}>
+            Görev dilimi ekle
+          </Button>
+          <span className="text-xs text-muted-foreground">Toplam dilim: {gorevDilimleri.length}</span>
         </div>
+
         <p className="text-xs text-muted-foreground">
-          Ücret hesabında polis sayısı tam kişi, görev süresi tam saat girilir. 1,5 / 1.5 / 2,5
-          gibi değerler kabul edilmez.
+          Her dilim için polis sayısı en fazla {D_BENDI_POLIS_SAYISI_MAX}, görev süresi en fazla{' '}
+          {D_BENDI_GOREV_SAATI_MAX} saattir. 1,5 / 1.5 / 2,5 gibi kesirli değerler kabul edilmez.
         </p>
-        {form.polisSayisi === '1' && form.gorevSuresi === '1' &&
+        {toplamAraToplam > 0 &&
         <p className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
-            Başlangıç hesabı: 1 polis × 1 saat
+            Dilim ara toplamları: {formatTL(toplamAraToplam)}
           </p>
         }
       </div>);

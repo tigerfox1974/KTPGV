@@ -1,4 +1,4 @@
-import { BentKodu, FAltTur } from '../types';
+import { BentKodu, DGorevDilimi, FAltTur } from '../types';
 import { formatTL, formatTLHassas } from './currency';
 
 /** Varsayılan brüt asgari ücret (BAÜ) — sistem ayarı. */
@@ -10,10 +10,16 @@ export interface HesaplamaGirdi {
   bau: number;
   manuelTutar?: number;
   adet?: number;
+  gorevDilimleri?: DGorevDilimi[];
+  /** Geriye uyumluluk: tekli D bendi girişi. */
   polisSayisi?: number;
+  /** Geriye uyumluluk: tekli D bendi girişi. */
   gorevSuresi?: number;
   krediAdedi?: number;
 }
+
+export const D_BENDI_POLIS_SAYISI_MAX = 999;
+export const D_BENDI_GOREV_SAATI_MAX = 99;
 
 export interface HesaplamaSonuc {
   gecerli: boolean;
@@ -89,25 +95,65 @@ export function hesapla(girdi: HesaplamaGirdi): HesaplamaSonuc {
   }
 
   if (bent === 'D') {
-    const polis = girdi.polisSayisi ?? 0;
-    const sure = girdi.gorevSuresi ?? 0;
+    const gorevDilimleri =
+    girdi.gorevDilimleri && girdi.gorevDilimleri.length > 0 ?
+    girdi.gorevDilimleri :
+    girdi.polisSayisi && girdi.gorevSuresi ?
+    [{ polisSayisi: girdi.polisSayisi, gorevSuresi: girdi.gorevSuresi }] :
+    [];
     const hatalar: string[] = [];
-    if (!Number.isInteger(polis) || polis <= 0)
-    hatalar.push('Polis sayısı pozitif tam sayı olmalıdır. Yarım personel girilemez.');
-    if (!Number.isInteger(sure) || sure <= 0)
-    hatalar.push('Görev süresi pozitif tam saat olmalıdır. Buçuklu saat girilemez.');
+    if (gorevDilimleri.length === 0) {
+      hatalar.push('En az 1 görev dilimi girilmelidir.');
+    }
     const saatlik = bau * 0.005;
+    let toplam = 0;
+    const dilimSatirlari: string[] = [];
+
+    gorevDilimleri.forEach((dilim, index) => {
+      const polis = dilim.polisSayisi;
+      const sure = dilim.gorevSuresi;
+      const dilimEtiketi = `${index + 1}. görev dilimi`;
+
+      if (!Number.isInteger(polis) || polis <= 0) {
+        hatalar.push(`${dilimEtiketi}: polis sayısı pozitif tam sayı olmalıdır.`);
+      } else if (polis > D_BENDI_POLIS_SAYISI_MAX) {
+        hatalar.push(`${dilimEtiketi}: polis sayısı en fazla ${D_BENDI_POLIS_SAYISI_MAX} olabilir.`);
+      }
+
+      if (!Number.isInteger(sure) || sure <= 0) {
+        hatalar.push(`${dilimEtiketi}: görev süresi pozitif tam saat olmalıdır.`);
+      } else if (sure > D_BENDI_GOREV_SAATI_MAX) {
+        hatalar.push(`${dilimEtiketi}: görev süresi en fazla ${D_BENDI_GOREV_SAATI_MAX} saat olabilir.`);
+      }
+
+      if (
+      Number.isInteger(polis) &&
+      polis > 0 &&
+      polis <= D_BENDI_POLIS_SAYISI_MAX &&
+      Number.isInteger(sure) &&
+      sure > 0 &&
+      sure <= D_BENDI_GOREV_SAATI_MAX)
+      {
+        const araToplam = polis * sure * saatlik;
+        toplam += araToplam;
+        dilimSatirlari.push(
+          `${index + 1}. dilim: ${polis} polis x ${sure} saat x ${formatTLHassas(saatlik)} = ${formatTL(
+            araToplam
+          )}`
+        );
+      }
+    });
+
     return {
       gecerli: hatalar.length === 0,
-      tutar: polis * sure * saatlik,
+      tutar: toplam,
       birimTutar: saatlik,
-      formul: 'Polis Sayısı x Görev Süresi x BAÜ x %0,5',
+      formul: 'Her görev dilimi için (Polis Sayısı x Görev Süresi x BAÜ x %0,5), toplam tutar dilimlerin toplamıdır.',
       satirlar: [
       `BAÜ: ${formatTL(bau)}`,
       `BAÜ x %0,5 = ${formatTLHassas(saatlik)} (kişi/saat tutarı)`,
-      `${polis || 0} polis x ${sure || 0} saat x ${formatTLHassas(saatlik)} = ${formatTL(
-        polis * sure * saatlik
-      )}`],
+      ...dilimSatirlari,
+      ...(dilimSatirlari.length ? [`Toplam D bendi tutarı: ${formatTL(toplam)}`] : [])],
 
       hatalar
     };

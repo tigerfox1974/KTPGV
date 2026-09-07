@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue } from
 '../components/ui/Select';
-import { BentAlanlari, IslemFormu } from '../components/islem/BentAlanlari';
+import { BentAlanlari, DGorevDilimiFormu, IslemFormu } from '../components/islem/BentAlanlari';
 import { BOS_DEKONT, DekontBolumu, DekontFormu } from '../components/islem/DekontBolumu';
 import { HesaplamaKutusu } from '../components/islem/HesaplamaKutusu';
 import {
@@ -33,6 +33,11 @@ import { altBasvuruNo, sonrakiKayitNo } from '../utils/numaralandirma';
 import { formatTL, formatTarih, formatTarihSaat } from '../utils/currency';
 import { krediYuklemeKaydiniCozumle, islemDekontlariniOku } from '../utils/krediYukleme';
 
+const BOS_D_GOREV_DILIMI: DGorevDilimiFormu = {
+  polisSayisi: '1',
+  gorevSuresi: '1'
+};
+
 const BOS_FORM: IslemFormu = {
   bent: '',
   fAltTur: '',
@@ -45,8 +50,7 @@ const BOS_FORM: IslemFormu = {
   yer: '',
   manuelTutar: null,
   adet: '',
-  polisSayisi: '',
-  gorevSuresi: '',
+  dGorevDilimleri: [],
   krediAdedi: '',
   sigortaSirketiId: '',
   isletmeciId: '',
@@ -77,7 +81,7 @@ const BOS_ADLI: AdliRapor = {
 /** Bent seçildiğinde gelen en düşük geçerli değerler — placeholder değil, gerçek form değeri. */
 function bentVarsayilanlari(bent: BentKodu): Partial<IslemFormu> {
   if (bent === 'C' || bent === 'Ç') return { adet: '1' };
-  if (bent === 'D') return { polisSayisi: '1', gorevSuresi: '1' };
+  if (bent === 'D') return { dGorevDilimleri: [{ ...BOS_D_GOREV_DILIMI }] };
   if (bent === 'E') return { krediAdedi: '1' };
   return {};
 }
@@ -208,6 +212,14 @@ export function YeniIslem() {
   }, [adli]);
 
   const raporSayisi = trafik ? trafikSatirlari.length : adli ? adliSatirlari.length : 0;
+  const dBendiGorevDilimleri = useMemo(
+    () =>
+    form.dGorevDilimleri.map((dilim) => ({
+      polisSayisi: Number(dilim.polisSayisi),
+      gorevSuresi: Number(dilim.gorevSuresi)
+    })),
+    [form.dGorevDilimleri]
+  );
 
   const sonuc = useMemo(
     () =>
@@ -217,11 +229,10 @@ export function YeniIslem() {
       bau,
       manuelTutar: form.manuelTutar ?? 0,
       adet: form.bent === 'F' ? raporSayisi : form.adet ? Number(form.adet) : 0,
-      polisSayisi: form.polisSayisi ? Number(form.polisSayisi) : 0,
-      gorevSuresi: form.gorevSuresi ? Number(form.gorevSuresi) : 0,
+      gorevDilimleri: form.bent === 'D' ? dBendiGorevDilimleri : [],
       krediAdedi: form.krediAdedi ? Number(form.krediAdedi) : 0
     }),
-    [form, bau, raporSayisi]
+    [form, bau, raporSayisi, dBendiGorevDilimleri]
   );
 
   const kayitNoOnizleme = form.bent ?
@@ -525,28 +536,29 @@ export function YeniIslem() {
     krediYukleme && ilkKrediDekontu ?
     krediYuklemeKaydiniCozumle({
       islem: {
-        id: `is-${Date.now()}-taslak`,
-        kayitNo,
-        bent: 'E',
-        eIslemTuru: 'KREDI_YUKLEME',
-        baslik: baslikMetni,
-        talepEden: talepEdenAdi || '—',
-        birim: kullanici.birim,
-        olusturan: kullanici.rol,
-        olusturmaTarihi: new Date().toISOString().slice(0, 10),
-        tutar: sonuc.tutar,
-        hesaplamaAciklamasi: sonuc.satirlar.join(' · '),
+        krediAdedi: Number(form.krediAdedi),
         dekont: ilkKrediDekontu,
         dekontlar: [ilkKrediDekontu],
         makbuzNo: null,
         durum: 'ODEME_BEKLIYOR',
-        isletmeciId: form.isletmeciId,
-        krediAdedi: Number(form.krediAdedi)
+        bagisMakbuzlari: undefined
       },
       birimKrediBedeli: patlatmaBedeli(bau),
       mevcutYuklemeAdedi: 0
     }) :
     null;
+
+    const dBendiGorevDilimleriKayit =
+    bent === 'D' ?
+    dBendiGorevDilimleri.filter(
+      (dilim) =>
+      Number.isInteger(dilim.polisSayisi) &&
+      dilim.polisSayisi > 0 &&
+      Number.isInteger(dilim.gorevSuresi) &&
+      dilim.gorevSuresi > 0
+    ) :
+    [];
+    const ilkDGorevDilimi = dBendiGorevDilimleriKayit[0];
 
     const yeni: Islem = {
       id: `is-${Date.now()}`,
@@ -563,8 +575,9 @@ export function YeniIslem() {
       operasyonSaati: form.operasyonSaati || undefined,
       yer: form.yer.trim() || undefined,
       etkinlikAdi: form.etkinlikAdi.trim() || undefined,
-      polisSayisi: bent === 'D' ? Number(form.polisSayisi) : undefined,
-      gorevSuresi: bent === 'D' ? Number(form.gorevSuresi) : undefined,
+      gorevDilimleri: bent === 'D' ? dBendiGorevDilimleriKayit : undefined,
+      polisSayisi: bent === 'D' ? ilkDGorevDilimi?.polisSayisi : undefined,
+      gorevSuresi: bent === 'D' ? ilkDGorevDilimi?.gorevSuresi : undefined,
       tutar: sonuc.tutar,
       hesaplamaAciklamasi: sonuc.satirlar.join(' · '),
       dekont: krediYukleme && ilkKrediDekontu ? ilkKrediDekontu :
@@ -680,6 +693,7 @@ export function YeniIslem() {
     krediOzeti: ozet,
     patlatmaBedeliTutar: patlatmaBedeli(bau),
     raporBedeliTutar: raporBedeli(bau),
+    dBirimTutar: bau * 0.005,
     trafikSatirlari: gosterilenTrafik,
     trafikGuncelle,
     trafikEkle,

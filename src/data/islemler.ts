@@ -153,11 +153,14 @@ export const baslangicIslemleri: Islem[] = [
   operasyonSaati: '18:00',
   yer: 'Girne sahil yolu — festival güzergâhı',
   etkinlikAdi: 'Girne Zeytin Festivali kortej yürüyüşü',
-  polisSayisi: 6,
+  gorevDilimleri: [
+  { polisSayisi: 4, gorevSuresi: 2 },
+  { polisSayisi: 2, gorevSuresi: 2 }],
+  polisSayisi: 4,
   gorevSuresi: 2,
   tutar: 4253.58,
   hesaplamaAciklamasi:
-  'BAÜ x %0,5 = 354,465 TL kişi/saat · 6 polis x 2 saat x 354,465 TL = 4.253,58 TL',
+  'BAÜ x %0,5 = 354,465 TL kişi/saat · 1. dilim: 4 polis x 2 saat x 354,465 TL = 2.835,72 TL · 2. dilim: 2 polis x 2 saat x 354,465 TL = 1.417,86 TL · Toplam D bendi tutarı: 4.253,58 TL',
   dekont: {
     dekontNo: '901238877',
     banka: 'Limasol Türk Kooperatif Bankası',

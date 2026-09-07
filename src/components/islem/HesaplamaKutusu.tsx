@@ -1,4 +1,3 @@
-import React from 'react';
 import { AlertTriangle, Calculator } from 'lucide-react';
 import { HesaplamaSonuc } from '../../utils/hesaplama';
 import { formatTL } from '../../utils/currency';
@@ -20,8 +19,8 @@ export function HesaplamaKutusu({ sonuc }: {sonuc: HesaplamaSonuc;}) {
       </div>
       <p className="mt-2 font-mono text-xs text-muted-foreground">{sonuc.formul}</p>
       <ul className="mt-3 space-y-1 text-sm text-foreground">
-        {sonuc.satirlar.map((satir) =>
-        <li key={satir} className="flex gap-2">
+        {sonuc.satirlar.map((satir, index) =>
+        <li key={`${index}-${satir}`} className="flex gap-2">
             <span className="text-primary">·</span>
             <span>{satir}</span>
           </li>

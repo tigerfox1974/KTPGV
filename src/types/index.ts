@@ -243,6 +243,12 @@ export interface AdliRapor {
   raporTutari: number;
 }
 
+/** D bendi için her bir görev dilimindeki kişi-saat girdisi. */
+export interface DGorevDilimi {
+  polisSayisi: number;
+  gorevSuresi: number;
+}
+
 export interface Islem {
   id: string;
   kayitNo: string;
@@ -263,7 +269,11 @@ export interface Islem {
   operasyonSaati?: string;
   yer?: string;
   etkinlikAdi?: string;
+  /** D bendi çoklu görev dilimi listesi. */
+  gorevDilimleri?: DGorevDilimi[];
+  /** Geriye uyumluluk: eski tekli D bendi kayıtları için korunur. */
   polisSayisi?: number;
+  /** Geriye uyumluluk: eski tekli D bendi kayıtları için korunur. */
   gorevSuresi?: number;
   tutar: number;
   hesaplamaAciklamasi: string;
