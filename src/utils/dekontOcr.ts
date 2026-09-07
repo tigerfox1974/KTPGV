@@ -934,6 +934,26 @@ async function ocrAnalizEt(
   }
 }
 
+async function pdfVerisiniHazirla(
+  dosya: Pick<DekontDosyasi, 'previewUrl' | 'kaynakVeri'>
+): Promise<Uint8Array> {
+  if (dosya.kaynakVeri && dosya.kaynakVeri.byteLength > 0) {
+    try {
+      return new Uint8Array(dosya.kaynakVeri.slice(0));
+    } catch {
+      // Worker tarafına transfer nedeniyle detach olursa preview URL üstünden yeniden okunur.
+    }
+  }
+  if (!dosya.previewUrl) {
+    throw new Error('PDF kaynağı bulunamadı.');
+  }
+  const yanit = await fetch(dosya.previewUrl);
+  if (!yanit.ok) {
+    throw new Error('PDF kaynağı yeniden okunamadı.');
+  }
+  return new Uint8Array(await yanit.arrayBuffer());
+}
+
 function pdfSatirlariniGrupla(
   textItems: TextItem[],
   boyutlar: { width: number; height: number },
@@ -999,13 +1019,13 @@ function pdfSatirlariniGrupla(
 }
 
 async function renderPdfPageToCanvas(
-  veri: ArrayBuffer,
+  veri: Uint8Array,
   sayfaNo: number,
   scale = 2
 ): Promise<HTMLCanvasElement> {
   const { getDocument, GlobalWorkerOptions, version: pdfVersion } = await import('pdfjs-dist');
   GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfVersion}/pdf.worker.min.mjs`;
-  const pdf = await getDocument({ data: veri }).promise;
+  const pdf = await getDocument({ data: veri.slice() }).promise;
   const sayfa = await pdf.getPage(sayfaNo);
   const viewport = sayfa.getViewport({ scale });
   const canvas = document.createElement('canvas');
@@ -1017,10 +1037,10 @@ async function renderPdfPageToCanvas(
   return canvas;
 }
 
-async function pdfAnalizEt(veri: ArrayBuffer): Promise<OcrAnalizSonucu> {
+async function pdfAnalizEt(veri: Uint8Array): Promise<OcrAnalizSonucu> {
   const { getDocument, GlobalWorkerOptions, version: pdfVersion } = await import('pdfjs-dist');
   GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfVersion}/pdf.worker.min.mjs`;
-  const pdf = await getDocument({ data: veri }).promise;
+  const pdf = await getDocument({ data: veri.slice() }).promise;
   let metin = '';
   const satirlar: OcrSatiri[] = [];
 
@@ -1160,8 +1180,8 @@ export async function dekontOcrOku(
   }
 
   const analiz =
-    dosya.tur === 'PDF' && dosya.kaynakVeri
-      ? await pdfAnalizEt(dosya.kaynakVeri)
+    dosya.tur === 'PDF'
+      ? await pdfAnalizEt(await pdfVerisiniHazirla(dosya))
       : {
           ...(await ocrAnalizEt(dosya.previewUrl, 1)),
           sayfaSayisi: 1
@@ -1192,8 +1212,8 @@ export async function dekontBolgesiniTekrarOku({
   sayfa?: number;
 }): Promise<DekontBolgeOcrSonucu> {
   const tamCanvas =
-    dosya.tur === 'PDF' && dosya.kaynakVeri
-      ? await renderPdfPageToCanvas(dosya.kaynakVeri, sayfa, 2.5)
+    dosya.tur === 'PDF'
+      ? await renderPdfPageToCanvas(await pdfVerisiniHazirla(dosya), sayfa, 2.5)
       : await gorselCanvasiOlustur(dosya);
   const bolge = cropCanvas(tamCanvas, bbox);
   const params: Partial<TesseractWorkerParams> = {};

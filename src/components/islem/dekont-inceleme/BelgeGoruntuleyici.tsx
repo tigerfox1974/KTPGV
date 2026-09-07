@@ -113,6 +113,26 @@ function nextRotation(rotation: Rotation, delta: 90 | -90): Rotation {
   return dizi[(index + (delta === 90 ? 1 : 3)) % dizi.length];
 }
 
+async function pdfVerisiniHazirla(
+  dosya: Pick<DekontDosyasi, 'previewUrl' | 'kaynakVeri'>
+): Promise<Uint8Array> {
+  if (dosya.kaynakVeri && dosya.kaynakVeri.byteLength > 0) {
+    try {
+      return new Uint8Array(dosya.kaynakVeri.slice(0));
+    } catch {
+      // Bazı worker akışlarında kaynak buffer detach olabilir; alttaki fallback kullanılır.
+    }
+  }
+  if (!dosya.previewUrl) {
+    throw new Error('PDF kaynağı bulunamadı.');
+  }
+  const yanit = await fetch(dosya.previewUrl);
+  if (!yanit.ok) {
+    throw new Error('PDF kaynağı yeniden okunamadı.');
+  }
+  return new Uint8Array(await yanit.arrayBuffer());
+}
+
 export function BelgeGoruntuleyici({
   dosya,
   alanlar = {},
@@ -176,10 +196,11 @@ export function BelgeGoruntuleyici({
       setYukleniyor(true);
       setHata('');
       try {
-        if (dosya.tur === 'PDF' && dosya.kaynakVeri) {
+        if (dosya.tur === 'PDF') {
           const { getDocument, GlobalWorkerOptions, version: pdfVersion } = await import('pdfjs-dist');
           GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfVersion}/pdf.worker.min.mjs`;
-          const pdf = await getDocument({ data: dosya.kaynakVeri }).promise;
+          const pdfVerisi = await pdfVerisiniHazirla(dosya);
+          const pdf = await getDocument({ data: pdfVerisi }).promise;
           const hedefSayfa = clamp(aktifSayfa, 1, pdf.numPages);
           if (!iptal) setSayfaSayisi(pdf.numPages);
           if (hedefSayfa !== aktifSayfa) {
