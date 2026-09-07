@@ -154,8 +154,8 @@ export const baslangicIslemleri: Islem[] = [
   yer: 'Girne sahil yolu — festival güzergâhı',
   etkinlikAdi: 'Girne Zeytin Festivali kortej yürüyüşü',
   gorevDilimleri: [
-  { polisSayisi: 4, gorevSuresi: 2 },
-  { polisSayisi: 2, gorevSuresi: 2 }],
+  { id: 'gd-is-4-1', polisSayisi: 4, gorevSuresi: 2 },
+  { id: 'gd-is-4-2', polisSayisi: 2, gorevSuresi: 2 }],
   polisSayisi: 4,
   gorevSuresi: 2,
   tutar: 4253.58,

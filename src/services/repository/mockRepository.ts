@@ -32,7 +32,10 @@ import { altBasvuruNo, sonrakiKayitNo, sonrakiMakbuzNo } from '../../utils/numar
 import { patlatmaBedeli, raporBedeli, VARSAYILAN_BAU } from '../../utils/hesaplama';
 import { formatTL, formatTarihSaat } from '../../utils/currency';
 import {
+  ajandaIslemiYapilabilirMi,
+  ekranGorulebilirMi,
   islemDegistirilebilirMi,
+  kullaniciMerkezAdminMi,
   makbuzUretilebilirMi,
   odemeDogrulanabilirMi
 } from '../../utils/yetki';
@@ -149,6 +152,51 @@ export class MockKtpgvRepository implements KtpgvRepository {
     return aktifKullanici?.adSoyad ?? 'Sistem';
   }
 
+  private yazmaKullanabilirMi(aktifKullanici: Kullanici | null): aktifKullanici is Kullanici {
+    return !!aktifKullanici && !aktifKullanici.sadeceGoruntule;
+  }
+
+  private menuYazmaYetkisiVarMi(
+    aktifKullanici: Kullanici | null,
+    menuId: string
+  ): aktifKullanici is Kullanici {
+    return this.yazmaKullanabilirMi(aktifKullanici) && ekranGorulebilirMi(aktifKullanici, menuId);
+  }
+
+  private bentYazmaYetkisiVarMi(
+    aktifKullanici: Kullanici | null,
+    bent: Islem['bent']
+  ): aktifKullanici is Kullanici {
+    return (
+      this.yazmaKullanabilirMi(aktifKullanici) &&
+      (kullaniciMerkezAdminMi(aktifKullanici) || aktifKullanici.bentler.includes(bent))
+    );
+  }
+
+  private eBentTakvimYazmaYetkisiVarMi(aktifKullanici: Kullanici | null): aktifKullanici is Kullanici {
+    return (
+      this.menuYazmaYetkisiVarMi(aktifKullanici, 'patlatma-takvimi') &&
+      this.bentYazmaYetkisiVarMi(aktifKullanici, 'E')
+    );
+  }
+
+  private sigortaKayitYazmaYetkisiVarMi(aktifKullanici: Kullanici | null): aktifKullanici is Kullanici {
+    return (
+      this.menuYazmaYetkisiVarMi(aktifKullanici, 'sigorta') &&
+      (kullaniciMerkezAdminMi(aktifKullanici) || aktifKullanici.rolKodu === 'PGM_TRAFIK')
+    );
+  }
+
+  private tasOcagiMasterYazmaYetkisiVarMi(
+    aktifKullanici: Kullanici | null,
+    menuId: 'isletmeciler' | 'tas-ocaklari'
+  ): aktifKullanici is Kullanici {
+    return (
+      this.menuYazmaYetkisiVarMi(aktifKullanici, menuId) &&
+      (kullaniciMerkezAdminMi(aktifKullanici) || aktifKullanici.rolKodu === 'TAS_OCAGI')
+    );
+  }
+
   // --- Kimlik doğrulama -----------------------------------------------------
 
   girisYap(kullaniciAdi: string, sifre: string): KimlikDogrulamaSonucu {
@@ -173,6 +221,9 @@ export class MockKtpgvRepository implements KtpgvRepository {
   }
 
   kullaniciKaydet(aktifKullanici: Kullanici | null, hedef: Kullanici): KayitSonucu {
+    if (!this.menuYazmaYetkisiVarMi(aktifKullanici, 'kullanici-yonetimi')) {
+      return { basarili: false, mesaj: 'Kullanıcı kaydetme yetkiniz yok.' };
+    }
     const ad = hedef.kullaniciAdi.trim().toLowerCase();
     if (!ad) return { basarili: false, mesaj: 'Kullanıcı adı boş olamaz.' };
     if (!hedef.sifre.trim()) return { basarili: false, mesaj: 'Şifre boş olamaz.' };
@@ -193,6 +244,9 @@ export class MockKtpgvRepository implements KtpgvRepository {
   }
 
   kullaniciAktiflikDegistir(aktifKullanici: Kullanici | null, id: string, aktif: boolean): void {
+    if (!this.menuYazmaYetkisiVarMi(aktifKullanici, 'kullanici-yonetimi')) {
+      return;
+    }
     const hedef = this.kullanicilar.find((k) => k.id === id);
     this.kullanicilar = this.kullanicilar.map((k) => (k.id === id ? { ...k, aktif } : k));
     this.auditYazDahili(
@@ -203,6 +257,9 @@ export class MockKtpgvRepository implements KtpgvRepository {
   }
 
   sifreSifirla(aktifKullanici: Kullanici | null, id: string, yeniSifre: string): void {
+    if (!this.menuYazmaYetkisiVarMi(aktifKullanici, 'kullanici-yonetimi')) {
+      return;
+    }
     const hedef = this.kullanicilar.find((k) => k.id === id);
     this.kullanicilar = this.kullanicilar.map((k) => (k.id === id ? { ...k, sifre: yeniSifre } : k));
     this.auditYazDahili(this.aktifKullaniciAdi(aktifKullanici), 'Kullanıcı şifresi sıfırlandı', `${hedef?.kullaniciAdi ?? id}`);
@@ -215,6 +272,9 @@ export class MockKtpgvRepository implements KtpgvRepository {
   }
 
   birimKaydet(aktifKullanici: Kullanici | null, birim: Birim): KayitSonucu {
+    if (!this.menuYazmaYetkisiVarMi(aktifKullanici, 'birim-yonetimi')) {
+      return { basarili: false, mesaj: 'Birim kaydetme yetkiniz yok.' };
+    }
     if (!birim.ad.trim()) return { basarili: false, mesaj: 'Birim adı boş olamaz.' };
     if (!birim.kod.trim()) return { basarili: false, mesaj: 'Birim kodu boş olamaz.' };
     if (this.birimler.some((b) => b.kod.toUpperCase() === birim.kod.trim().toUpperCase() && b.id !== birim.id)) {
@@ -234,6 +294,9 @@ export class MockKtpgvRepository implements KtpgvRepository {
   }
 
   birimAktiflikDegistir(aktifKullanici: Kullanici | null, id: string, aktif: boolean): void {
+    if (!this.menuYazmaYetkisiVarMi(aktifKullanici, 'birim-yonetimi')) {
+      return;
+    }
     const hedef = this.birimler.find((b) => b.id === id);
     this.birimler = this.birimler.map((b) => (b.id === id ? { ...b, aktif } : b));
     this.auditYazDahili(
@@ -250,6 +313,9 @@ export class MockKtpgvRepository implements KtpgvRepository {
   }
 
   bauGuncelle(aktifKullanici: Kullanici | null, deger: number): void {
+    if (!this.yazmaKullanabilirMi(aktifKullanici) || !aktifKullanici.bauGuncelleyebilir) {
+      return;
+    }
     this.bau = deger;
     this.auditYazDahili(this.aktifKullaniciAdi(aktifKullanici), 'BAÜ güncellendi', `Brüt asgari ücret: ${formatTL(deger)}`);
   }
@@ -262,6 +328,9 @@ export class MockKtpgvRepository implements KtpgvRepository {
 
   /** Yeni kayıtlar aktif kullanıcının birimi ve kimliği ile damgalanır. */
   islemEkle(aktifKullanici: Kullanici | null, islem: Islem): void {
+    if (!this.menuYazmaYetkisiVarMi(aktifKullanici, 'yeni-islem') || !this.bentYazmaYetkisiVarMi(aktifKullanici, islem.bent)) {
+      return;
+    }
     const damgali: Islem = {
       ...islem,
       birim: islem.birim || aktifKullanici?.birim || '—',
@@ -275,6 +344,12 @@ export class MockKtpgvRepository implements KtpgvRepository {
   islemOlustur(aktifKullanici: Kullanici | null, girdi: YeniIslemGirdisi): YeniIslemSonucu {
     if (!aktifKullanici) {
       return { basarili: false, mesaj: 'Aktif kullanıcı olmadan kayıt oluşturulamaz.' };
+    }
+    if (!this.menuYazmaYetkisiVarMi(aktifKullanici, 'yeni-islem')) {
+      return { basarili: false, mesaj: 'Yeni işlem oluşturma yetkiniz yok.' };
+    }
+    if (!this.bentYazmaYetkisiVarMi(aktifKullanici, girdi.bent)) {
+      return { basarili: false, mesaj: `${girdi.bent} bendi için işlem oluşturma yetkiniz yok.` };
     }
 
     if (girdi.bent === 'E' && girdi.eIslemTuru === 'KREDI_PLANLAMA') {
@@ -729,6 +804,9 @@ export class MockKtpgvRepository implements KtpgvRepository {
   }
 
   ajandaEkle(aktifKullanici: Kullanici | null, kayit: AjandaKaydi): void {
+    if (!this.bentYazmaYetkisiVarMi(aktifKullanici, kayit.bent)) {
+      return;
+    }
     const damgali: AjandaKaydi = {
       ...kayit,
       birim: kayit.birim || aktifKullanici?.birim || '—',
@@ -743,7 +821,11 @@ export class MockKtpgvRepository implements KtpgvRepository {
     );
   }
 
-  ajandaDurumGuncelle(_aktifKullanici: Kullanici | null, id: string, durum: AjandaDurumu): void {
+  ajandaDurumGuncelle(aktifKullanici: Kullanici | null, id: string, durum: AjandaDurumu): void {
+    const hedef = this.ajanda.find((a) => a.id === id);
+    if (!hedef) return;
+    if (!this.menuYazmaYetkisiVarMi(aktifKullanici, 'ajanda')) return;
+    if (!ajandaIslemiYapilabilirMi(aktifKullanici, hedef)) return;
     this.ajanda = this.ajanda.map((a) => (a.id === id ? { ...a, durum } : a));
   }
 
@@ -763,7 +845,13 @@ export class MockKtpgvRepository implements KtpgvRepository {
     return this.krediHareketleri;
   }
 
-  krediHareketiEkle(_aktifKullanici: Kullanici | null, hareket: KrediHareketi): void {
+  krediHareketiEkle(aktifKullanici: Kullanici | null, hareket: KrediHareketi): void {
+    if (!this.menuYazmaYetkisiVarMi(aktifKullanici, 'kredi-hareketleri')) {
+      return;
+    }
+    if (!this.bentYazmaYetkisiVarMi(aktifKullanici, 'E')) {
+      return;
+    }
     this.krediHareketleri = [hareket, ...this.krediHareketleri];
   }
 
@@ -804,6 +892,9 @@ export class MockKtpgvRepository implements KtpgvRepository {
    * Kredi yetersizse plan yine kaydedilir, ancak kart “Kredi Yetersiz” uyarısı gösterir.
    */
   patlatmaPlanla(aktifKullanici: Kullanici | null, girdi: PlanGirdisi): PlanSonucu {
+    if (!this.eBentTakvimYazmaYetkisiVarMi(aktifKullanici)) {
+      return { basarili: false, mesaj: 'Patlatma planlama yetkiniz yok.' };
+    }
     if (girdi.adet <= 0) {
       return { basarili: false, mesaj: 'Patlatma adedi sıfırdan büyük olmalıdır.' };
     }
@@ -910,6 +1001,12 @@ export class MockKtpgvRepository implements KtpgvRepository {
   patlatmaSonucIsle(aktifKullanici: Kullanici | null, girdi: SonucGirdisi): KayitSonucu {
     const kayit = this.ajanda.find((a) => a.id === girdi.ajandaId);
     if (!kayit) return { basarili: false, mesaj: 'Patlatma kaydı bulunamadı.' };
+    if (!this.eBentTakvimYazmaYetkisiVarMi(aktifKullanici)) {
+      return { basarili: false, mesaj: 'Patlatma sonucu işleme yetkiniz yok.' };
+    }
+    if (!ajandaIslemiYapilabilirMi(aktifKullanici, kayit)) {
+      return { basarili: false, mesaj: 'Bu ajanda kaydı için işlem yetkiniz yok.' };
+    }
 
     const durum: AjandaDurumu =
       girdi.sonuc === 'YAPILMADI' ? 'Yapılmadı' : girdi.sonuc === 'ERTELENDI' ? 'Ertelendi' : 'İptal Edildi';
@@ -952,6 +1049,9 @@ export class MockKtpgvRepository implements KtpgvRepository {
   }
 
   patlatmaGerceklesmeIsle(aktifKullanici: Kullanici | null, girdi: GerceklesmeGirdisi): GerceklesmeSonucu {
+    if (!this.eBentTakvimYazmaYetkisiVarMi(aktifKullanici)) {
+      return { basarili: false, mesaj: 'Patlatma gerçekleşme işleme yetkiniz yok.' };
+    }
     const ozet = this.krediOzetiHesapla(girdi.isletmeciId);
     if (girdi.adet <= 0) {
       return { basarili: false, mesaj: 'Patlatma adedi sıfırdan büyük olmalıdır.' };
@@ -1073,6 +1173,9 @@ export class MockKtpgvRepository implements KtpgvRepository {
   }
 
   sigortaKaydet(aktifKullanici: Kullanici | null, sirket: SigortaSirketi): void {
+    if (!this.sigortaKayitYazmaYetkisiVarMi(aktifKullanici)) {
+      return;
+    }
     const yeniMi = !this.sigortalar.some((s) => s.id === sirket.id);
     this.sigortalar = yeniMi
       ? [sirket, ...this.sigortalar]
@@ -1089,6 +1192,9 @@ export class MockKtpgvRepository implements KtpgvRepository {
   }
 
   isletmeciKaydet(aktifKullanici: Kullanici | null, isletmeci: Isletmeci): void {
+    if (!this.tasOcagiMasterYazmaYetkisiVarMi(aktifKullanici, 'isletmeciler')) {
+      return;
+    }
     const yeniMi = !this.isletmeciler.some((i) => i.id === isletmeci.id);
     this.isletmeciler = yeniMi
       ? [isletmeci, ...this.isletmeciler]
@@ -1105,6 +1211,9 @@ export class MockKtpgvRepository implements KtpgvRepository {
   }
 
   tasOcagiKaydet(aktifKullanici: Kullanici | null, ocak: TasOcagi): void {
+    if (!this.tasOcagiMasterYazmaYetkisiVarMi(aktifKullanici, 'tas-ocaklari')) {
+      return;
+    }
     const yeniMi = !this.tasOcaklari.some((t) => t.id === ocak.id);
     this.tasOcaklari = yeniMi
       ? [ocak, ...this.tasOcaklari]
@@ -1124,12 +1233,18 @@ export class MockKtpgvRepository implements KtpgvRepository {
   }
 
   manifestOlustur(aktifKullanici: Kullanici | null, yil: number): void {
+    if (!this.menuYazmaYetkisiVarMi(aktifKullanici, 'arsiv')) {
+      return;
+    }
     const hash = `sha256:${Math.random().toString(16).slice(2, 14)}…${Math.random().toString(16).slice(2, 6)}`;
     this.arsivler = this.arsivler.map((a) => (a.yil === yil ? { ...a, manifestHash: hash } : a));
     this.auditYazDahili(this.aktifKullaniciAdi(aktifKullanici), 'Arşiv manifest simülasyonu oluşturuldu', `Mali Yıl ${yil}`);
   }
 
   arsivDogrula(aktifKullanici: Kullanici | null, yil: number): void {
+    if (!this.menuYazmaYetkisiVarMi(aktifKullanici, 'arsiv')) {
+      return;
+    }
     this.arsivler = this.arsivler.map((a) =>
       a.yil === yil ? { ...a, dogrulandi: true, durum: 'Arşivlendi' as const } : a
     );

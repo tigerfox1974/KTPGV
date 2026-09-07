@@ -146,10 +146,9 @@ export function AppProvider({
   baslangicKullanicisi = null
 }: {children: React.ReactNode;baslangicKullanicisi?: Kullanici | null;}) {
   // --- Reaktif ayna (mirror) durumu ----------------------------------------
-  // Gerçek veri, doğrulama, yetki denetimi ve numaralandırma `repository`
-  // (bkz. src/services/repository) içinde tutulur/uygulanır. Bu state'ler
-  // yalnızca React render'ının tetiklenmesi için repository anlık görüntüsünü
-  // yansıtır; iş kuralı burada uygulanmaz.
+  // Gerçek veri, numaralandırma ve yazma yetki denetimleri `repository`
+  // içinde zorlanır. Bu state'ler yalnızca repository anlık görüntüsünü
+  // React render'ına yansıtır; mutasyon kuralı burada uygulanmaz.
   const [kullanici, setKullanici] = useState<Kullanici | null>(baslangicKullanicisi);
   const [kullanicilar, setKullanicilar] = useState<Kullanici[]>(() => repository.kullanicilariGetir());
   const [birimler, setBirimler] = useState<Birim[]>(() => repository.birimleriGetir());
@@ -442,7 +441,7 @@ export function AppProvider({
     [kullanici]
   );
 
-  // --- Merkezi yetki katmanı (UI görünürlük/filtreleme; yazma denetimi repository'dedir) ---
+  // --- UI yetki katmanı (görünürlük/filtreleme); yazma zorlaması repository guard'larındadır. ---
   const merkezAdminMi = kullaniciMerkezAdminMi(kullanici);
   const denetciMi = kullaniciDenetciMi(kullanici);
   const tumVeriGorebilir = kullaniciTumVeriGorebilir(kullanici);
