@@ -25,6 +25,8 @@ import type {
   OdemeDogrulamaSonucu,
   PlanGirdisi,
   PlanSonucu,
+  YeniIslemGirdisi,
+  YeniIslemSonucu,
   SonucGirdisi
 } from '../services/repository';
 import { islemBagisMakbuzlariniOku } from '../utils/krediYukleme';
@@ -58,6 +60,8 @@ export type {
   OdemeDogrulamaSonucu,
   PlanGirdisi,
   PlanSonucu,
+  YeniIslemGirdisi,
+  YeniIslemSonucu,
   SonucGirdisi
 };
 
@@ -101,6 +105,7 @@ interface AppContextDegeri {
   bauGuncelle: (deger: number) => void;
   islemler: Islem[];
   islemEkle: (islem: Islem) => void;
+  islemOlustur: (girdi: YeniIslemGirdisi) => YeniIslemSonucu;
   makbuzUret: (islemId: string) => MakbuzUretimSonucu;
   odemeDogrula: (islemId: string, dekontId?: string) => OdemeDogrulamaSonucu;
   krediYuklemeDekontEkle: (islemId: string, girdi: KrediYuklemeDekontKaydiGirdisi) => IslemSonucu;
@@ -266,6 +271,15 @@ export function AppProvider({
       setIslemler(repository.islemleriGetir());
     },
     [kullanici]
+  );
+
+  const islemOlustur = useCallback(
+    (girdi: YeniIslemGirdisi): YeniIslemSonucu => {
+      const sonuc = repository.islemOlustur(kullanici, girdi);
+      if (sonuc.basarili) islemVeKrediyiTazele();
+      return sonuc;
+    },
+    [kullanici, islemVeKrediyiTazele]
   );
 
   const islemBul = useCallback(
@@ -535,6 +549,7 @@ export function AppProvider({
       bauGuncelle,
       islemler,
       islemEkle,
+      islemOlustur,
       makbuzUret,
       odemeDogrula,
       krediYuklemeDekontEkle,
@@ -601,6 +616,7 @@ export function AppProvider({
     bauGuncelle,
     islemler,
     islemEkle,
+    islemOlustur,
     makbuzUret,
     odemeDogrula,
     krediYuklemeDekontEkle,

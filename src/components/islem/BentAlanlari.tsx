@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
+import { Plus, Trash2 } from 'lucide-react';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
 import { ParaInput } from '../ui/ParaInput';
-import { Button } from '../ui/Button';
 import {
   Select,
   SelectContent,
@@ -11,19 +11,12 @@ import {
   SelectValue } from
 '../ui/Select';
 import { KuralNotu } from '../common/KuralNotu';
-import { BilgiRozeti } from '../common/DurumRozeti';
+import { Button } from '../ui/Button';
 import { TrafikAltBasvurular } from './TrafikAltBasvurular';
 import { AdliRaporlar } from './AdliRaporlar';
-import { BilgiKaynagiSecimi } from '../tasocagi/BilgiKaynagiSecimi';
 import { KrediOzeti, useApp } from '../../contexts/AppContext';
 import { AdliRapor, BentKodu, BilgiKaynagi, EIslemTuru, FAltTur, TrafikAltBasvuru } from '../../types';
 import { formatTL } from '../../utils/currency';
-import { D_BENDI_GOREV_SAATI_MAX, D_BENDI_POLIS_SAYISI_MAX } from '../../utils/hesaplama';
-
-export interface DGorevDilimiFormu {
-  polisSayisi: string;
-  gorevSuresi: string;
-}
 
 export interface IslemFormu {
   bent: BentKodu | '';
@@ -38,7 +31,8 @@ export interface IslemFormu {
   yer: string;
   manuelTutar: number | null;
   adet: string;
-  dGorevDilimleri: DGorevDilimiFormu[];
+  polisSayisi: string;
+  gorevSuresi: string;
   krediAdedi: string;
   sigortaSirketiId: string;
   isletmeciId: string;
@@ -50,6 +44,15 @@ export interface IslemFormu {
 
 export type BentBolumu = 'kaynak' | 'rapor' | 'operasyon' | 'hesaplama';
 
+/** D bendi görev dilimi satırı — form string değerleri + gösterim için polis-saat/satır tutarı. */
+export interface GorevDilimiSatiri {
+  id: string;
+  polisSayisi: string;
+  gorevSuresi: string;
+  polisSaat: number;
+  tutar: number;
+}
+
 interface BentAlanlariProps {
   bolum: BentBolumu;
   form: IslemFormu;
@@ -57,7 +60,6 @@ interface BentAlanlariProps {
   krediOzeti: KrediOzeti | null;
   patlatmaBedeliTutar: number;
   raporBedeliTutar: number;
-  dBirimTutar: number;
   trafikSatirlari: TrafikAltBasvuru[];
   trafikGuncelle: (sira: number, alan: keyof TrafikAltBasvuru, deger: string) => void;
   trafikEkle: () => void;
@@ -66,6 +68,10 @@ interface BentAlanlariProps {
   adliGuncelle: (sira: number, alan: keyof AdliRapor, deger: string) => void;
   adliEkle: () => void;
   adliKaldir: (sira: number) => void;
+  dilimSatirlari: GorevDilimiSatiri[];
+  dilimGuncelle: (sira: number, alan: 'polisSayisi' | 'gorevSuresi', deger: string) => void;
+  dilimEkle: () => void;
+  dilimKaldir: (sira: number) => void;
 }
 
 function OperasyonAlanlari({
@@ -76,15 +82,15 @@ function OperasyonAlanlari({
   yerEtiketi,
   saatVar = true,
   yerVar = true
-
-
-
-
-
-
-
-
-}: {form: IslemFormu;guncelle: BentAlanlariProps['guncelle'];tarihEtiketi: string;saatEtiketi?: string;yerEtiketi?: string;saatVar?: boolean;yerVar?: boolean;}) {
+}: {
+  form: IslemFormu;
+  guncelle: BentAlanlariProps['guncelle'];
+  tarihEtiketi: string;
+  saatEtiketi?: string;
+  yerEtiketi?: string;
+  saatVar?: boolean;
+  yerVar?: boolean;
+}) {
   return (
     <div className="space-y-3">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -95,86 +101,87 @@ function OperasyonAlanlari({
             type="date"
             value={form.operasyonTarihi}
             onChange={(e) => guncelle('operasyonTarihi', e.target.value)}
-            className="mt-1.5" />
-          
+            className="mt-1.5"
+          />
         </div>
-        {saatVar &&
-        <div>
+        {saatVar && (
+          <div>
             <Label htmlFor="operasyon-saati">{saatEtiketi}</Label>
             <Input
-            id="operasyon-saati"
-            type="time"
-            value={form.operasyonSaati}
-            onChange={(e) => guncelle('operasyonSaati', e.target.value)}
-            className="mt-1.5" />
-          
+              id="operasyon-saati"
+              type="time"
+              value={form.operasyonSaati}
+              onChange={(e) => guncelle('operasyonSaati', e.target.value)}
+              className="mt-1.5"
+            />
           </div>
-        }
-        {yerVar &&
-        <div>
+        )}
+        {yerVar && (
+          <div>
             <Label htmlFor="operasyon-yeri">{yerEtiketi}</Label>
             <Input
-            id="operasyon-yeri"
-            value={form.yer}
-            onChange={(e) => guncelle('yer', e.target.value)}
-            placeholder="Örn. Palm Beach Otel — Gazimağusa"
-            className="mt-1.5" />
-          
+              id="operasyon-yeri"
+              value={form.yer}
+              onChange={(e) => guncelle('yer', e.target.value)}
+              placeholder="Örn. Palm Beach Otel — Gazimağusa"
+              className="mt-1.5"
+            />
           </div>
-        }
+        )}
       </div>
       <p className="text-xs text-muted-foreground">
         Bu tarih ajandayı besler. Dekont tarihi mali belge tarihidir ve bu alandan bağımsızdır.
       </p>
-    </div>);
-
+    </div>
+  );
 }
 
-function KrediOzetKutusu({ ozet }: {ozet: KrediOzeti;}) {
+function KrediOzetKutusu({ ozet }: { ozet: KrediOzeti }) {
   const kalemler = [
-  { etiket: 'Yüklenen kredi', deger: ozet.yuklenen, ton: 'notr' as const },
-  { etiket: 'Doğrulama bekleyen', deger: ozet.dogrulamaBekleyen, ton: 'uyari' as const },
-  { etiket: 'Planlanan / rapor bekleyen', deger: ozet.planlanan, ton: 'uyari' as const },
-  { etiket: 'Gerçekleşmiş kullanılan', deger: ozet.kullanilan, ton: 'notr' as const },
-  { etiket: 'Kalan kullanılabilir', deger: ozet.kalan, ton: 'vurgu' as const }];
+    { etiket: 'Yüklenen kredi', deger: ozet.yuklenen, ton: 'notr' as const },
+    { etiket: 'Doğrulama bekleyen', deger: ozet.dogrulamaBekleyen, ton: 'uyari' as const },
+    { etiket: 'Planlanan / rapor bekleyen', deger: ozet.planlanan, ton: 'uyari' as const },
+    { etiket: 'Gerçekleşmiş kullanılan', deger: ozet.kullanilan, ton: 'notr' as const },
+    { etiket: 'Kalan kullanılabilir', deger: ozet.kalan, ton: 'vurgu' as const }
+  ];
 
   return (
     <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
-      {kalemler.map((k) =>
-      <div
-        key={k.etiket}
-        className={`rounded-lg border p-3 ${
-        k.ton === 'vurgu' ?
-        'border-primary/30 bg-primary/5' :
-        k.ton === 'uyari' ?
-        'border-amber-200 bg-amber-50' :
-        'border-border bg-muted/30'}`
-        }>
-        
+      {kalemler.map((k) => (
+        <div
+          key={k.etiket}
+          className={`rounded-lg border p-3 ${
+            k.ton === 'vurgu'
+              ? 'border-primary/30 bg-primary/5'
+              : k.ton === 'uyari'
+              ? 'border-amber-200 bg-amber-50'
+              : 'border-border bg-muted/30'
+          }`}>
           <p className="text-xs text-muted-foreground">{k.etiket}</p>
           <p
-          className={`mt-1 font-heading text-lg font-semibold ${
-          k.ton === 'vurgu' ?
-          'text-primary' :
-          k.ton === 'uyari' ?
-          'text-amber-700' :
-          'text-foreground'}`
-          }>
-          
+            className={`mt-1 font-heading text-lg font-semibold ${
+              k.ton === 'vurgu'
+                ? 'text-primary'
+                : k.ton === 'uyari'
+                ? 'text-amber-700'
+                : 'text-foreground'
+            }`}>
             {k.deger} kredi
           </p>
         </div>
-      )}
-    </div>);
-
+      ))}
+    </div>
+  );
 }
 
-function pozitifTamSayiMi(deger: string): boolean {
-  return /^\d+$/.test(deger) && Number(deger) > 0;
+/** D bendi dilim polis sayısı: 1-999 arası pozitif tam sayı (en fazla 3 basamak). */
+function dilimPolisGecerliMi(deger: string): boolean {
+  return /^\d{1,3}$/.test(deger) && Number(deger) >= 1 && Number(deger) <= 999;
 }
 
-function maxDegeriAsiyorMu(deger: string, maxDeger: number): boolean {
-  return /^\d+$/.test(deger) && Number(deger) > maxDeger;
+/** D bendi dilim görev süresi: 1-99 arası pozitif tam saat (en fazla 2 basamak). */
+function dilimSureGecerliMi(deger: string): boolean {
+  return /^\d{1,2}$/.test(deger) && Number(deger) >= 1 && Number(deger) <= 99;
 }
 
 export function BentAlanlari({
@@ -184,7 +191,6 @@ export function BentAlanlari({
   krediOzeti,
   patlatmaBedeliTutar,
   raporBedeliTutar,
-  dBirimTutar,
   trafikSatirlari,
   trafikGuncelle,
   trafikEkle,
@@ -192,9 +198,13 @@ export function BentAlanlari({
   adliSatirlari,
   adliGuncelle,
   adliEkle,
-  adliKaldir
+  adliKaldir,
+  dilimSatirlari,
+  dilimGuncelle,
+  dilimEkle,
+  dilimKaldir
 }: BentAlanlariProps) {
-  const { sigortalar, isletmeciler, tasOcaklari } = useApp();
+  const { sigortalar, isletmeciler } = useApp();
   const { bent } = form;
 
   if (!bent) return null;
@@ -202,7 +212,6 @@ export function BentAlanlari({
   const trafik = bent === 'F' && form.fAltTur === 'TRAFIK';
   const adli = bent === 'F' && form.fAltTur === 'ADLI';
   const krediYukleme = bent === 'E' && form.eIslemTuru === 'KREDI_YUKLEME';
-  const krediPlanlama = bent === 'E' && form.eIslemTuru === 'KREDI_PLANLAMA';
 
   /* ---------------------------- İŞLEM KAYNAĞI ---------------------------- */
   if (bolum === 'kaynak') {
@@ -227,26 +236,11 @@ export function BentAlanlari({
         }
 
         {bent === 'E' &&
-        <div className="sm:max-w-md">
-            <Label htmlFor="e-islem-turu">E bendi işlem türü</Label>
-            <Select
-            value={form.eIslemTuru || undefined}
-            onValueChange={(v) => guncelle('eIslemTuru', v as EIslemTuru)}>
-            
-              <SelectTrigger id="e-islem-turu" className="mt-1.5">
-                <SelectValue placeholder="Lütfen işlem türü seçiniz" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="KREDI_YUKLEME">Kredi Yükle</SelectItem>
-                <SelectItem value="KREDI_PLANLAMA">Patlatma Planla</SelectItem>
-                <SelectItem value="KREDI_GERCEKLESME">Patlatma Sonucunu İşle</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Kredi düşümü planlama aşamasında değil, patlatma “Yapıldı” olarak işlendiğinde
-              yapılır.
-            </p>
-          </div>
+        <KuralNotu baslik="Patlatma işlemleri nerede?">
+            Patlatma planlama ve patlatma sonucu işleme yalnızca Patlatma Takvimi ekranından
+            yapılır. Bu ekranda E bendi yalnız kredi yükleme kaydı açar; kredi düşümü patlatma
+            “Yapıldı” olarak işlendiğinde yapılır.
+          </KuralNotu>
         }
 
         {trafik &&
@@ -321,16 +315,6 @@ export function BentAlanlari({
                 ekranından beslenir. Kredi bu hesapta tutulur; talep eden alanı buradan dolar.
               </p>
             </div>
-
-            {krediPlanlama &&
-            <div className="sm:max-w-sm">
-                <BilgiKaynagiSecimi
-                id="e-bilgi-kaynagi"
-                deger={form.bilgiKaynagi}
-                degistir={(v) => guncelle('bilgiKaynagi', v)} />
-              
-              </div>
-            }
 
             {krediOzeti && <KrediOzetKutusu ozet={krediOzeti} />}
           </div>
@@ -422,52 +406,7 @@ export function BentAlanlari({
 
     }
 
-    if (!krediPlanlama) return null;
-
-    // E — patlatma planlama
-    const isletmeciTasOcaklari = tasOcaklari.filter(
-      (t) => t.isletmeciId === form.isletmeciId && t.aktif
-    );
-
-    return (
-      <div className="space-y-4">
-        <div className="sm:max-w-sm">
-          <Label htmlFor="tas-ocagi">Taş ocağı</Label>
-          <Select
-            value={form.tasOcagiId || undefined}
-            onValueChange={(v) => guncelle('tasOcagiId', v)}
-            disabled={!form.isletmeciId}>
-            
-            <SelectTrigger id="tas-ocagi" className="mt-1.5">
-              <SelectValue
-                placeholder={
-                form.isletmeciId ? 'Lütfen taş ocağı seçiniz' : 'Önce işletmeci seçiniz'
-                } />
-              
-            </SelectTrigger>
-            <SelectContent>
-              {isletmeciTasOcaklari.map((t) =>
-              <SelectItem key={t.id} value={t.id}>
-                  {t.ad} · {t.bolge}
-                </SelectItem>
-              )}
-            </SelectContent>
-          </Select>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {form.isletmeciId ?
-            `Yalnızca seçilen işletmeciye bağlı ${isletmeciTasOcaklari.length} aktif taş ocağı listelenir.` :
-            'İşletmeci seçildikten sonra yalnızca ona bağlı taş ocakları listelenir.'}
-          </p>
-        </div>
-
-        <OperasyonAlanlari
-          form={form}
-          guncelle={guncelle}
-          tarihEtiketi="Planlanan patlatma tarihi"
-          saatEtiketi="Planlanan patlatma saati"
-          yerVar={false} />
-        
-      </div>);
+    return null;
 
   }
 
@@ -522,151 +461,88 @@ export function BentAlanlari({
   }
 
   if (bent === 'D') {
-    const gorevDilimleri =
-    form.dGorevDilimleri.length > 0 ?
-    form.dGorevDilimleri :
-    [{ polisSayisi: '', gorevSuresi: '' }];
-
-    const gorevDilimiGuncelle = (
-      sira: number,
-      alan: keyof DGorevDilimiFormu,
-      deger: string
-    ) => {
-      guncelle(
-        'dGorevDilimleri',
-        gorevDilimleri.map((dilim, index) => index === sira ? { ...dilim, [alan]: deger } : dilim)
-      );
-    };
-
-    const gorevDilimiEkle = () => {
-      guncelle('dGorevDilimleri', [...gorevDilimleri, { polisSayisi: '', gorevSuresi: '' }]);
-    };
-
-    const gorevDilimiKaldir = (sira: number) => {
-      if (gorevDilimleri.length <= 1) return;
-      guncelle(
-        'dGorevDilimleri',
-        gorevDilimleri.filter((_, index) => index !== sira)
-      );
-    };
-
-    const toplamAraToplam = gorevDilimleri.reduce((toplam, dilim) => {
-      if (
-      !pozitifTamSayiMi(dilim.polisSayisi) ||
-      maxDegeriAsiyorMu(dilim.polisSayisi, D_BENDI_POLIS_SAYISI_MAX) ||
-      !pozitifTamSayiMi(dilim.gorevSuresi) ||
-      maxDegeriAsiyorMu(dilim.gorevSuresi, D_BENDI_GOREV_SAATI_MAX))
-      {
-        return toplam;
-      }
-      return toplam + Number(dilim.polisSayisi) * Number(dilim.gorevSuresi) * dBirimTutar;
-    }, 0);
-
     return (
       <div className="space-y-3">
-        {gorevDilimleri.map((dilim, index) => {
-          const polisHatasi = dilim.polisSayisi !== '' &&
-          (!pozitifTamSayiMi(dilim.polisSayisi) ||
-          maxDegeriAsiyorMu(dilim.polisSayisi, D_BENDI_POLIS_SAYISI_MAX));
-          const sureHatasi = dilim.gorevSuresi !== '' &&
-          (!pozitifTamSayiMi(dilim.gorevSuresi) ||
-          maxDegeriAsiyorMu(dilim.gorevSuresi, D_BENDI_GOREV_SAATI_MAX));
-
-          const araToplamGoster =
-          !polisHatasi &&
-          !sureHatasi &&
-          pozitifTamSayiMi(dilim.polisSayisi) &&
-          pozitifTamSayiMi(dilim.gorevSuresi);
-
-          const araToplam =
-          araToplamGoster ?
-          Number(dilim.polisSayisi) * Number(dilim.gorevSuresi) * dBirimTutar :
-          0;
-
-          return (
-            <div key={`d-gorev-dilimi-${index}`} className="rounded-lg border border-border bg-muted/20 p-3">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-medium text-foreground">Görev dilimi {index + 1}</p>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => gorevDilimiKaldir(index)}
-                  disabled={gorevDilimleri.length <= 1}>
-                  Dilimi kaldır
-                </Button>
-              </div>
-
-              <div className="mt-3 grid gap-4 sm:max-w-xl sm:grid-cols-2">
-                <div>
-                  <Label htmlFor={`polis-sayisi-${index}`}>Polis sayısı (1 - {D_BENDI_POLIS_SAYISI_MAX})</Label>
-                  <Input
-                    id={`polis-sayisi-${index}`}
-                    type="number"
-                    min={1}
-                    max={D_BENDI_POLIS_SAYISI_MAX}
-                    step={1}
-                    value={dilim.polisSayisi}
-                    onChange={(e) => gorevDilimiGuncelle(index, 'polisSayisi', e.target.value)}
-                    aria-invalid={polisHatasi}
-                    className="mt-1.5" />
-                  {polisHatasi &&
-                  <p className="mt-1 text-xs text-rose-700">
-                      {maxDegeriAsiyorMu(dilim.polisSayisi, D_BENDI_POLIS_SAYISI_MAX) ?
-                    `Polis sayısı en fazla ${D_BENDI_POLIS_SAYISI_MAX} olabilir.` :
-                    'Polis sayısı 1, 2, 3 gibi pozitif tam sayı olmalıdır.'}
+        <div className="space-y-3">
+          {dilimSatirlari.map((satir, index) => {
+            const polisHatasi = satir.polisSayisi !== '' && !dilimPolisGecerliMi(satir.polisSayisi);
+            const sureHatasi = satir.gorevSuresi !== '' && !dilimSureGecerliMi(satir.gorevSuresi);
+            return (
+              <div key={satir.id} className="rounded-lg border border-border bg-muted/30 p-3">
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="w-28">
+                    <Label htmlFor={`dilim-${index}-polis`}>Dilim {index + 1} · Polis sayısı</Label>
+                    <Input
+                      id={`dilim-${index}-polis`}
+                      type="number"
+                      min={1}
+                      max={999}
+                      step={1}
+                      value={satir.polisSayisi}
+                      onChange={(e) => dilimGuncelle(index, 'polisSayisi', e.target.value)}
+                      aria-invalid={polisHatasi}
+                      className="mt-1.5 px-2.5 text-center" />
+                    {polisHatasi &&
+                    <p className="mt-1 text-xs text-rose-700">1-999 arası pozitif tam sayı.</p>
+                    }
+                    
+                  </div>
+                  <div className="w-28">
+                    <Label htmlFor={`dilim-${index}-sure`}>Görev süresi (saat)</Label>
+                    <Input
+                      id={`dilim-${index}-sure`}
+                      type="number"
+                      min={1}
+                      max={99}
+                      step={1}
+                      value={satir.gorevSuresi}
+                      onChange={(e) => dilimGuncelle(index, 'gorevSuresi', e.target.value)}
+                      aria-invalid={sureHatasi}
+                      className="mt-1.5 px-2.5 text-center" />
+                    {sureHatasi &&
+                    <p className="mt-1 text-xs text-rose-700">1-99 arası pozitif tam saat.</p>
+                    }
+                    
+                  </div>
+                  <div className="w-28">
+                    <p className="text-xs text-muted-foreground">Polis-saat</p>
+                    <p className="mt-1 font-heading text-base font-semibold text-foreground">
+                      {satir.polisSaat}
                     </p>
-                  }
-                </div>
-
-                <div>
-                  <Label htmlFor={`gorev-suresi-${index}`}>Görev süresi (1 - {D_BENDI_GOREV_SAATI_MAX} saat)</Label>
-                  <Input
-                    id={`gorev-suresi-${index}`}
-                    type="number"
-                    min={1}
-                    max={D_BENDI_GOREV_SAATI_MAX}
-                    step={1}
-                    value={dilim.gorevSuresi}
-                    onChange={(e) => gorevDilimiGuncelle(index, 'gorevSuresi', e.target.value)}
-                    aria-invalid={sureHatasi}
-                    className="mt-1.5" />
-                  {sureHatasi &&
-                  <p className="mt-1 text-xs text-rose-700">
-                      {maxDegeriAsiyorMu(dilim.gorevSuresi, D_BENDI_GOREV_SAATI_MAX) ?
-                    `Görev süresi en fazla ${D_BENDI_GOREV_SAATI_MAX} saat olabilir.` :
-                    'Görev süresi 1, 2, 3 gibi pozitif tam saat olmalıdır.'}
+                  </div>
+                  <div className="w-36">
+                    <p className="text-xs text-muted-foreground">Dilim tutarı</p>
+                    <p className="mt-1 font-heading text-base font-semibold text-primary">
+                      {formatTL(satir.tutar)}
                     </p>
-                  }
+                  </div>
+                  <Button
+                    type="button"
+                    size="xs"
+                    variant="ghost"
+                    disabled={dilimSatirlari.length <= 1}
+                    onClick={() => dilimKaldir(index)}
+                    aria-label={`Dilim ${index + 1} kaldır`}>
+                    
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    Kaldır
+                  </Button>
                 </div>
-              </div>
+              </div>);
 
-              {araToplamGoster &&
-              <p className="mt-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-sm text-foreground">
-                  Ara toplam: {dilim.polisSayisi} polis x {dilim.gorevSuresi} saat ={' '}
-                  <strong>{formatTL(araToplam)}</strong>
-                </p>
-              }
-            </div>
-          );
-        })}
-
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Button type="button" size="sm" variant="outline" onClick={gorevDilimiEkle}>
-            Görev dilimi ekle
-          </Button>
-          <span className="text-xs text-muted-foreground">Toplam dilim: {gorevDilimleri.length}</span>
+          })}
         </div>
 
-        <p className="text-xs text-muted-foreground">
-          Her dilim için polis sayısı en fazla {D_BENDI_POLIS_SAYISI_MAX}, görev süresi en fazla{' '}
-          {D_BENDI_GOREV_SAATI_MAX} saattir. 1,5 / 1.5 / 2,5 gibi kesirli değerler kabul edilmez.
-        </p>
-        {toplamAraToplam > 0 &&
-        <p className="rounded-lg border border-border bg-muted/30 p-3 text-sm text-muted-foreground">
-            Dilim ara toplamları: {formatTL(toplamAraToplam)}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={dilimEkle}>
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Görev Dilimi Ekle
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            En az 1 görev dilimi zorunludur. Polis sayısı 1-999, görev süresi 1-99 pozitif tam saat
+            olmalıdır; 1,5 / 1.5 / 2,5 gibi buçuklu saat kabul edilmez.
           </p>
-        }
+        </div>
       </div>);
 
   }
@@ -726,55 +602,6 @@ export function BentAlanlari({
 
   }
 
-  if (!krediPlanlama) return null;
-
-  const planlanacak = Number(form.krediAdedi) || 0;
-  const yeterli = !!krediOzeti && planlanacak > 0 && planlanacak <= krediOzeti.kalan;
-
-  return (
-    <div className="space-y-4">
-      <div className="sm:max-w-xs">
-        <Label htmlFor="kredi-adedi">Planlanan patlatma adedi</Label>
-        <Input
-          id="kredi-adedi"
-          type="number"
-          min={1}
-          step={1}
-          value={form.krediAdedi}
-          onChange={(e) => guncelle('krediAdedi', e.target.value)}
-          className="mt-1.5" />
-        
-      </div>
-
-      <div className="rounded-lg border border-border bg-muted/30 p-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm font-medium text-foreground">Kredi yeterlilik kontrolü</p>
-          {krediOzeti && planlanacak > 0 &&
-          <BilgiRozeti
-            metin={yeterli ? 'Kredi yeterli' : 'Kredi yetersiz'}
-            ton={yeterli ? 'olumlu' : 'hata'} />
-
-          }
-        </div>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {krediOzeti ?
-          `Kalan kullanılabilir kredi: ${krediOzeti.kalan} · Planlanan / sonuç bekleyen: ${krediOzeti.planlanan} · Bu planda: ${planlanacak}` :
-          'Kontrol için işletmeci seçilmelidir.'}
-        </p>
-        {krediOzeti && planlanacak > krediOzeti.kalan &&
-        <p className="mt-2 text-sm text-rose-700">
-            Kullanılabilir kredi yetersiz. Plan kaydı açılabilir ancak patlatma “Yapıldı” olarak
-            işlenmeden önce kredi yükleme / ödeme doğrulama / makbuz süreci tamamlanmalıdır.
-          </p>
-        }
-      </div>
-
-      <KuralNotu baslik="Kredi düşüm kuralı">
-        Planlama aşamasında kredi düşülmez, yalnızca “planlanan / sonuç bekleyen” olarak izlenir.
-        Kredi düşümü, patlatma “Yapıldı” olarak işlendiğinde yapılır. Bu işlem en pratik şekilde
-        Patlatma Takvimi ekranındaki kart üzerinden yürütülür. Planlama ve kullanım için yeniden
-        ödeme veya dekont istenmez.
-      </KuralNotu>
-    </div>);
+  return null;
 
 }

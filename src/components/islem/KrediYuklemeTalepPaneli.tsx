@@ -1,4 +1,3 @@
-import React from 'react';
 import { BadgeCheck, Eye, Receipt } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { BilgiRozeti } from '../common/DurumRozeti';

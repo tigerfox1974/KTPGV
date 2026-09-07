@@ -1,4 +1,3 @@
-import React from 'react';
 import { Eye, FileText, ImageIcon, Trash2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { BilgiRozeti } from '../common/DurumRozeti';

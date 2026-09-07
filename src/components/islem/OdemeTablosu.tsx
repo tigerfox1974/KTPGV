@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { Fragment, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BadgeCheck, ChevronDown, ChevronRight, Eye, Receipt } from 'lucide-react';
 import { Button } from '../ui/Button';
@@ -132,7 +132,7 @@ function bentEtiketi(islem: Islem): string {
 
 function odemeDurumuEtiketi(islem: Islem): string | null {
   if (islem.durum === 'ODEME_BEKLIYOR') return 'Ödeme doğrulama bekliyor';
-  if (!islem.makbuzNo && islem.durum !== 'ODEME_BEKLIYOR') return 'Makbuz aşamasında';
+  if (!islem.makbuzNo) return 'Makbuz aşamasında';
   return null;
 }
 
@@ -194,7 +194,7 @@ export function OdemeTablosu({
               'Doğrulandı' :
               odemeDurumuEtiketi(islem);
               return (
-                <React.Fragment key={islem.id}>
+                <Fragment key={islem.id}>
                   <tr className="hover:bg-muted/40">
                     <td className="whitespace-nowrap px-4 py-3">
                       <div className="flex items-center gap-1.5">
@@ -380,7 +380,7 @@ export function OdemeTablosu({
                       </td>
                     </tr>
                   }
-                </React.Fragment>);
+                </Fragment>);
 
             })}
           </tbody>

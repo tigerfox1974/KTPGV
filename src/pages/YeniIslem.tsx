@@ -4,8 +4,6 @@ import { CheckCircle2, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '../components/common/PageHeader';
 import { BosDurum } from '../components/common/BosDurum';
-import { KuralNotu } from '../components/common/KuralNotu';
-import { BilgiRozeti } from '../components/common/DurumRozeti';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Label } from '../components/ui/Label';
@@ -17,26 +15,17 @@ import {
   SelectTrigger,
   SelectValue } from
 '../components/ui/Select';
-import { BentAlanlari, DGorevDilimiFormu, IslemFormu } from '../components/islem/BentAlanlari';
+import { BentAlanlari, GorevDilimiSatiri, IslemFormu } from '../components/islem/BentAlanlari';
 import { BOS_DEKONT, DekontBolumu, DekontFormu } from '../components/islem/DekontBolumu';
 import { HesaplamaKutusu } from '../components/islem/HesaplamaKutusu';
-import {
-  PatlatmaBaslangici,
-  PatlatmaYapildiModali } from
-'../components/tasocagi/PatlatmaYapildiModali';
 import { bentler } from '../data/bentler';
 import { useApp } from '../contexts/AppContext';
 import { AdliRapor, BentKodu, DekontDosyasi, Islem, TrafikAltBasvuru } from '../types';
 import { hesapla, patlatmaBedeli, raporBedeli } from '../utils/hesaplama';
 import { DekontOcrSonucu, normalizeDekontNo } from '../utils/dekontOcr';
 import { altBasvuruNo, sonrakiKayitNo } from '../utils/numaralandirma';
-import { formatTL, formatTarih, formatTarihSaat } from '../utils/currency';
-import { krediYuklemeKaydiniCozumle, islemDekontlariniOku } from '../utils/krediYukleme';
-
-const BOS_D_GOREV_DILIMI: DGorevDilimiFormu = {
-  polisSayisi: '1',
-  gorevSuresi: '1'
-};
+import { formatTL, formatTarih } from '../utils/currency';
+import { islemDekontlariniOku } from '../utils/krediYukleme';
 
 const BOS_FORM: IslemFormu = {
   bent: '',
@@ -50,7 +39,8 @@ const BOS_FORM: IslemFormu = {
   yer: '',
   manuelTutar: null,
   adet: '',
-  dGorevDilimleri: [],
+  polisSayisi: '',
+  gorevSuresi: '',
   krediAdedi: '',
   sigortaSirketiId: '',
   isletmeciId: '',
@@ -78,11 +68,21 @@ const BOS_ADLI: AdliRapor = {
   raporTutari: 0
 };
 
+/** D bendi görev dilimi — yeni satır 1 polis × 1 saat başlangıç değeriyle açılır. */
+function yeniDilim(): GorevDilimiSatiri {
+  return {
+    id: `gd-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
+    polisSayisi: '1',
+    gorevSuresi: '1',
+    polisSaat: 0,
+    tutar: 0
+  };
+}
+
 /** Bent seçildiğinde gelen en düşük geçerli değerler — placeholder değil, gerçek form değeri. */
 function bentVarsayilanlari(bent: BentKodu): Partial<IslemFormu> {
   if (bent === 'C' || bent === 'Ç') return { adet: '1' };
-  if (bent === 'D') return { dGorevDilimleri: [{ ...BOS_D_GOREV_DILIMI }] };
-  if (bent === 'E') return { krediAdedi: '1' };
+  if (bent === 'E') return { eIslemTuru: 'KREDI_YUKLEME', krediAdedi: '1' };
   return {};
 }
 
@@ -118,13 +118,9 @@ export function YeniIslem() {
     kullanici,
     bau,
     islemler,
-    islemEkle,
-    islemBul,
-    ajanda,
-    ajandaEkle,
+    islemOlustur,
     auditEkle,
     krediOzeti,
-    patlatmaPlanla,
     sigortaBul,
     isletmeciBul
   } = useApp();
@@ -136,8 +132,8 @@ export function YeniIslem() {
   const [ocrBilgileri, setOcrBilgileri] = useState<Pick<DekontOcrSonucu, 'durum' | 'okunanAlanlar' | 'guven'>>({ durum: 'BASARISIZ', okunanAlanlar: [], guven: {} });
   const [trafikSatirlari, setTrafikSatirlari] = useState<TrafikAltBasvuru[]>([]);
   const [adliSatirlari, setAdliSatirlari] = useState<AdliRapor[]>([]);
+  const [dilimler, setDilimler] = useState<GorevDilimiSatiri[]>([]);
   const [sonKayit, setSonKayit] = useState<Islem | null>(null);
-  const [raporBaslangici, setRaporBaslangici] = useState<PatlatmaBaslangici | null>(null);
   const navigate = useNavigate();
 
   const kullanilabilirBentler = useMemo(
@@ -180,8 +176,6 @@ export function YeniIslem() {
   const trafik = form.bent === 'F' && form.fAltTur === 'TRAFIK';
   const adli = form.bent === 'F' && form.fAltTur === 'ADLI';
   const krediYukleme = form.bent === 'E' && form.eIslemTuru === 'KREDI_YUKLEME';
-  const krediPlanlama = form.bent === 'E' && form.eIslemTuru === 'KREDI_PLANLAMA';
-  const krediGerceklesme = form.bent === 'E' && form.eIslemTuru === 'KREDI_GERCEKLESME';
   const ozet = form.isletmeciId ? krediOzeti(form.isletmeciId) : null;
   const sigortaSirketi = sigortaBul(form.sigortaSirketiId);
   const isletmeci = isletmeciBul(form.isletmeciId);
@@ -190,8 +184,8 @@ export function YeniIslem() {
   const baslikGorunur = form.bent !== 'E';
   const raporBolumuVar = trafik || adli;
   const operasyonGorunur =
-  !!form.bent && form.bent !== 'A' && form.bent !== 'B' && (krediPlanlama || form.bent !== 'E');
-  // E bendinde dekont yalnızca kredi yüklemede istenir; planlama ve gerçekleşmede istenmez.
+  !!form.bent && form.bent !== 'A' && form.bent !== 'B' && form.bent !== 'E';
+  // E bendinde yalnız kredi yükleme akışı vardır; dekont yalnız kredi yüklemede istenir.
   const dekontGorunur = form.bent === 'E' ? krediYukleme : !!form.bent;
 
   // F bendi seçildiğinde ilk rapor satırı otomatik açılır.
@@ -211,15 +205,16 @@ export function YeniIslem() {
     }
   }, [adli]);
 
+  // D bendi seçildiğinde en az bir görev dilimi başlatılır; başka bente geçilince dilimler temizlenir.
+  useEffect(() => {
+    if (form.bent === 'D') {
+      setDilimler((eski) => eski.length ? eski : [yeniDilim()]);
+    } else {
+      setDilimler([]);
+    }
+  }, [form.bent]);
+
   const raporSayisi = trafik ? trafikSatirlari.length : adli ? adliSatirlari.length : 0;
-  const dBendiGorevDilimleri = useMemo(
-    () =>
-    form.dGorevDilimleri.map((dilim) => ({
-      polisSayisi: Number(dilim.polisSayisi),
-      gorevSuresi: Number(dilim.gorevSuresi)
-    })),
-    [form.dGorevDilimleri]
-  );
 
   const sonuc = useMemo(
     () =>
@@ -229,10 +224,16 @@ export function YeniIslem() {
       bau,
       manuelTutar: form.manuelTutar ?? 0,
       adet: form.bent === 'F' ? raporSayisi : form.adet ? Number(form.adet) : 0,
-      gorevDilimleri: form.bent === 'D' ? dBendiGorevDilimleri : [],
+      gorevDilimleri: form.bent === 'D' ?
+      dilimler.map((d) => ({
+        id: d.id,
+        polisSayisi: Number(d.polisSayisi) || 0,
+        gorevSuresi: Number(d.gorevSuresi) || 0
+      })) :
+      undefined,
       krediAdedi: form.krediAdedi ? Number(form.krediAdedi) : 0
     }),
-    [form, bau, raporSayisi, dBendiGorevDilimleri]
+    [form, bau, raporSayisi, dilimler]
   );
 
   const kayitNoOnizleme = form.bent ?
@@ -251,6 +252,17 @@ export function YeniIslem() {
     raporTutari: raporBedeli(bau)
   }));
 
+  const gosterilenDilimler = dilimler.map((dilim) => {
+    const polis = Number(dilim.polisSayisi) || 0;
+    const sure = Number(dilim.gorevSuresi) || 0;
+    const polisSaat = polis * sure;
+    return {
+      ...dilim,
+      polisSaat,
+      tutar: polisSaat * bau * 0.005
+    };
+  });
+
   const trafikGuncelle = (sira: number, alan: keyof TrafikAltBasvuru, deger: string) =>
   setTrafikSatirlari((eski) =>
   eski.map((satir, i) => i === sira ? { ...satir, [alan]: deger } : satir)
@@ -265,6 +277,14 @@ export function YeniIslem() {
   );
   const adliEkle = () => setAdliSatirlari((eski) => [...eski, { ...BOS_ADLI }]);
   const adliKaldir = (sira: number) => setAdliSatirlari((eski) => eski.filter((_, i) => i !== sira));
+
+  const dilimGuncelle = (sira: number, alan: 'polisSayisi' | 'gorevSuresi', deger: string) =>
+  setDilimler((eski) =>
+  eski.map((dilim, i) => i === sira ? { ...dilim, [alan]: deger } : dilim)
+  );
+  const dilimEkle = () => setDilimler((eski) => [...eski, yeniDilim()]);
+  const dilimKaldir = (sira: number) =>
+  setDilimler((eski) => eski.length > 1 ? eski.filter((_, i) => i !== sira) : eski);
 
   const odenen = dekont.odenenTutar ?? 0;
   const tutarUyumlu = odenen > 0 && Math.abs(odenen - sonuc.tutar) < 0.01;
@@ -352,16 +372,6 @@ export function YeniIslem() {
     }
     if (form.bent === 'E') {
       if (!form.eIslemTuru || !form.isletmeciId) return false;
-      if (krediGerceklesme) return false;
-      if (krediPlanlama) {
-        return (
-          !!form.tasOcagiId &&
-          !!form.operasyonTarihi &&
-          !!form.operasyonSaati &&
-          !!form.bilgiKaynagi &&
-          Number(form.krediAdedi) > 0);
-
-      }
       return sonuc.gecerli;
     }
     return sonuc.gecerli;
@@ -374,8 +384,7 @@ export function YeniIslem() {
       return !trafik || !!form.sigortaSirketiId;
     }
     if (form.bent === 'E') {
-      if (!form.eIslemTuru || !form.isletmeciId) return false;
-      return !krediPlanlama || !!form.bilgiKaynagi;
+      return !!form.eIslemTuru && !!form.isletmeciId;
     }
     return true;
   })();
@@ -408,15 +417,11 @@ export function YeniIslem() {
     if (form.bent === 'D') {
       return form.etkinlikAdi.trim() !== '' && !!form.operasyonTarihi && !!form.operasyonSaati && form.yer.trim() !== '';
     }
-    if (krediPlanlama) {
-      return !!form.tasOcagiId && !!form.operasyonTarihi && !!form.operasyonSaati;
-    }
     return true;
   })();
 
   const hesaplamaBolumuGorunur =
   !!form.bent &&
-  !krediGerceklesme &&
   kaynakTamam &&
   raporTamam &&
   operasyonTamam;
@@ -424,11 +429,11 @@ export function YeniIslem() {
   const hesaplamaOlustu =
   hesaplamaBolumuGorunur &&
   bentTamam &&
-  (krediPlanlama || sonuc.gecerli && sonuc.tutar > 0);
+  sonuc.gecerli && sonuc.tutar > 0;
 
   const dekontBolumuGorunur = dekontGorunur && hesaplamaOlustu && sonuc.tutar > 0;
-  const notBolumuGorunur = !krediGerceklesme && hesaplamaOlustu;
-  const kayitBolumuGorunur = !krediGerceklesme && (krediPlanlama ? hesaplamaOlustu : dekontTamam);
+  const notBolumuGorunur = hesaplamaOlustu;
+  const kayitBolumuGorunur = dekontTamam;
 
   const kaydedilebilir =
   !!kullanici &&
@@ -445,210 +450,59 @@ export function YeniIslem() {
     setOcrBilgileri({ durum: 'BASARISIZ', okunanAlanlar: [], guven: {} });
     setTrafikSatirlari([]);
     setAdliSatirlari([]);
+    setDilimler([]);
   };
 
   const kaydet = () => {
     if (!kullanici || !kaydedilebilir) return;
 
-    // E bendi patlatma planlama tek merkezden y\u00fcr\u00fcr; kay\u0131t/ajanda/kredi hareketi burada elle kurulmaz.
-    if (krediPlanlama) {
-      if (!form.bilgiKaynagi) return;
-      const planSonucu = patlatmaPlanla({
-        isletmeciId: form.isletmeciId,
-        tasOcagiId: form.tasOcagiId,
-        tarih: form.operasyonTarihi,
-        saat: form.operasyonSaati,
-        adet: Number(form.krediAdedi),
-        bilgiKaynagi: form.bilgiKaynagi,
-        aciklama: form.notlar.trim() || undefined,
-        dosya: null
-      });
-      if (!planSonucu.basarili) {
-        toast.error('Patlatma planlanamad\u0131', { description: planSonucu.mesaj });
-        return;
-      }
-      if (planSonucu.krediYetersiz) {
-        toast.warning('Plan olu\u015fturuldu \u2014 kredi yetersiz', {
-          description:
-          'Patlatma \u201cYap\u0131ld\u0131\u201d olarak i\u015flenmeden \u00f6nce kredi y\u00fckleme / \u00f6deme do\u011frulama / makbuz s\u00fcreci tamamlanmal\u0131d\u0131r.'
-        });
-      } else {
-        toast.success('Patlatma takvime eklendi', {
-          description: `Kay\u0131t no: ${planSonucu.kayitNo} \u00b7 Durum: Sonu\u00e7 Bekliyor \u00b7 Kredi bu a\u015famada d\u00fc\u015f\u00fclmedi.`
-        });
-      }
-      const olusanKayit = planSonucu.kayitNo ? islemBul(planSonucu.kayitNo) : undefined;
-      if (olusanKayit) setSonKayit(olusanKayit);
-      sifirla();
-      return;
-    }
-
-    const bent = form.bent as BentKodu;
-    const kayitNo = sonrakiKayitNo(islemler, bent, form.fAltTur, form.eIslemTuru);
-
-    const altBasvurular: TrafikAltBasvuru[] | undefined = trafik ?
-    trafikSatirlari.map((satir, i) => ({
-      ...satir,
-      no: altBasvuruNo(kayitNo, i + 1),
-      raporTutari: raporBedeli(bau)
-    })) :
-    undefined;
-
-    const adliRaporlar: AdliRapor[] | undefined = adli ?
-    adliSatirlari.map((satir, i) => ({
-      ...satir,
-      no: altBasvuruNo(kayitNo, i + 1),
-      raporTutari: raporBedeli(bau)
-    })) :
-    undefined;
-
-    const baslikMetni = baslikGorunur ?
-    form.baslik.trim() :
-    `Patlatma kredisi yükleme — ${form.krediAdedi} kredi`;
-
-    const ilkKrediDekontu =
-    krediYukleme ?
-    {
-      id: `dk-${Date.now()}-ilk`,
-      dekontNo: dekont.dekontNo.trim(),
-      bankaReferansNo: dekont.bankaReferansNo.trim() || undefined,
-      banka: dekont.banka.trim(),
-      tarih: dekont.tarih,
+    const sonucKayit = islemOlustur({
+      bent: form.bent as BentKodu,
+      fAltTur: form.fAltTur || undefined,
+      eIslemTuru: form.eIslemTuru || undefined,
+      baslik: form.baslik,
+      talepEden: talepEdenAdi || '—',
+      operasyonTarihi: form.operasyonTarihi || undefined,
+      operasyonSaati: form.operasyonSaati || undefined,
+      yer: form.yer || undefined,
+      etkinlikAdi: form.etkinlikAdi || undefined,
+      polisSayisi: form.bent === 'D' && dilimler[0] ? Number(dilimler[0].polisSayisi) : undefined,
+      gorevSuresi: form.bent === 'D' && dilimler[0] ? Number(dilimler[0].gorevSuresi) : undefined,
+      gorevDilimleri: form.bent === 'D' && dilimler.length ?
+      dilimler.map((d) => ({
+        id: d.id,
+        polisSayisi: Number(d.polisSayisi) || 0,
+        gorevSuresi: Number(d.gorevSuresi) || 0
+      })) :
+      undefined,
+      tutar: sonuc.tutar,
+      hesaplamaSatirlari: sonuc.satirlar,
+      dekontNo: dekont.dekontNo,
+      bankaReferansNo: dekont.bankaReferansNo || undefined,
+      banka: dekont.banka,
+      dekontTarihi: dekont.tarih,
       odenenTutar: odenen,
-      odemeYapan: dekont.odemeYapan.trim(),
-      dosya,
-      dogrulamaDurumu: 'BEKLIYOR' as const,
+      odemeYapan: dekont.odemeYapan,
+      dekontDosyasi: dosya,
       ocrDurumu: ocrBilgileri.durum,
       ocrOkunanAlanlar: ocrBilgileri.okunanAlanlar,
       ocrGuvenBilgileri: ocrBilgileri.guven,
-      ocrDogrulananDegerleri: {
-        dekontNo: dekont.dekontNo.trim(),
-        bankaReferansNo: dekont.bankaReferansNo.trim() || undefined,
-        banka: dekont.banka.trim(),
-        tarih: dekont.tarih,
-        odenenTutar: odenen,
-        odemeYapan: dekont.odemeYapan.trim()
-      }
-    } :
-    null;
-
-    const krediYuklemeTaslagi =
-    krediYukleme && ilkKrediDekontu ?
-    krediYuklemeKaydiniCozumle({
-      islem: {
-        krediAdedi: Number(form.krediAdedi),
-        dekont: ilkKrediDekontu,
-        dekontlar: [ilkKrediDekontu],
-        makbuzNo: null,
-        durum: 'ODEME_BEKLIYOR',
-        bagisMakbuzlari: undefined
-      },
-      birimKrediBedeli: patlatmaBedeli(bau),
-      mevcutYuklemeAdedi: 0
-    }) :
-    null;
-
-    const dBendiGorevDilimleriKayit =
-    bent === 'D' ?
-    dBendiGorevDilimleri.filter(
-      (dilim) =>
-      Number.isInteger(dilim.polisSayisi) &&
-      dilim.polisSayisi > 0 &&
-      Number.isInteger(dilim.gorevSuresi) &&
-      dilim.gorevSuresi > 0
-    ) :
-    [];
-    const ilkDGorevDilimi = dBendiGorevDilimleriKayit[0];
-
-    const yeni: Islem = {
-      id: `is-${Date.now()}`,
-      kayitNo,
-      bent,
-      fAltTur: form.fAltTur || undefined,
-      eIslemTuru: form.eIslemTuru || undefined,
-      baslik: baslikMetni,
-      talepEden: talepEdenAdi || '—',
-      birim: kullanici.birim,
-      olusturan: kullanici.rol,
-      olusturmaTarihi: new Date().toISOString().slice(0, 10),
-      operasyonTarihi: form.operasyonTarihi || undefined,
-      operasyonSaati: form.operasyonSaati || undefined,
-      yer: form.yer.trim() || undefined,
-      etkinlikAdi: form.etkinlikAdi.trim() || undefined,
-      gorevDilimleri: bent === 'D' ? dBendiGorevDilimleriKayit : undefined,
-      polisSayisi: bent === 'D' ? ilkDGorevDilimi?.polisSayisi : undefined,
-      gorevSuresi: bent === 'D' ? ilkDGorevDilimi?.gorevSuresi : undefined,
-      tutar: sonuc.tutar,
-      hesaplamaAciklamasi: sonuc.satirlar.join(' · '),
-      dekont: krediYukleme && ilkKrediDekontu ? ilkKrediDekontu :
-      {
-        dekontNo: dekont.dekontNo.trim(),
-        bankaReferansNo: dekont.bankaReferansNo.trim() || undefined,
-        banka: dekont.banka.trim(),
-        tarih: dekont.tarih,
-        odenenTutar: odenen,
-        odemeYapan: dekont.odemeYapan.trim(),
-        dosya
-      },
-      dekontlar: krediYukleme && krediYuklemeTaslagi ? krediYuklemeTaslagi.guncelDekontlar : undefined,
-      makbuzNo: null,
-      durum: krediYukleme ?
-      krediYuklemeTaslagi?.kayitDurumu ?? 'ODEME_BEKLIYOR' :
-      'MAKBUZ_BEKLIYOR',
-      bagisMakbuzlari: krediYuklemeTaslagi?.bagisMakbuzlari.length ? krediYuklemeTaslagi.bagisMakbuzlari : undefined,
       sigortaSirketiId: trafik ? form.sigortaSirketiId : undefined,
-      altBasvurular,
-      adliRaporlar,
-      isletmeciId: bent === 'E' ? form.isletmeciId : undefined,
-      krediAdedi: bent === 'E' ? Number(form.krediAdedi) : undefined,
-      krediTalebiOdemeOzeti: krediYuklemeTaslagi?.krediTalebiOdemeOzeti,
-      notlar: form.notlar.trim() || undefined
-    };
+      trafikAltBasvurular: trafik ? trafikSatirlari : undefined,
+      adliRaporlar: adli ? adliSatirlari : undefined,
+      isletmeciId: form.bent === 'E' ? form.isletmeciId : undefined,
+      krediAdedi: form.bent === 'E' ? Number(form.krediAdedi) : undefined,
+      notlar: form.notlar || undefined
+    });
 
-    islemEkle(yeni);
-    auditEkle('Kayıt oluşturuldu', kayitNo);
-
-    if (trafik) {
-      auditEkle('Trafik ana TTRF oluşturuldu', `${kayitNo} · ${sigortaSirketi?.ad}`);
-      if (altBasvurular && altBasvurular.length > 1) {
-        altBasvurular.
-        slice(1).
-        forEach((alt) => auditEkle('Trafik ek rapor oluşturuldu', `${alt.no} · ${alt.plaka}`));
-      }
+    if (!sonucKayit.basarili || !sonucKayit.kayit) {
+      toast.error('İşlem kaydı oluşturulamadı', { description: sonucKayit.mesaj });
+      return;
     }
 
-    if (krediYukleme) {
-      auditEkle(
-        'Taş ocağı kredi talebi oluşturuldu',
-        `${isletmeci?.ad} · ${kayitNo} · İlk dekont ${dekont.dekontNo.trim()} · doğrulama bekliyor`
-      );
-    }
-
-    const ajandayaDuser = bent === 'C' || bent === 'Ç' || bent === 'D' || bent === 'F';
-    if (ajandayaDuser) {
-      ajandaEkle({
-        id: `aj-${Date.now()}`,
-        kayitNo,
-        bent,
-        islemTuru: bent === 'F' ?
-        `${trafik ? 'Trafik' : 'Adli'} polis raporu${
-        raporSayisi > 1 ? ` (${raporSayisi} rapor)` : ''}` :
-
-        bentler.find((b) => b.kod === bent)?.baslik ?? '',
-        baslik: form.etkinlikAdi.trim() || yeni.baslik,
-        talepEden: talepEdenAdi || '—',
-        birim: kullanici.birim,
-        tarih: form.operasyonTarihi,
-        saat: form.operasyonSaati || '09:00',
-        yer: form.yer.trim() || '—',
-        durum: 'Planlandı',
-        odemeDurumu: `Ödeme alındı · Makbuz bekliyor · ${formatTL(yeni.tutar)}`
-      });
-    }
-
-    setSonKayit(yeni);
+    setSonKayit(sonucKayit.kayit);
     toast.success('İşlem kaydı oluşturuldu', {
-      description: `Kayıt no: ${kayitNo} · Numara sistem tarafından üretildi.`
+      description: `Kayıt no: ${sonucKayit.kayitNo} · Numara sistem tarafından üretildi.`
     });
     sifirla();
   };
@@ -677,23 +531,12 @@ export function YeniIslem() {
   'Talep eden / satış kaynağı / ilgili birim' :
   'Talep eden kişi / kurum';
 
-  const bekleyenPlanlar = ajanda.filter(
-    (a) =>
-    a.bent === 'E' &&
-    !!a.isletmeciId &&
-    !a.gerceklesmeKayitNo &&
-    a.durum !== 'İptal Edildi' &&
-    a.durum !== 'Görev Tamamlandı' && (
-    !form.isletmeciId || a.isletmeciId === form.isletmeciId)
-  );
-
   const bentAlanProps = {
     form,
     guncelle,
     krediOzeti: ozet,
     patlatmaBedeliTutar: patlatmaBedeli(bau),
     raporBedeliTutar: raporBedeli(bau),
-    dBirimTutar: bau * 0.005,
     trafikSatirlari: gosterilenTrafik,
     trafikGuncelle,
     trafikEkle,
@@ -701,7 +544,11 @@ export function YeniIslem() {
     adliSatirlari: gosterilenAdli,
     adliGuncelle,
     adliEkle,
-    adliKaldir
+    adliKaldir,
+    dilimSatirlari: gosterilenDilimler,
+    dilimGuncelle,
+    dilimEkle,
+    dilimKaldir
   };
 
   const bolumler: {baslik: string;aciklama?: string;icerik: React.ReactNode;}[] = [];
@@ -722,6 +569,7 @@ export function YeniIslem() {
             setDekont(BOS_DEKONT);
             setTrafikSatirlari([]);
             setAdliSatirlari([]);
+            setDilimler([]);
           }}>
           
             <SelectTrigger id="bent" className="mt-1.5">
@@ -794,89 +642,6 @@ export function YeniIslem() {
 
   });
 
-  if (krediGerceklesme) {
-    bolumler.push({
-      baslik: 'Patlatma Sonucunu İşle',
-      aciklama: 'Kredi düşümü yalnızca sonuç “Yapıldı” olarak işlendiğinde yapılır.',
-      icerik:
-      <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/20 bg-primary/5 p-4">
-            <p className="text-sm text-foreground">
-              Patlatma sonucu en pratik şekilde Patlatma Takvimi ekranındaki kart üzerinden işlenir.
-            </p>
-            <Button variant="outline" size="sm" onClick={() => navigate('/patlatma-takvimi')}>
-              Patlatma Takvimine Git
-            </Button>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Detaylı işlem için sonuç bekleyen planlı patlatmalar aşağıda listelenir.
-          </p>
-          {bekleyenPlanlar.length ?
-        <ul className="space-y-2">
-              {bekleyenPlanlar.map((plan) =>
-          <li
-            key={plan.id}
-            className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 p-4">
-            
-                  <div className="min-w-0">
-                    <p className="font-mono text-xs text-muted-foreground">{plan.kayitNo}</p>
-                    <p className="text-sm font-medium text-foreground">{plan.baslik}</p>
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {formatTarihSaat(plan.tarih, plan.saat)} · Planlanan{' '}
-                      {plan.planlananAdet ?? 1} kredi
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <BilgiRozeti metin={plan.durum} ton="uyari" />
-                    <Button
-                size="sm"
-                onClick={() => {
-                  const isletmeciId = plan.isletmeciId;
-                  if (!isletmeciId) return;
-                  setRaporBaslangici({
-                    isletmeciId,
-                    tasOcagiId: plan.tasOcagiId ?? '',
-                    planKayitNo: plan.kayitNo,
-                    ajandaId: plan.id,
-                    tarih: plan.tarih,
-                    saat: plan.saat,
-                    adet: plan.planlananAdet ?? 1
-                  });
-                }}>
-                
-                      Yapıldı
-                    </Button>
-                  </div>
-                </li>
-          )}
-            </ul> :
-
-        <p className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-              Sonuç bekleyen planlı patlatma bulunmuyor. Önce “Patlatma Planla” işlem türü ile plan
-              oluşturun.
-            </p>
-        }
-          <Button
-          variant="outline"
-          size="sm"
-          onClick={() =>
-          setRaporBaslangici({
-            isletmeciId: form.isletmeciId,
-            tasOcagiId: '',
-            tarih: new Date().toISOString().slice(0, 10),
-            saat: '10:00',
-            adet: 1
-          })
-          }
-          disabled={!form.isletmeciId}>
-          
-            Plan kaydı olmadan sonuç işle
-          </Button>
-        </div>
-
-    });
-  }
-
   if (raporBolumuVar && kaynakTamam) {
     bolumler.push({
       baslik: trafik ? 'Rapor Bilgisi' : 'Adli Rapor Bilgisi',
@@ -897,15 +662,12 @@ export function YeniIslem() {
   if (hesaplamaBolumuGorunur) {
     bolumler.push({
       baslik: 'Hesaplama Özeti',
-      aciklama: krediPlanlama ?
-      'Planlanan kredi ve yeterlilik kontrolü — kredi bu aşamada düşmez.' :
-      `Yasa 57/2026 Madde 6 · BAÜ: ${formatTL(bau)}`,
+      aciklama: `Yasa 57/2026 Madde 6 · BAÜ: ${formatTL(bau)}`,
       icerik:
       <div className="space-y-4">
           <BentAlanlari bolum="hesaplama" {...bentAlanProps} />
-          {!krediPlanlama && sonuc.gecerli && sonuc.tutar > 0 ?
+          {sonuc.gecerli && sonuc.tutar > 0 ?
         <HesaplamaKutusu sonuc={sonuc} /> :
-        !krediPlanlama &&
         <p className="rounded-lg border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground">
               Hesaplama için önce gerekli işlem bilgilerini girin.
             </p>
@@ -983,9 +745,7 @@ export function YeniIslem() {
           <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
           <span>
               Kayıt oluşturuldu: <strong className="font-mono">{sonKayit.kayitNo}</strong>.
-            {sonKayit.eIslemTuru === 'KREDI_PLANLAMA' ?
-          ' Kredi düşümü, patlatma “Yapıldı” olarak işlendiğinde yapılacak.' :
-          ' Makbuz süreci Ödeme / Makbuz ekranından yürütülür.'}
+            {' Makbuz süreci Ödeme / Makbuz ekranından yürütülür.'}
           </span>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -1038,9 +798,7 @@ export function YeniIslem() {
 
                 {!kaydedilebilir &&
               <p className="text-xs text-muted-foreground">
-                    {krediPlanlama ?
-                'Plan kaydı için işletmeci, taş ocağı, planlanan patlatma tarihi/saati ve planlanan adet girilmelidir.' :
-                form.bent === 'D' && !dosya ?
+                    {form.bent === 'D' && !dosya ?
                 'Kayıt oluşturmak için dijital dekont dosyası yüklenmelidir.' :
                 'Kayıt için başvuru kaynağı, rapor/operasyon bilgileri, hesaplama alanları, dekont bilgileri, dijital dekont dosyası ve hesaplanan tutarla eşleşen ödeme tamamlanmalıdır.'}
                   </p>
@@ -1085,13 +843,9 @@ export function YeniIslem() {
                 </div>
               }
               <div className="flex justify-between gap-2">
-                <dt className="text-muted-foreground">
-                  {krediPlanlama ? 'Planlanan kredi' : 'Hesaplanan tutar'}
-                </dt>
+                <dt className="text-muted-foreground">Hesaplanan tutar</dt>
                 <dd className="font-medium text-foreground">
-                  {krediPlanlama ?
-                  `${Number(form.krediAdedi) || 0} kredi` :
-                  formatTL(sonuc.tutar)}
+                  {formatTL(sonuc.tutar)}
                 </dd>
               </div>
               {(dekontBolumuGorunur || odenen > 0) &&
@@ -1119,20 +873,9 @@ export function YeniIslem() {
             </div>
           }
 
-          {(krediPlanlama || krediGerceklesme) &&
-          <KuralNotu baslik="Ödeme / dekont">
-              Patlatma planlama ve sonuç kayıtlarında ödeme yeniden alınmaz; ödeme ve dekont
-              işletmecinin kredi yükleme kaydında bulunur.
-            </KuralNotu>
-          }
         </aside>
       </div>
 
-      <PatlatmaYapildiModali
-        acik={!!raporBaslangici}
-        kapat={() => setRaporBaslangici(null)}
-        baslangic={raporBaslangici} />
-      
     </div>);
 
 }

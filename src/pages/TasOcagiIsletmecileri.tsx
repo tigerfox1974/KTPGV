@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MapPin, Mountain, Pencil, Phone, Plus, User, Wallet } from 'lucide-react';
 import { toast } from 'sonner';

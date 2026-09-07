@@ -1,10 +1,9 @@
-import React from "react";
 import { BoxIcon } from "lucide-react";
 interface OzetKartProps {
   etiket: string;
   deger: string;
   altMetin?: string;
-  ikon: BoxIcon;
+  ikon: typeof BoxIcon;
 }
 export function OzetKart({
   etiket,

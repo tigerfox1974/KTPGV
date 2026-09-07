@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -89,6 +89,7 @@ export function GerceklesmeRaporuFormu({
       tasOcagiId,
       planKayitNo: baslangic?.planKayitNo,
       ajandaId: baslangic?.ajandaId,
+      bilgiKaynagi: 'PERSONEL',
       tarih,
       saat,
       adet: gerceklesenAdet,

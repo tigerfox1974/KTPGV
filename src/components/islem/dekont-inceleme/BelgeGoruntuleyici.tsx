@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -194,10 +194,14 @@ export function BelgeGoruntuleyici({
           canvas.width = Math.ceil(viewport.width);
           canvas.height = Math.ceil(viewport.height);
           context.clearRect(0, 0, canvas.width, canvas.height);
-          await page.render({ canvasContext: context, viewport }).promise;
+          await page.render({ canvas, viewport }).promise;
           if (!iptal) setBelgeBoyutu({ width: canvas.width, height: canvas.height });
         } else {
           const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+            if (!dosya.previewUrl) {
+              reject(new Error('Görsel kaynağı bulunamadı.'));
+              return;
+            }
             const img = new Image();
             img.onload = () => resolve(img);
             img.onerror = () => reject(new Error('Görsel yüklenemedi.'));

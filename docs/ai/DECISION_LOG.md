@@ -20,6 +20,28 @@ Her yeni karar aşağıdaki formatta eklenir:
 
 ## Başlangıç kayıtları
 
+### DEC-20260906-002 — E bendi patlatma planlama/sonuç girişleri Yeni İşlem'den kaldırıldı
+- Tarih: 2026-09-06
+- Modül: E Bendi / Taş Ocağı / Patlatma Takvimi / Yeni İşlem
+- Durum: Uygulandı
+- Karar: Yeni İşlem ekranındaki E bendi "Patlatma Planla" (KREDI_PLANLAMA) ve "Patlatma Sonucunu İşle" (KREDI_GERCEKLESME) işlem türleri kaldırıldı; E bendi Yeni İşlem'de yalnız kredi yükleme (KREDI_YUKLEME) kaydı açar ve işlem türü otomatik seçili gelir. Patlatma planlama ve patlatma sonucu işleme (Yapıldı/Yapılmadı/Ertelendi/İptal) tek giriş noktası olarak Patlatma Takvimi ekranında yürür.
+- Gerekçe: `isKurallari` "patlatmaların günlük takibi Patlatma Takvimi ekranından yapılır; sonuç kart üzerinden tek tıkla işlenir" derken Ajanda ve Ödeme/Makbuz ekranları da Takvime yönlendiriyordu. Yeni İşlem yolundaki sonuç işleme yalnız "Yapıldı" işleyebiliyor (Yapılmadı/Ertelendi/İptal modalleri yoktu) ve planlama için ikinci bir form kopyası sürdürülüyordu — DEC-20260904-003'te belgelenen iki giriş noktası drift riskinin kaynağı buydu.
+- Etki: `src/pages/YeniIslem.tsx` (planlama/gerçekleşme bölümleri, sonuç bekleyen plan listesi, "Plan kaydı olmadan sonuç işle" butonu, `PatlatmaYapildiModali` kullanımı ve `patlatmaPlanla`/`islemBul`/`ajanda` bağımlılıkları kaldırıldı), `src/components/islem/BentAlanlari.tsx` (E işlem türü seçici, bilgi kaynağı seçici, planlama operasyon/hesaplama bölümleri kaldırıldı; E için "Patlatma işlemleri nerede?" kural notu eklendi), `docs/modules/E_BENDI_TAS_OCAGI.md`, `CHANGELOG.md`.
+- Koruma: Kredi yükleme (EKRD) akışı, dekont doğrulama/makbuz kuralları, `patlatmaPlanla`/`patlatmaGerceklesmeIsle`/`patlatmaSonucIsle` repository sözleşmeleri ve Patlatma Takvimi ekranı değiştirilmedi. "Plan kaydı olmadan sonuç işle" yeteneği Yeni İşlem'le birlikte kalktı; ihtiyaç halinde Takvime ayrı kullanıcı kararıyla eklenecek. Diğer bentlerin hesaplama ve form davranışı korunudu.
+- İlgili iş kuralı: BR-001, BR-022; `isKurallari` E bendi akışı
+- İlgili görev: —
+
+### DEC-20260906-001 — D bendi çoklu görev dilimi uygulandı (BR-019)
+- Tarih: 2026-09-06
+- Modül: D Bendi / Yol Kapama / Güvenlik Tedbiri
+- Durum: Uygulandı
+- Karar: `Islem` tipine `gorevDilimleri?: GorevDilimi[]` eklendi. Yeni İşlem formunda D bendi için görev dilimi satırları (polis sayısı, görev süresi, polis-saat, satır tutarı) girilebilir; "Görev Dilimi Ekle/Kaldır" ile satır yönetimi yapılır, en az bir dilim zorunludur. `hesapla()` D bendini dilim bazlı toplam üzerinden hesaplar: `BAÜ x %0,5 x toplam polis-saat`. Sınırlar: polis sayısı 1-999, görev süresi 1-99, ikisi de pozitif tam sayı; geçersiz dilimli hesap kaydı engeller.
+- Gerekçe: BR-019 kuralı dokümanlarda tanımlıydı ancak kodda karşılığı yoktu; tek `polisSayisi`/`gorevSuresi` alanı birden fazla görev dilimini temsil edemiyor ve dilim bazlı polis-saat ara toplamı gösterilemiyordu.
+- Etki: `src/types/index.ts`, `src/utils/hesaplama.ts`, `src/components/islem/BentAlanlari.tsx`, `src/pages/YeniIslem.tsx`, `src/services/repository/types.ts`, `src/services/repository/mockRepository.ts`, `src/pages/KayitDetay.tsx`, `scripts/d-bendi-hesaplama-regression.ts` (yeni), `package.json` (`test:d-bendi`).
+- Koruma: Diğer bentlerin hesaplama davranışı değiştirilmedi; E bendi kredi/dekont/makbuz/OCR akışları ve repository sözleşmesi korunudu. Eski `polisSayisi`/`gorevSuresi` alanları geriye dönük korundu; dilim verilmeyen kayıtlar tek dilim olarak işlenir. Doğrulama: `tsc --noEmit` temiz, lint 0 hata, build başarılı, `test:kredi-yukleme` 14/14, `test:parser` 7/7, `test:d-bendi` 9/9.
+- İlgili iş kuralı: BR-019, BR-020
+- İlgili görev: —
+
 ### DEC-20260904-004 — Route/menu/protection tek kaynakta (`routeRegistry`) toplandı
 - Tarih: 2026-09-04
 - Modül: Route yönetimi / Menü / Yetki kapısı

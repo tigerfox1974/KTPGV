@@ -1,4 +1,3 @@
-import React from 'react';
 import { Inbox } from 'lucide-react';
 
 export function BosDurum({ baslik, aciklama }: {baslik: string;aciklama?: string;}) {

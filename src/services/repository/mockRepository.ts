@@ -1,4 +1,5 @@
 import {
+  AdliRapor,
   AjandaDurumu,
   AjandaKaydi,
   AuditKaydi,
@@ -11,8 +12,10 @@ import {
   Kullanici,
   MaliYilArsivi,
   SigortaSirketi,
+  TrafikAltBasvuru,
   TasOcagi
 } from '../../types';
+import { bentler } from '../../data/bentler';
 import { kullanicilar as baslangicKullanicilari } from '../../data/kullanicilar';
 import { baslangicBirimleri } from '../../data/birimler';
 import { baslangicIslemleri } from '../../data/islemler';
@@ -25,8 +28,8 @@ import {
   krediHareketleri as baslangicKredileri
 } from '../../data/tasOcagi';
 import { maliYilArsivleri as baslangicArsivleri } from '../../data/arsiv';
-import { sonrakiKayitNo, sonrakiMakbuzNo } from '../../utils/numaralandirma';
-import { patlatmaBedeli, VARSAYILAN_BAU } from '../../utils/hesaplama';
+import { altBasvuruNo, sonrakiKayitNo, sonrakiMakbuzNo } from '../../utils/numaralandirma';
+import { patlatmaBedeli, raporBedeli, VARSAYILAN_BAU } from '../../utils/hesaplama';
 import { formatTL, formatTarihSaat } from '../../utils/currency';
 import {
   islemDegistirilebilirMi,
@@ -53,6 +56,8 @@ import type {
   OdemeDogrulamaSonucu,
   PlanGirdisi,
   PlanSonucu,
+  YeniIslemGirdisi,
+  YeniIslemSonucu,
   SonucGirdisi
 } from './types';
 
@@ -265,6 +270,188 @@ export class MockKtpgvRepository implements KtpgvRepository {
       olusturanKullaniciId: islem.olusturanKullaniciId ?? aktifKullanici?.id
     };
     this.islemler = [damgali, ...this.islemler];
+  }
+
+  islemOlustur(aktifKullanici: Kullanici | null, girdi: YeniIslemGirdisi): YeniIslemSonucu {
+    if (!aktifKullanici) {
+      return { basarili: false, mesaj: 'Aktif kullanıcı olmadan kayıt oluşturulamaz.' };
+    }
+
+    if (girdi.bent === 'E' && girdi.eIslemTuru === 'KREDI_PLANLAMA') {
+      return {
+        basarili: false,
+        mesaj: 'Patlatma planlama kayıtları için patlatmaPlanla komutu kullanılmalıdır.'
+      };
+    }
+
+    const trafik = girdi.bent === 'F' && girdi.fAltTur === 'TRAFIK';
+    const adli = girdi.bent === 'F' && girdi.fAltTur === 'ADLI';
+    const krediYukleme = girdi.bent === 'E' && girdi.eIslemTuru === 'KREDI_YUKLEME';
+    const kayitNo = sonrakiKayitNo(this.islemler, girdi.bent, girdi.fAltTur ?? '', girdi.eIslemTuru ?? '');
+    const baslikMetni =
+      girdi.bent === 'E'
+        ? `Patlatma kredisi yükleme — ${girdi.krediAdedi ?? 0} kredi`
+        : girdi.baslik.trim();
+
+    const altBasvurular: TrafikAltBasvuru[] | undefined = trafik
+      ? (girdi.trafikAltBasvurular ?? []).map((satir, sira) => ({
+          ...satir,
+          no: altBasvuruNo(kayitNo, sira + 1),
+          raporTutari: raporBedeli(this.bau)
+        }))
+      : undefined;
+
+    const adliRaporlar: AdliRapor[] | undefined = adli
+      ? (girdi.adliRaporlar ?? []).map((satir, sira) => ({
+          ...satir,
+          no: altBasvuruNo(kayitNo, sira + 1),
+          raporTutari: raporBedeli(this.bau)
+        }))
+      : undefined;
+
+    const temelDekont: Dekont = {
+      dekontNo: girdi.dekontNo.trim(),
+      bankaReferansNo: girdi.bankaReferansNo?.trim() || undefined,
+      banka: girdi.banka.trim(),
+      tarih: girdi.dekontTarihi,
+      odenenTutar: girdi.odenenTutar,
+      odemeYapan: girdi.odemeYapan.trim(),
+      dosya: girdi.dekontDosyasi
+    };
+
+    const ilkKrediDekontu: Dekont | null = krediYukleme
+      ? {
+          ...temelDekont,
+          id: benzersizId('dk'),
+          dogrulamaDurumu: 'BEKLIYOR',
+          ocrDurumu: girdi.ocrDurumu,
+          ocrOkunanAlanlar: girdi.ocrOkunanAlanlar,
+          ocrGuvenBilgileri: girdi.ocrGuvenBilgileri,
+          ocrDogrulananDegerleri: {
+            dekontNo: girdi.dekontNo.trim(),
+            bankaReferansNo: girdi.bankaReferansNo?.trim() || undefined,
+            banka: girdi.banka.trim(),
+            tarih: girdi.dekontTarihi,
+            odenenTutar: girdi.odenenTutar,
+            odemeYapan: girdi.odemeYapan.trim()
+          }
+        }
+      : null;
+
+    const krediYuklemeTaslagi =
+      krediYukleme && ilkKrediDekontu
+        ? krediYuklemeKaydiniCozumle({
+            islem: {
+              dekont: ilkKrediDekontu,
+              dekontlar: [ilkKrediDekontu],
+              makbuzNo: null,
+              durum: 'ODEME_BEKLIYOR',
+              krediAdedi: girdi.krediAdedi
+            },
+            birimKrediBedeli: patlatmaBedeli(this.bau),
+            mevcutYuklemeAdedi: 0
+          })
+        : null;
+
+    const kayit: Islem = {
+      id: benzersizId('is'),
+      kayitNo,
+      bent: girdi.bent,
+      fAltTur: girdi.fAltTur,
+      eIslemTuru: girdi.eIslemTuru,
+      baslik: baslikMetni,
+      talepEden: girdi.talepEden.trim() || '—',
+      birim: aktifKullanici.birim,
+      birimId: aktifKullanici.birimId,
+      olusturan: aktifKullanici.rol,
+      olusturanKullaniciId: aktifKullanici.id,
+      olusturmaTarihi: new Date().toISOString().slice(0, 10),
+      operasyonTarihi: girdi.operasyonTarihi,
+      operasyonSaati: girdi.operasyonSaati,
+      yer: girdi.yer?.trim() || undefined,
+      etkinlikAdi: girdi.etkinlikAdi?.trim() || undefined,
+      polisSayisi: girdi.bent === 'D' ? girdi.polisSayisi : undefined,
+      gorevSuresi: girdi.bent === 'D' ? girdi.gorevSuresi : undefined,
+      gorevDilimleri: girdi.bent === 'D' && girdi.gorevDilimleri?.length
+        ? girdi.gorevDilimleri
+        : undefined,
+      tutar: girdi.tutar,
+      hesaplamaAciklamasi: girdi.hesaplamaSatirlari.join(' · '),
+      dekont: krediYukleme && ilkKrediDekontu ? ilkKrediDekontu : temelDekont,
+      dekontlar: krediYuklemeTaslagi?.guncelDekontlar,
+      makbuzNo: null,
+      durum: krediYukleme ? krediYuklemeTaslagi?.kayitDurumu ?? 'ODEME_BEKLIYOR' : 'MAKBUZ_BEKLIYOR',
+      bagisMakbuzlari: krediYuklemeTaslagi?.bagisMakbuzlari.length
+        ? krediYuklemeTaslagi.bagisMakbuzlari
+        : undefined,
+      sigortaSirketiId: trafik ? girdi.sigortaSirketiId : undefined,
+      altBasvurular,
+      adliRaporlar,
+      isletmeciId: girdi.bent === 'E' ? girdi.isletmeciId : undefined,
+      krediAdedi: girdi.bent === 'E' ? girdi.krediAdedi : undefined,
+      krediTalebiOdemeOzeti: krediYuklemeTaslagi?.krediTalebiOdemeOzeti,
+      notlar: girdi.notlar?.trim() || undefined
+    };
+
+    this.islemEkle(aktifKullanici, kayit);
+    this.auditYazDahili(this.aktifKullaniciAdi(aktifKullanici), 'Kayıt oluşturuldu', kayitNo);
+
+    if (trafik) {
+      const sigortaAdi = this.sigortalar.find((sirket) => sirket.id === girdi.sigortaSirketiId)?.ad;
+      this.auditYazDahili(
+        this.aktifKullaniciAdi(aktifKullanici),
+        'Trafik ana TTRF oluşturuldu',
+        `${kayitNo} · ${sigortaAdi ?? '—'}`
+      );
+      if (altBasvurular && altBasvurular.length > 1) {
+        altBasvurular.slice(1).forEach((alt) => {
+          this.auditYazDahili(
+            this.aktifKullaniciAdi(aktifKullanici),
+            'Trafik ek rapor oluşturuldu',
+            `${alt.no} · ${alt.plaka}`
+          );
+        });
+      }
+    }
+
+    if (krediYukleme) {
+      const isletmeciAdi = this.isletmeciler.find((i) => i.id === girdi.isletmeciId)?.ad;
+      this.auditYazDahili(
+        this.aktifKullaniciAdi(aktifKullanici),
+        'Taş ocağı kredi talebi oluşturuldu',
+        `${isletmeciAdi ?? '—'} · ${kayitNo} · İlk dekont ${girdi.dekontNo.trim()} · doğrulama bekliyor`
+      );
+    }
+
+    const ajandayaDuser = girdi.bent === 'C' || girdi.bent === 'Ç' || girdi.bent === 'D' || girdi.bent === 'F';
+    if (ajandayaDuser) {
+      const raporSayisi = trafik
+        ? altBasvurular?.length ?? 0
+        : adli
+        ? adliRaporlar?.length ?? 0
+        : 0;
+      this.ajandaEkle(aktifKullanici, {
+        id: benzersizId('aj'),
+        kayitNo,
+        bent: girdi.bent,
+        islemTuru:
+          girdi.bent === 'F'
+            ? `${trafik ? 'Trafik' : 'Adli'} polis raporu${raporSayisi > 1 ? ` (${raporSayisi} rapor)` : ''}`
+            : bentler.find((b) => b.kod === girdi.bent)?.baslik ?? '',
+        baslik: girdi.etkinlikAdi?.trim() || baslikMetni,
+        talepEden: girdi.talepEden.trim() || '—',
+        birim: aktifKullanici.birim,
+        birimId: aktifKullanici.birimId,
+        olusturanKullaniciId: aktifKullanici.id,
+        tarih: girdi.operasyonTarihi ?? '',
+        saat: girdi.operasyonSaati || '09:00',
+        yer: girdi.yer?.trim() || '—',
+        durum: 'Planlandı',
+        odemeDurumu: `Ödeme alındı · Makbuz bekliyor · ${formatTL(kayit.tutar)}`
+      });
+    }
+
+    return { basarili: true, mesaj: 'İşlem kaydı oluşturuldu.', kayitNo, kayit };
   }
 
   makbuzUret(aktifKullanici: Kullanici | null, islemId: string): MakbuzUretimSonucu {

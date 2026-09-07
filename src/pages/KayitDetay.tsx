@@ -14,7 +14,7 @@ import { DosyaOnizlemeModal } from '../components/islem/DosyaOnizlemeModal';
 import { MakbuzModal } from '../components/islem/MakbuzModal';
 import { Button } from '../components/ui/Button';
 import { useApp } from '../contexts/AppContext';
-import { BagisMakbuzu, DekontDosyasi, Islem, IslemDurumu } from '../types';
+import { DekontDosyasi, Islem, IslemDurumu } from '../types';
 import { formatTL, formatTarih, formatTarihSaat } from '../utils/currency';
 import { BENT_ORANLARI, patlatmaBedeli } from '../utils/hesaplama';
 import { krediYuklemeKaydiniCozumle } from '../utils/krediYukleme';
@@ -136,13 +136,6 @@ export function KayitDetay() {
   const isletmeci = isletmeciBul(islem.isletmeciId);
   const ozet = isletmeci ? krediOzeti(isletmeci.id) : null;
   const oran = BENT_ORANLARI[islem.bent];
-  const dBendiBirimTutar = bau * 0.005;
-  const dBendiGorevDilimleri =
-  islem.gorevDilimleri && islem.gorevDilimleri.length > 0 ?
-  islem.gorevDilimleri :
-  islem.polisSayisi !== undefined && islem.gorevSuresi !== undefined ?
-  [{ polisSayisi: islem.polisSayisi, gorevSuresi: islem.gorevSuresi }] :
-  [];
   const krediAnalizi =
   islem.eIslemTuru === 'KREDI_YUKLEME' ?
   krediYuklemeKaydiniCozumle({
@@ -150,17 +143,11 @@ export function KayitDetay() {
     birimKrediBedeli: patlatmaBedeli(bau)
   }) :
   null;
-  const bagisMakbuzlari: BagisMakbuzu[] =
+  const bagisMakbuzlari =
   islem.eIslemTuru === 'KREDI_YUKLEME' ?
   krediAnalizi?.bagisMakbuzlari ?? [] :
   islem.makbuzNo ?
-  [
-  {
-    makbuzNo: islem.makbuzNo,
-    tur: 'GENEL_VAKIF_BAGISI',
-    tutar: islem.tutar
-  }]
-   :
+  [{ makbuzNo: islem.makbuzNo }] :
   [];
   const dekontEklemeYetkisi = islem.eIslemTuru === 'KREDI_YUKLEME' && islemDegistirilebilir(islem);
 
@@ -319,8 +306,31 @@ export function KayitDetay() {
               <Satir etiket="Operasyon saati" deger={islem.operasyonSaati ?? '—'} />
               <Satir etiket="Yer / adres" deger={islem.yer ?? '—'} />
               {islem.etkinlikAdi && <Satir etiket="Etkinlik / faaliyet" deger={islem.etkinlikAdi} />}
-              {islem.bent === 'D' && dBendiGorevDilimleri.length > 0 &&
-              <Satir etiket="Görev dilimi" deger={`${dBendiGorevDilimleri.length} dilim`} />
+              {islem.gorevDilimleri?.length ?
+              <>
+                <dt className="text-muted-foreground">Görev dilimleri</dt>
+                <dd className="col-span-2 sm:col-span-3">
+                  <ul className="space-y-1">
+                    {islem.gorevDilimleri.map((dilim, sira) => {
+                      const polisSaat = dilim.polisSayisi * dilim.gorevSuresi;
+                      return (
+                        <li key={dilim.id} className="text-foreground">
+                          Dilim {sira + 1}: {dilim.polisSayisi} polis × {dilim.gorevSuresi} saat ={' '}
+                          {polisSaat} polis-saat · {formatTL(polisSaat * bau * 0.005)}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </dd>
+              </> :
+              <>
+                {islem.polisSayisi !== undefined &&
+                <Satir etiket="Polis sayısı" deger={`${islem.polisSayisi} kişi`} />
+                }
+                {islem.gorevSuresi !== undefined &&
+                <Satir etiket="Görev süresi" deger={`${islem.gorevSuresi} saat`} />
+                }
+              </>
               }
               {islem.sigortaSirketiId &&
               <Satir etiket="Sigorta şirketi" deger={sigortaBul(islem.sigortaSirketiId)?.ad} />
@@ -333,21 +343,6 @@ export function KayitDetay() {
               {islem.bildiren && <Satir etiket="Raporu bildiren" deger={islem.bildiren} />}
               {islem.notlar && <Satir etiket="Açıklama / not" deger={islem.notlar} />}
             </dl>
-            {islem.bent === 'D' && dBendiGorevDilimleri.length > 0 &&
-            <div className="mt-4 space-y-2">
-                {dBendiGorevDilimleri.map((dilim, index) =>
-              <div key={`d-gorev-dilimi-${index}`} className="rounded-lg border border-border bg-muted/20 px-3 py-2">
-                    <p className="text-xs text-muted-foreground">{index + 1}. görev dilimi</p>
-                    <p className="text-sm text-foreground">
-                      {dilim.polisSayisi} polis x {dilim.gorevSuresi} saat
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Ara toplam: {formatTL(dilim.polisSayisi * dilim.gorevSuresi * dBendiBirimTutar)}
-                    </p>
-                  </div>
-              )}
-              </div>
-            }
           </Bolum>
 
           <Bolum baslik="3. Hesaplama bilgisi" aciklama={`Yasa 57/2026 Madde 6 · BAÜ: ${formatTL(bau)}`}>
@@ -517,24 +512,20 @@ export function KayitDetay() {
               bagisMakbuzlari.length ? (
                 <div className="space-y-3">
                   <div className="grid gap-3 sm:grid-cols-2">
-                    {bagisMakbuzlari.map((makbuz, index) => {
-                      const satirAnahtari =
-                      makbuz.makbuzNo ??
-                      `${makbuz.tur}-${makbuz.bagliDekontNo ?? index}`;
-
-                      return (
-                        <div key={satirAnahtari} className="rounded-lg border border-border bg-card p-3">
-                          <p className="text-sm font-medium text-foreground">{makbuz.makbuzNo}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">
-                              {makbuz.tur === 'TAS_OCAGI_PATLATMASI' ? 'Taş Ocağı Patlatması Bağışı' : 'Genel Vakıf Bağışı'} ·{' '}
-                              {formatTL(makbuz.tutar)}
-                            </p>
-                          {makbuz.bagliDekontNo &&
-                          <p className="mt-1 font-mono text-xs text-muted-foreground">{makbuz.bagliDekontNo}</p>
-                          }
-                        </div>);
-
-                    })}
+                    {bagisMakbuzlari.map((makbuz) =>
+                    <div key={makbuz.makbuzNo ?? (('tur' in makbuz) ? `${makbuz.tur}-${makbuz.bagliDekontNo}` : makbuz.makbuzNo)} className="rounded-lg border border-border bg-card p-3">
+                        <p className="text-sm font-medium text-foreground">{makbuz.makbuzNo}</p>
+                        {'tur' in makbuz &&
+                        <p className="mt-1 text-xs text-muted-foreground">
+                            {makbuz.tur === 'TAS_OCAGI_PATLATMASI' ? 'Taş Ocağı Patlatması Bağışı' : 'Genel Vakıf Bağışı'} ·{' '}
+                            {'tutar' in makbuz ? formatTL(makbuz.tutar) : formatTL(islem.tutar)}
+                          </p>
+                        }
+                        {'bagliDekontNo' in makbuz && makbuz.bagliDekontNo &&
+                        <p className="mt-1 font-mono text-xs text-muted-foreground">{makbuz.bagliDekontNo}</p>
+                        }
+                      </div>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Button

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { CalendarClock, Clock, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
 import { PageHeader } from '../components/common/PageHeader';
 import { KuralNotu } from '../components/common/KuralNotu';

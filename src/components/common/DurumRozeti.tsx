@@ -1,4 +1,3 @@
-import React from 'react';
 import { AjandaDurumu, IslemDurumu } from '../../types';
 
 const ISLEM_ETIKETLERI: Record<IslemDurumu, string> = {

@@ -1013,7 +1013,7 @@ async function renderPdfPageToCanvas(
   canvas.height = Math.ceil(viewport.height);
   const context = canvas.getContext('2d');
   if (!context) throw new Error('PDF sayfası canvas context üretilemedi.');
-  await sayfa.render({ canvasContext: context, viewport }).promise;
+  await sayfa.render({ canvas, viewport }).promise;
   return canvas;
 }
 
@@ -1056,6 +1056,10 @@ async function pdfAnalizEt(veri: ArrayBuffer): Promise<OcrAnalizSonucu> {
 async function gorselCanvasiOlustur(dosya: Pick<DekontDosyasi, 'previewUrl'>): Promise<HTMLCanvasElement> {
   if (!dosya.previewUrl) throw new Error('Görsel kaynağı bulunamadı.');
   return new Promise((resolve, reject) => {
+    if (!dosya.previewUrl) {
+      reject(new Error('Görsel kaynağı bulunamadı.'));
+      return;
+    }
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
