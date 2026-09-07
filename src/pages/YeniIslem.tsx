@@ -434,10 +434,13 @@ export function YeniIslem() {
   const dekontBolumuGorunur = dekontGorunur && hesaplamaOlustu && sonuc.tutar > 0;
   const notBolumuGorunur = hesaplamaOlustu;
   const kayitBolumuGorunur = dekontTamam;
+  const makbuzYetkiGerekiyor = !!form.bent && (form.bent !== 'E' || krediYukleme);
+  const makbuzYetkiTamam = !makbuzYetkiGerekiyor || !!kullanici?.makbuzUretebilir;
 
   const kaydedilebilir =
   !!kullanici &&
   !kullanici.sadeceGoruntule &&
+  makbuzYetkiTamam &&
   temelTamam &&
   bentTamam && (
   !dekontGorunur || dekontTamam);
@@ -500,9 +503,19 @@ export function YeniIslem() {
       return;
     }
 
+    const olusanMakbuzlar =
+    sonucKayit.kayit.eIslemTuru === 'KREDI_YUKLEME' ?
+    (sonucKayit.kayit.bagisMakbuzlari ?? []).
+    map((makbuz) => makbuz.makbuzNo).
+    filter((no): no is string => !!no) :
+    sonucKayit.kayit.makbuzNo ?
+    [sonucKayit.kayit.makbuzNo] :
+    [];
+    const makbuzAciklamasi = olusanMakbuzlar.length ? ` · Makbuz: ${olusanMakbuzlar.join(', ')}` : '';
+
     setSonKayit(sonucKayit.kayit);
     toast.success('İşlem kaydı oluşturuldu', {
-      description: `Kayıt no: ${sonucKayit.kayitNo} · Numara sistem tarafından üretildi.`
+      description: `Kayıt no: ${sonucKayit.kayitNo}${makbuzAciklamasi} · Numara sistem tarafından üretildi.`
     });
     sifirla();
   };
@@ -520,6 +533,14 @@ export function YeniIslem() {
       </div>);
 
   }
+
+  const sonKayitMakbuzlari = sonKayit ?
+  sonKayit.eIslemTuru === 'KREDI_YUKLEME' ?
+  (sonKayit.bagisMakbuzlari ?? []).map((makbuz) => makbuz.makbuzNo).filter((no): no is string => !!no) :
+  sonKayit.makbuzNo ?
+  [sonKayit.makbuzNo] :
+  [] :
+  [];
 
   const secilenBent = bentler.find((b) => b.kod === form.bent);
   const kaynakEtiketi = form.bent ?
@@ -745,7 +766,9 @@ export function YeniIslem() {
           <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
           <span>
               Kayıt oluşturuldu: <strong className="font-mono">{sonKayit.kayitNo}</strong>.
-            {' Makbuz süreci Ödeme / Makbuz ekranından yürütülür.'}
+            {` Makbuz anlık üretildi${
+            sonKayitMakbuzlari.length ? ` (${sonKayitMakbuzlari.join(', ')})` : ''
+            }. Tekrar döküm için Kayıt Detayı veya Ödeme / Makbuz ekranı kullanılabilir.`}
           </span>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -798,7 +821,9 @@ export function YeniIslem() {
 
                 {!kaydedilebilir &&
               <p className="text-xs text-muted-foreground">
-                    {form.bent === 'D' && !dosya ?
+                    {!makbuzYetkiTamam ?
+                'Bu kayıtta makbuz anlık üretildiği için makbuz üretme yetkisi gereklidir.' :
+                form.bent === 'D' && !dosya ?
                 'Kayıt oluşturmak için dijital dekont dosyası yüklenmelidir.' :
                 'Kayıt için başvuru kaynağı, rapor/operasyon bilgileri, hesaplama alanları, dekont bilgileri, dijital dekont dosyası ve hesaplanan tutarla eşleşen ödeme tamamlanmalıdır.'}
                   </p>

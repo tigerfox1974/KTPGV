@@ -2,6 +2,7 @@ import {
   AdliRapor,
   AjandaDurumu,
   AjandaKaydi,
+  BagisMakbuzTuru,
   AuditKaydi,
   BagisMakbuzu,
   Birim,
@@ -40,7 +41,9 @@ import {
   odemeDogrulanabilirMi
 } from '../../utils/yetki';
 import {
+  EksikBagisMakbuzu,
   krediYuklemeDekontMukerrerliginiBul,
+  krediYuklemeDagiliminiHesapla,
   krediYuklemeKaydiniCozumle,
   krediYuklemeDekontKimligi,
   islemBagisMakbuzlariniOku,
@@ -117,12 +120,127 @@ export class MockKtpgvRepository implements KtpgvRepository {
       .reduce((toplam, hareket) => toplam + hareket.adet, 0);
   }
 
-  private krediYuklemeAnaliziniOlustur(islem: Islem) {
-    return krediYuklemeKaydiniCozumle({
-      islem,
-      birimKrediBedeli: this.birimKrediBedeli(),
-      mevcutYuklemeAdedi: this.yuklemeHareketAdedi(this.krediHareketleri, islem.kayitNo)
+  private ayniMakbuzTutariMi(sol: number, sag: number): boolean {
+    return Math.round((sol + Number.EPSILON) * 100) === Math.round((sag + Number.EPSILON) * 100);
+  }
+
+  private krediYuklemeMakbuzuVarMi(makbuzlar: BagisMakbuzu[], eksik: EksikBagisMakbuzu): boolean {
+    return makbuzlar.some((makbuz) => {
+      const ayniDekont =
+        (eksik.bagliDekontId && makbuz.bagliDekontId === eksik.bagliDekontId) ||
+        (!!eksik.bagliDekontReferansi &&
+          !!makbuz.bagliDekontReferansi &&
+          makbuz.bagliDekontReferansi === eksik.bagliDekontReferansi) ||
+        makbuz.bagliDekontNo === eksik.bagliDekontNo;
+      return ayniDekont && makbuz.tur === eksik.tur && this.ayniMakbuzTutariMi(makbuz.tutar, eksik.tutar);
     });
+  }
+
+  private krediYuklemeTumDekontMakbuzEksikleriniBul(islem: Islem): EksikBagisMakbuzu[] {
+    const dekontlar = islemDekontlariniOku(islem);
+    const dagilim = krediYuklemeDagiliminiHesapla({
+      talepEdilenKrediAdedi: islem.krediAdedi ?? 0,
+      birimKrediBedeli: this.birimKrediBedeli(),
+      dekontlar
+    });
+    const mevcutMakbuzlar = islemBagisMakbuzlariniOku(islem, this.birimKrediBedeli());
+    const eksikler: EksikBagisMakbuzu[] = [];
+
+    dagilim.dekontDagilimlari.forEach((dekontDagilimi, sira) => {
+      const dekont = dekontlar[sira];
+      if (!dekont) return;
+
+      const kalemler: Array<{ tur: BagisMakbuzTuru; tutar: number }> = [
+        { tur: 'TAS_OCAGI_PATLATMASI', tutar: dekontDagilimi.krediyeAyrilanTutar },
+        { tur: 'GENEL_VAKIF_BAGISI', tutar: dekontDagilimi.genelBagisTutari }
+      ];
+
+      kalemler
+        .filter((kalem) => kalem.tutar > 0)
+        .forEach((kalem) => {
+          const aday: EksikBagisMakbuzu = {
+            dekontKimligi: dekontDagilimi.dekontKimligi,
+            bagliDekontId: dekont.id,
+            bagliDekontNo: dekont.dekontNo,
+            bagliDekontReferansi: dekont.bankaReferansNo,
+            bagliDekontTarihi: dekont.tarih,
+            odemeYapan: dekont.odemeYapan,
+            tur: kalem.tur,
+            tutar: kalem.tutar
+          };
+          if (!this.krediYuklemeMakbuzuVarMi(mevcutMakbuzlar, aday)) {
+            eksikler.push(aday);
+          }
+        });
+    });
+
+    return eksikler;
+  }
+
+  private krediYuklemeMakbuzlariniUretDahili(
+    aktifKullanici: Kullanici | null,
+    islemId: string,
+    auditEylemi: string,
+    secenekler?: { bosBeklerkenBasarisiz?: boolean }
+  ): MakbuzUretimSonucu {
+    const hedef = this.islemler.find((islem) => islem.id === islemId && islem.eIslemTuru === 'KREDI_YUKLEME');
+    if (!hedef) {
+      return { basarili: false, mesaj: 'Makbuz üretilecek kredi talebi bulunamadı.' };
+    }
+
+    const makbuzEksikleri = this.krediYuklemeTumDekontMakbuzEksikleriniBul(hedef);
+    if (!makbuzEksikleri.length) {
+      if (secenekler?.bosBeklerkenBasarisiz) {
+        return { basarili: false, mesaj: 'Bu kredi talebi için bekleyen bağış makbuzu bulunmuyor.' };
+      }
+      return {
+        basarili: true,
+        mesaj: 'Bu kredi talebi için bekleyen bağış makbuzu bulunmuyor.',
+        makbuzNumaralari: []
+      };
+    }
+
+    const uretilenMakbuzlar: string[] = [];
+    let guncelIslemler = this.islemler.slice();
+
+    for (const eksik of makbuzEksikleri) {
+      const sonDurum = guncelIslemler.find((islem) => islem.id === islemId);
+      if (!sonDurum) {
+        return { basarili: false, mesaj: 'Kayıt güncellenirken bulunamadı.' };
+      }
+      const yeniNo = sonrakiMakbuzNo(guncelIslemler);
+      const yeniMakbuz: BagisMakbuzu = {
+        makbuzNo: yeniNo,
+        tur: eksik.tur,
+        tutar: eksik.tutar,
+        bagliDekontId: eksik.bagliDekontId,
+        bagliDekontNo: eksik.bagliDekontNo,
+        bagliDekontReferansi: eksik.bagliDekontReferansi,
+        bagliDekontTarihi: eksik.bagliDekontTarihi,
+        odemeYapan: eksik.odemeYapan,
+        olusturmaTarihi: new Date().toISOString().slice(0, 10)
+      };
+      uretilenMakbuzlar.push(yeniNo);
+      const guncelMakbuzlar = [...islemBagisMakbuzlariniOku(sonDurum, this.birimKrediBedeli()), yeniMakbuz];
+      const guncelKayit = this.krediYuklemeKaydiniGuncelle(
+        { ...sonDurum, bagisMakbuzlari: guncelMakbuzlar },
+        aktifKullanici?.rol,
+        guncelMakbuzlar
+      );
+      guncelIslemler = guncelIslemler.map((islem) => (islem.id === islemId ? guncelKayit : islem));
+    }
+
+    this.islemler = guncelIslemler;
+    this.auditYazDahili(
+      this.aktifKullaniciAdi(aktifKullanici),
+      auditEylemi,
+      `${hedef.kayitNo} · ${uretilenMakbuzlar.join(', ')}`
+    );
+    return {
+      basarili: true,
+      mesaj: `${uretilenMakbuzlar.length} bağış makbuzu üretildi.`,
+      makbuzNumaralari: uretilenMakbuzlar
+    };
   }
 
   private krediYuklemeKaydiniGuncelle(
@@ -352,6 +470,15 @@ export class MockKtpgvRepository implements KtpgvRepository {
       return { basarili: false, mesaj: `${girdi.bent} bendi için işlem oluşturma yetkiniz yok.` };
     }
 
+    const maliKayit = girdi.bent !== 'E' || girdi.eIslemTuru === 'KREDI_YUKLEME';
+    if (maliKayit && !aktifKullanici.makbuzUretebilir) {
+      return {
+        basarili: false,
+        mesaj:
+          'Ödeme doğuran kayıtlar kaydedildiği anda makbuzla birlikte açılır. Bu işlem için makbuz üretme yetkiniz yok.'
+      };
+    }
+
     if (girdi.bent === 'E' && girdi.eIslemTuru === 'KREDI_PLANLAMA') {
       return {
         basarili: false,
@@ -363,6 +490,7 @@ export class MockKtpgvRepository implements KtpgvRepository {
     const adli = girdi.bent === 'F' && girdi.fAltTur === 'ADLI';
     const krediYukleme = girdi.bent === 'E' && girdi.eIslemTuru === 'KREDI_YUKLEME';
     const kayitNo = sonrakiKayitNo(this.islemler, girdi.bent, girdi.fAltTur ?? '', girdi.eIslemTuru ?? '');
+    const otomatikMakbuzNo = krediYukleme ? null : sonrakiMakbuzNo(this.islemler);
     const baslikMetni =
       girdi.bent === 'E'
         ? `Patlatma kredisi yükleme — ${girdi.krediAdedi ?? 0} kredi`
@@ -454,8 +582,9 @@ export class MockKtpgvRepository implements KtpgvRepository {
       hesaplamaAciklamasi: girdi.hesaplamaSatirlari.join(' · '),
       dekont: krediYukleme && ilkKrediDekontu ? ilkKrediDekontu : temelDekont,
       dekontlar: krediYuklemeTaslagi?.guncelDekontlar,
-      makbuzNo: null,
-      durum: krediYukleme ? krediYuklemeTaslagi?.kayitDurumu ?? 'ODEME_BEKLIYOR' : 'MAKBUZ_BEKLIYOR',
+      makbuzNo: otomatikMakbuzNo,
+      makbuzUreten: otomatikMakbuzNo ? aktifKullanici.rol : undefined,
+      durum: krediYukleme ? krediYuklemeTaslagi?.kayitDurumu ?? 'ODEME_BEKLIYOR' : 'ISLEM_BASLATILABILIR',
       bagisMakbuzlari: krediYuklemeTaslagi?.bagisMakbuzlari.length
         ? krediYuklemeTaslagi.bagisMakbuzlari
         : undefined,
@@ -470,6 +599,28 @@ export class MockKtpgvRepository implements KtpgvRepository {
 
     this.islemEkle(aktifKullanici, kayit);
     this.auditYazDahili(this.aktifKullaniciAdi(aktifKullanici), 'Kayıt oluşturuldu', kayitNo);
+
+    let uretilenMakbuzNumaralari: string[] = [];
+    if (krediYukleme) {
+      const makbuzSonucu = this.krediYuklemeMakbuzlariniUretDahili(
+        aktifKullanici,
+        kayit.id,
+        'Kredi dekontundan anlık bağış makbuzu üretildi'
+      );
+      if (!makbuzSonucu.basarili) {
+        this.islemler = this.islemler.filter((islem) => islem.id !== kayit.id);
+        return { basarili: false, mesaj: makbuzSonucu.mesaj };
+      }
+      uretilenMakbuzNumaralari = makbuzSonucu.makbuzNumaralari ?? [];
+    } else if (kayit.makbuzNo) {
+      this.auditYazDahili(
+        this.aktifKullaniciAdi(aktifKullanici),
+        'Makbuz otomatik üretildi',
+        `${kayitNo} · ${kayit.makbuzNo}`
+      );
+    }
+
+    const guncelKayit = this.islemler.find((islem) => islem.id === kayit.id) ?? kayit;
 
     if (trafik) {
       const sigortaAdi = this.sigortalar.find((sirket) => sirket.id === girdi.sigortaSirketiId)?.ad;
@@ -494,7 +645,9 @@ export class MockKtpgvRepository implements KtpgvRepository {
       this.auditYazDahili(
         this.aktifKullaniciAdi(aktifKullanici),
         'Taş ocağı kredi talebi oluşturuldu',
-        `${isletmeciAdi ?? '—'} · ${kayitNo} · İlk dekont ${girdi.dekontNo.trim()} · doğrulama bekliyor`
+        `${isletmeciAdi ?? '—'} · ${kayitNo} · İlk dekont ${girdi.dekontNo.trim()} · doğrulama bekliyor${
+          uretilenMakbuzNumaralari.length ? ` · Makbuz ${uretilenMakbuzNumaralari.join(', ')}` : ''
+        }`
       );
     }
 
@@ -522,11 +675,24 @@ export class MockKtpgvRepository implements KtpgvRepository {
         saat: girdi.operasyonSaati || '09:00',
         yer: girdi.yer?.trim() || '—',
         durum: 'Planlandı',
-        odemeDurumu: `Ödeme alındı · Makbuz bekliyor · ${formatTL(kayit.tutar)}`
+        odemeDurumu: `Ödeme alındı · Makbuz kesildi · ${formatTL(kayit.tutar)}`
       });
     }
 
-    return { basarili: true, mesaj: 'İşlem kaydı oluşturuldu.', kayitNo, kayit };
+    const makbuzAciklamasi = krediYukleme
+      ? uretilenMakbuzNumaralari.length
+        ? ` Makbuz: ${uretilenMakbuzNumaralari.join(', ')}.`
+        : ''
+      : guncelKayit.makbuzNo
+      ? ` Makbuz: ${guncelKayit.makbuzNo}.`
+      : '';
+
+    return {
+      basarili: true,
+      mesaj: `İşlem kaydı ve makbuz oluşturuldu.${makbuzAciklamasi}`,
+      kayitNo,
+      kayit: guncelKayit
+    };
   }
 
   makbuzUret(aktifKullanici: Kullanici | null, islemId: string): MakbuzUretimSonucu {
@@ -539,58 +705,12 @@ export class MockKtpgvRepository implements KtpgvRepository {
     }
 
     if (hedef.eIslemTuru === 'KREDI_YUKLEME') {
-      const analiz = this.krediYuklemeAnaliziniOlustur(hedef);
-      if (!analiz.makbuzEksikleri.length) {
-        return {
-          basarili: false,
-          mesaj:
-            analiz.bagisMakbuzlari.length > 0
-              ? 'Bu kredi talebi için bekleyen bağış makbuzu bulunmuyor.'
-              : 'Önce en az bir dekont doğrulanmalıdır.'
-        };
-      }
-
-      const uretilenMakbuzlar: string[] = [];
-      let guncelIslemler = this.islemler.slice();
-
-      for (const eksik of analiz.makbuzEksikleri) {
-        const sonDurum = guncelIslemler.find((islem) => islem.id === islemId);
-        if (!sonDurum) {
-          return { basarili: false, mesaj: 'Kayıt güncellenirken bulunamadı.' };
-        }
-        const yeniNo = sonrakiMakbuzNo(guncelIslemler);
-        const yeniMakbuz: BagisMakbuzu = {
-          makbuzNo: yeniNo,
-          tur: eksik.tur,
-          tutar: eksik.tutar,
-          bagliDekontId: eksik.bagliDekontId,
-          bagliDekontNo: eksik.bagliDekontNo,
-          bagliDekontReferansi: eksik.bagliDekontReferansi,
-          bagliDekontTarihi: eksik.bagliDekontTarihi,
-          odemeYapan: eksik.odemeYapan,
-          olusturmaTarihi: new Date().toISOString().slice(0, 10)
-        };
-        uretilenMakbuzlar.push(yeniNo);
-        const guncelMakbuzlar = [...islemBagisMakbuzlariniOku(sonDurum, this.birimKrediBedeli()), yeniMakbuz];
-        const guncelKayit = this.krediYuklemeKaydiniGuncelle(
-          { ...sonDurum, bagisMakbuzlari: guncelMakbuzlar },
-          aktifKullanici?.rol,
-          guncelMakbuzlar
-        );
-        guncelIslemler = guncelIslemler.map((islem) => (islem.id === islemId ? guncelKayit : islem));
-      }
-
-      this.islemler = guncelIslemler;
-      this.auditYazDahili(
-        this.aktifKullaniciAdi(aktifKullanici),
+      return this.krediYuklemeMakbuzlariniUretDahili(
+        aktifKullanici,
+        islemId,
         'Bağış makbuzları üretildi',
-        `${hedef.kayitNo} · ${uretilenMakbuzlar.join(', ')}`
+        { bosBeklerkenBasarisiz: true }
       );
-      return {
-        basarili: true,
-        mesaj: `${uretilenMakbuzlar.length} bağış makbuzu üretildi.`,
-        makbuzNumaralari: uretilenMakbuzlar
-      };
     }
 
     if (hedef.makbuzNo) {
@@ -720,6 +840,13 @@ export class MockKtpgvRepository implements KtpgvRepository {
     if (!islemDegistirilebilirMi(aktifKullanici, hedef)) {
       return { basarili: false, mesaj: 'Bu kredi talebine dekont ekleme yetkiniz yok.' };
     }
+    if (!aktifKullanici?.makbuzUretebilir) {
+      return {
+        basarili: false,
+        mesaj:
+          'Tamamlayıcı dekont ekleme işlemi anlık makbuz üretir. Bu işlem için makbuz üretme yetkiniz yok.'
+      };
+    }
     if (!girdi.dosya) {
       return { basarili: false, mesaj: 'Dekont dosyası olmadan tamamlayıcı kayıt eklenemez.' };
     }
@@ -791,9 +918,22 @@ export class MockKtpgvRepository implements KtpgvRepository {
       'Tamamlayıcı dekont eklendi',
       `${hedef.kayitNo} · ${yeniDekont.dekontNo}`
     );
+
+    const makbuzSonucu = this.krediYuklemeMakbuzlariniUretDahili(
+      aktifKullanici,
+      islemId,
+      'Tamamlayıcı dekonttan anlık bağış makbuzu üretildi'
+    );
+    if (!makbuzSonucu.basarili) {
+      return { basarili: false, mesaj: makbuzSonucu.mesaj };
+    }
+
+    const makbuzBilgisi = makbuzSonucu.makbuzNumaralari?.length
+      ? ` · Makbuz: ${makbuzSonucu.makbuzNumaralari.join(', ')}`
+      : '';
     return {
       basarili: true,
-      mesaj: `${yeniDekont.dekontNo} dekontu kredi talebine eklendi.`
+      mesaj: `${yeniDekont.dekontNo} dekontu kredi talebine eklendi${makbuzBilgisi}.`
     };
   }
 

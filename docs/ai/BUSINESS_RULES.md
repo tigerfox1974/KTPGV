@@ -87,6 +87,9 @@ Bir banka dekontunun bir bölümü taş ocağı kredi talebini karşılarken kal
 ## BR-028 — Taş ocağı ödeme dağılımı ve yıl sonu raporu
 Taş ocağı ödeme kaydı; bağlı banka dekontlarını, bağış makbuzlarını, krediye ayrılan tutarı, bekleyen bakiyeyi ve genel bağışa ayrılan fazla tutarı birlikte göstermelidir. Yıl sonu Excel çıktısında taş ocağı patlatması için alınan bağışlar ile firma bazındaki genel Vakıf bağışları ayrı raporlanmalıdır.
 
+## BR-029 — Makbuz kayıt anında üretilir
+Ödeme doğuran tüm bent kayıtlarında makbuz üretimi kayıt işleminin ayrılmaz parçasıdır. Kayıt başarıyla oluştuğunda makbuz numarası da aynı işlemde üretilmiş olmalıdır; makbuz üretimi sonradan zorunlu bir adım olarak ertelenmez.
+
 ## İş kuralı ekleme yöntemi
 Yeni iş kuralı doğarsa:
 1. Önce `DECISION_LOG.md` içine karar olarak kaydedilir.

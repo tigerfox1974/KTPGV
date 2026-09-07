@@ -25,7 +25,7 @@ export const isKurallari: KuralGrubu[] = [
 {
   baslik: 'E Bendi — Patlatma Kredisi Akışı',
   kurallar: [
-  'Kredi yükleme (EKRD): ödeme alınır, dekont ve makbuz süreci işler; ödeme doğrulanınca veya makbuz kesilince kredi kullanılabilir olur.',
+  'Kredi yükleme (EKRD): ödeme alınır, dekont kaydedilir ve makbuz kayıt anında üretilir; kredi kullanılabilirliği ödeme doğrulamasıyla belirlenir.',
   'Patlatma planlama (EKPL): plan kaydı açılır, kredi düşülmez; kredi “planlanan / rapor bekleyen” olarak izlenir.',
   'Patlatma sonucu (EKGR): patlatmanın yapıldığı bilgisi işlenir ve kredi bu aşamada düşer.',
   'Patlatma bilgisi sözlü, telefonla, yazılı veya görevli personel bildirimiyle gelebilir; belge ve dosya zorunlu değildir, bilgi kaynağı ise kayda geçer.',
@@ -122,6 +122,7 @@ export const isKurallari: KuralGrubu[] = [
 {
   baslik: 'Makbuz Kuralları',
   kurallar: [
+  'Ödeme doğuran kayıtlar kaydedildiği anda makbuz numarası otomatik üretilir.',
   'Makbuz üretme yetkisi rol ve birime bağlıdır; her kullanıcı makbuz üretemez.',
   'Yetkililer: Merkez Admin, Vakıf Muhasebe ve yetki verilmiş ilgili birimler.',
   'Bazı bentlerde makbuz merkezi değil, ilgili birimde üretilir.',

@@ -38,12 +38,12 @@ export function OdemeMakbuz() {
     }
     const sonuc = makbuzUret(islem.id);
     if (!sonuc.basarili) {
-      toast.error('Makbuz üretilemedi', { description: sonuc.mesaj });
+      toast.error('Eksik makbuz tamamlanamadı', { description: sonuc.mesaj });
       return;
     }
     const numaralar = sonuc.makbuzNumaralari?.join(', ');
     auditEkle('Makbuz üretildi', `${numaralar ?? islem.kayitNo} / ${islem.kayitNo}`);
-    toast.success('Makbuz üretildi', {
+    toast.success('Eksik makbuz tamamlandı', {
       description: numaralar ? `${sonuc.mesaj} · ${numaralar}` : sonuc.mesaj
     });
   };
@@ -94,7 +94,7 @@ export function OdemeMakbuz() {
   const gruplar = [
   {
     id: 'makbuz-bekleyen',
-    etiket: 'Makbuz bekleyenler',
+    etiket: 'Eksik makbuz kayıtları',
     kayitlar: maliKayitlar.filter((i) =>
       i.eIslemTuru === 'KREDI_YUKLEME' ?
       (krediAnalizi(i)?.makbuzEksikleri.length ?? 0) > 0 :
@@ -148,8 +148,8 @@ export function OdemeMakbuz() {
 
       <KuralNotu baslik="Makbuz yetkisi">
         {kullanici.makbuzUretebilir ?
-        `${kullanici.rol} makbuz üretme yetkisine sahiptir. Makbuz numarası sistem tarafından benzersiz üretilir, elle yazılamaz ve aynı dekont dağılımına ikinci kez makbuz üretilemez.` :
-        `${kullanici.rol} makbuz üretemez; makbuz üret butonu pasiftir. Bu ekranda yalnızca ödeme ve makbuz durumu izlenebilir.`}
+        `${kullanici.rol} ödeme kaydı sırasında otomatik üretilen makbuzları görüntüleyebilir ve tekrar yazdırabilir. Makbuz numarası sistem tarafından benzersiz üretilir, elle yazılamaz ve aynı dağılıma ikinci kez üretim yapılamaz.` :
+        `${kullanici.rol} makbuz üretemez; bu ekranda yalnızca ödeme ve makbuz durumu izlenebilir.`}
       </KuralNotu>
 
       <Tabs defaultValue="makbuz-bekleyen" className="space-y-4">

@@ -2,7 +2,7 @@
 
 ## Gerçek kod modeli
 `src/types/index.ts` E bendini üç işlem türüne ayırır:
-- `KREDI_YUKLEME` — EKRD; ödeme/dekont/makbuz süreci, kredi yükleme
+- `KREDI_YUKLEME` — EKRD; ödeme/dekont kaydı ve anlık makbuz üretimi, kredi yükleme
 - `KREDI_PLANLAMA` — EKPL; patlatma planlanır, kredi henüz düşmez
 - `KREDI_GERCEKLESME` — EKGR; gerçekleşme/sonuç kaydı, kredi düşer
 
@@ -37,6 +37,7 @@ Kredi hareketleri `YUKLEME`, `PLAN`, `KULLANIM` tipleriyle izlenir. İşletmeci 
 
 - Vakfa gelen her ödeme için bağış makbuzu düzenlenir.
 - Banka dekontu ödeme kanıtıdır; bağış makbuzu Vakfın ürettiği mali belgedir.
+- Ödeme/dekont kaydı tamamlandığı anda bağlı bağış makbuzu da aynı işlemde üretilir.
 - Kredi talebine ayrılan ödeme için “Taş Ocağı Patlatması Bağışı” makbuzu düzenlenir.
 - Hedefi aşan ödeme için ayrıca “Genel Vakıf Bağışı” makbuzu düzenlenir.
 - Tek banka dekontu iki amaca dağıtılmışsa iki ayrı ve benzersiz bağış makbuzu üretilir.

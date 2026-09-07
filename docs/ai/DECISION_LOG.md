@@ -20,6 +20,17 @@ Her yeni karar aşağıdaki formatta eklenir:
 
 ## Başlangıç kayıtları
 
+### DEC-20260907-002 — Makbuz üretimi tüm mali bentlerde kayıt anına taşındı
+- Tarih: 2026-09-07
+- Modül: Ödeme / Dekont / Makbuz, E Bendi Kredi Yükleme
+- Durum: Uygulandı
+- Karar: Ödeme doğuran kayıtlar (`A/B/C/Ç/D/F` ve `E > KREDI_YUKLEME`) oluşturulurken makbuz üretimi aynı işlem içinde otomatik yapılır. Makbuz üretimi sonradan zorunlu bir adım olarak ayrı ekrana bırakılmaz.
+- Gerekçe: Kullanıcı kararı doğrultusunda ödeme kanıtı (dekont) ile kayıt alındığı anda makbuzun da kesilmesi zorunlu akış olarak netleştirildi; “makbuz sonra” yanılgısı kaldırıldı.
+- Etki: `src/services/repository/mockRepository.ts` içinde `islemOlustur` ve `krediYuklemeDekontEkle` akışlarına anlık makbuz üretimi eklendi; `src/pages/YeniIslem.tsx`, `src/pages/OdemeMakbuz.tsx`, `src/pages/KayitDetay.tsx`, `src/components/islem/OdemeTablosu.tsx`, `src/components/islem/KrediYuklemeTalepPaneli.tsx` metin/aksiyonları güncellendi.
+- Koruma: Makbuz yeniden dökümü korunur; aynı kayda/dağılıma ikinci kez yeni makbuz üretilmez. E bendinde kredi kullanılabilirliği hesabı yalnız doğrulanan dekont kuralına bağlı kalır.
+- İlgili iş kuralı: BR-001, BR-002, BR-023, BR-025, BR-027, BR-029
+- İlgili görev: —
+
 ### DEC-20260907-001 — Dekont akışı manuel öncelik için backloga alındı
 - Tarih: 2026-09-07
 - Modül: E Bendi / Ödeme Dekont Makbuz / Dekont Kontrolü

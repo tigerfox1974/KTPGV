@@ -71,6 +71,7 @@ export function KayitDetay() {
   const { kayitNo } = useParams();
   const navigate = useNavigate();
   const {
+    kullanici,
     islemBul,
     islemler,
     islemGorulebilir,
@@ -149,7 +150,8 @@ export function KayitDetay() {
   islem.makbuzNo ?
   [{ makbuzNo: islem.makbuzNo }] :
   [];
-  const dekontEklemeYetkisi = islem.eIslemTuru === 'KREDI_YUKLEME' && islemDegistirilebilir(islem);
+  const dekontEklemeYetkisi =
+  islem.eIslemTuru === 'KREDI_YUKLEME' && islemDegistirilebilir(islem) && !!kullanici?.makbuzUretebilir;
 
   const ilgiliAudit = auditKayitlari.filter(
     (a) =>
@@ -238,10 +240,10 @@ export function KayitDetay() {
   const krediMakbuzUret = () => {
     const sonuc = makbuzUret(islem.id);
     if (!sonuc.basarili) {
-      toast.error('Makbuz üretilemedi', { description: sonuc.mesaj });
+      toast.error('Eksik makbuz tamamlanamadı', { description: sonuc.mesaj });
       return;
     }
-    toast.success('Makbuz üretildi', {
+    toast.success('Eksik makbuz tamamlandı', {
       description: sonuc.makbuzNumaralari?.length ?
       `${sonuc.mesaj} · ${sonuc.makbuzNumaralari.join(', ')}` :
       sonuc.mesaj
@@ -547,8 +549,8 @@ export function KayitDetay() {
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  Doğrulanan dekontların bağış makbuzları henüz üretilmemiştir. Yetkili kullanıcı
-                  Ödeme / Makbuz ekranından veya bu detaydaki hızlı işlemlerden makbuz üretebilir.
+                  Bu kayıtta makbuz görünmüyor. Yeni akışta makbuz kayıt anında üretildiği için bu
+                  durum yalnız geçmiş/eksik kayıt düzeltmesi gerektiren istisna kabul edilir.
                 </p>
               )
             ) : islem.makbuzNo ? (
@@ -584,8 +586,8 @@ export function KayitDetay() {
               </p>
             ) : (
               <p className="text-sm text-muted-foreground">
-                Bu kayda henüz makbuz üretilmemiştir. Makbuz üretimi Ödeme / Makbuz ekranından
-                yetkili kullanıcı tarafından yapılır; makbuz numarası sistem tarafından üretilir.
+                Bu kayıtta makbuz görünmüyor. Yeni akışta makbuz kayıt anında üretilir; bu durum
+                yalnız geçmiş kayıt düzeltmesi gerektiren istisna olarak değerlendirilmelidir.
               </p>
             )}
           </Bolum>

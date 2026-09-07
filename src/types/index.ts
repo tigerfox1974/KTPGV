@@ -4,7 +4,7 @@ export type FAltTur = 'ADLI' | 'TRAFIK';
 
 /**
  * E bendi işlem türleri:
- * - KREDI_YUKLEME: ödeme alınır, dekont/makbuz süreci işler (EKRD serisi).
+ * - KREDI_YUKLEME: ödeme alınır, dekont kaydedilir ve makbuz anlık üretilir (EKRD serisi).
  * - KREDI_PLANLAMA: patlatma planlanır, kredi HENÜZ düşmez (EKPL serisi).
  * - KREDI_GERCEKLESME: patlatmanın yapıldığına dair rapor işlenir, kredi düşer (EKGR serisi).
  */

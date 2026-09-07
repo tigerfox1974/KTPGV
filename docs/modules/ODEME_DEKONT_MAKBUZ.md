@@ -21,8 +21,9 @@
 - `src/pages/KayitDetay.tsx`
 - KTPGV bir vakıf olduğu için Vakfa gelen her ödeme için bağış makbuzu düzenlenir.
 - Banka dekontu ödeme kanıtıdır; bağış makbuzu Vakfın ürettiği mali belgedir.
+- Ödeme doğuran kayıt kaydedildiği anda makbuz numarası otomatik üretilir; bu adım kayıt işleminden ayrılmaz.
 - Makbuz üretimi kullanıcıdaki `makbuzUretebilir` yetkisine ve mali kayıt görünürlüğüne bağlıdır.
-- Ödeme bekleyen kayıtta makbuz üretilemez; ödeme doğrulama yetkisi ayrıca kontrol edilir.
+- Ödeme / Makbuz ekranı birincil olarak izleme, görüntüleme ve yeniden döküm içindir; manuel üretim yalnız geçmiş/eksik kayıt düzeltmesi için istisna olarak tutulur.
 
 ## Taş ocağı ödemelerinde çoklu dekont ve makbuz
 
@@ -31,6 +32,7 @@
 - Kredi kullanılabilirliği hesabına yalnız `dogrulamaDurumu = DOGRULANDI` olan dekontlar girer.
 - Tam krediye yetmeyen bakiye sonraki dekontla birleştirilmek üzere bekletilir.
 - Kredi hedefini aşan bölüm ek kredi üretmez ve genel Vakıf bağışı olarak kaydedilir.
+- Her dekont kaydıyla bağlı bağış makbuzu aynı anda üretilir; kredi kullanılabilirliği ise doğrulama adımına bağlı kalır.
 - Tek banka dekontunun krediye ayrılan bölümü için “Taş Ocağı Patlatması Bağışı”, fazla bölümü için “Genel Vakıf Bağışı” türünde iki ayrı makbuz üretilebilir.
 - Her makbuzun numarası, amacı, tutarı ve bağlı olduğu banka dekontu izlenebilir olmalıdır.
 - İlk patlatma bağışı makbuzu legacy `makbuzNo` aliası olarak korunur; aynı dağılıma ikinci kez makbuz üretilmez.

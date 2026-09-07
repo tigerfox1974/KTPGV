@@ -137,7 +137,7 @@ function odemeDurumuEtiketi(islem: Islem): string | null {
 }
 
 function makbuzEtiketi(islem: Islem): string {
-  return islem.durum === 'ODEME_BEKLIYOR' ? 'Ödeme doğrulanınca' : 'Makbuz bekliyor';
+  return islem.durum === 'ODEME_BEKLIYOR' ? 'Ödeme kontrolünde' : 'Eksik makbuz (eski kayıt)';
 }
 
 export function OdemeTablosu({
@@ -280,7 +280,7 @@ export function OdemeTablosu({
 
                         </div> :
                       <BilgiRozeti
-                        metin={krediAnalizi.dogrulanmisOzeti.dogrulanmisOdemeToplami > 0 ? 'Makbuz bekliyor' : 'Doğrulama sonrası'}
+                        metin={krediAnalizi.dogrulanmisOzeti.dogrulanmisOdemeToplami > 0 ? 'Eksik makbuz (eski kayıt)' : 'Dekont kontrolünde'}
                         ton="uyari" /> :
                       islem.makbuzNo ?
                       <div className="space-y-1">
@@ -308,7 +308,7 @@ export function OdemeTablosu({
                             onClick={() => makbuzUret(islem)}
                             disabled={!makbuzUretilebilir(islem)}>
                               <Receipt className="h-4 w-4" aria-hidden="true" />
-                              Makbuz üret
+                              Eksik makbuzu tamamla
                             </Button>
                           }
                           </> :
@@ -330,7 +330,7 @@ export function OdemeTablosu({
                             onClick={() => makbuzUret(islem)}
                             disabled={!makbuzUretilebilir(islem)}>
                               <Receipt className="h-4 w-4" aria-hidden="true" />
-                              Makbuz üret
+                              Eksik makbuzu tamamla
                             </Button>
                           }
                           </>}

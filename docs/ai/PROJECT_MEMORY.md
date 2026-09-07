@@ -33,7 +33,8 @@ Bu dosya projenin kalıcı hafızasıdır. Zaman içinde alınmış ve geliştir
 - Dekont alanlarında dekont no, banka bilgisi, dekont tarihi ve gerekli banka referans bilgileri tutulabilir.
 
 ## Makbuz
-- Makbuz bilgileri mevcut Ödeme / Makbuz alanında yönetilir.
+- Ödeme doğuran kayıtlar kaydedildiği anda makbuz numarası otomatik üretilir.
+- Ödeme / Makbuz alanı makbuzların izlenmesi, görüntülenmesi ve yeniden dökümü için kullanılır.
 - KTPGV bir vakıf olduğu için Vakfa gelen her ödeme karşılığında bağış makbuzu düzenlenir.
 - Banka dekontu ödeme kanıtı, bağış makbuzu ise Vakfın ürettiği mali belgedir.
 - Makbuz kesme/girme yetkisi rol ve birim bazlıdır.

@@ -214,10 +214,10 @@ export function KrediYuklemeTalepPaneli({
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-card px-4 py-3">
         <div className="text-sm text-muted-foreground">
           {analiz.makbuzEksikleri.length > 0 ?
-          `${analiz.makbuzEksikleri.length} doğrulanmış dağılım için makbuz bekleniyor.` :
+          `${analiz.makbuzEksikleri.length} dağılım kaydında makbuz numarası eksik. Bu durum eski/eksik kayıt düzeltmesi gerektirir.` :
           analiz.bagisMakbuzlari.length > 0 ?
-          'Doğrulanmış dağılımların makbuzları üretilmiş durumda.' :
-          'Makbuz üretimi için önce dekont doğrulaması gerekir.'}
+          'Dekontlara bağlı makbuzlar kayıt anında üretilmiş durumda.' :
+          'Bu kayda bağlı makbuz görünmüyor. Gerekirse eski kayıt düzeltmesiyle üretim tamamlanabilir.'}
         </div>
         <div className="flex flex-wrap gap-2">
           {analiz.bagisMakbuzlari.length > 0 && makbuzGoruntule &&
@@ -229,7 +229,7 @@ export function KrediYuklemeTalepPaneli({
           {analiz.makbuzEksikleri.length > 0 && makbuzUret && (
             <Button size="sm" onClick={makbuzUret} disabled={!makbuzUretilebilir}>
               <Receipt className="h-4 w-4" aria-hidden="true" />
-              Eksik makbuzları üret
+              Eksik makbuzları tamamla
             </Button>)
           }
         </div>

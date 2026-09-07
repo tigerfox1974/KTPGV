@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-09-07 — Makbuz üretimi tüm mali bentlerde kayıt anına taşındı
+- `src/services/repository/mockRepository.ts`: ödeme doğuran kayıtlar (`A/B/C/Ç/D/F` ve `E > KREDI_YUKLEME`) oluşturulurken makbuz aynı işlemde otomatik üretilir hale getirildi. E kredi yüklemede ilk dekont ve sonradan eklenen tamamlayıcı dekont için bağlı bağış makbuzları anlık oluşturuluyor. Kayıt oluşturma ve dekont ekleme akışlarına makbuz yetkisi denetimi eklendi.
+- `src/utils/yetki.ts`: E kredi yükleme kayıtlarında makbuz üretim yetkisi doğrulama bekleyen dekontları da kapsayacak şekilde güncellendi.
+- `src/pages/YeniIslem.tsx`: başarı geri bildiriminde anlık üretilen makbuz numaraları gösteriliyor; “makbuz süreci ayrı ekranda” ifadesi kaldırıldı.
+- `src/pages/OdemeMakbuz.tsx`, `src/components/islem/OdemeTablosu.tsx`, `src/components/islem/KrediYuklemeTalepPaneli.tsx`, `src/pages/KayitDetay.tsx`: ekran metinleri ve buton adları “sonradan üretim” yerine “izleme/yeniden döküm + sadece eksik eski kayıt tamamlama” modeline çekildi.
+- `src/data/isKurallari.ts`, `docs/ai/BUSINESS_RULES.md`, `docs/ai/PROJECT_MEMORY.md`, `docs/modules/ODEME_DEKONT_MAKBUZ.md`, `docs/modules/E_BENDI_TAS_OCAGI.md`, `docs/ai/DECISION_LOG.md`: yeni davranış ve karar kayıtları dokümantasyona işlendi.
+- Doğrulama: `npx tsc --noEmit` temiz.
+
 ## 2026-09-06 — E bendi patlatma girişleri Patlatma Takvimi'nde toplandı
 - `src/pages/YeniIslem.tsx`: E bendi "Patlatma Planla" ve "Patlatma Sonucunu İşle" işlem türleri kaldırıldı; E bendi yalnız "Kredi Yükle" akışıyla açılır ve işlem türü otomatik seçili gelir. Sonuç bekleyen plan listesi, "Plan kaydı olmadan sonuç işle" butonu ve `PatlatmaYapildiModali` kullanımı Yeni İşlem'den çıkarıldı.
 - `src/components/islem/BentAlanlari.tsx`: E bendi işlem türü seçici ve bilgi kaynağı seçici kaldırıldı; planlama operasyon/hesaplama bölümleri silindi; E için "Patlatma işlemleri nerede?" kural notu eklendi. Kredi yükleme hesaplama görünümü korundu.

@@ -109,19 +109,10 @@ export function islemDegistirilebilirMi(kullanici: Kullanici | null, islem: Isle
   return kullaniciMerkezAdminMi(kullanici) || kullanici.bentler.includes(islem.bent);
 }
 
-function krediYuklemeDogrulanmisDekontVarMi(islem: Islem): boolean {
+function krediYuklemeMakbuzKesilebilirMi(islem: Islem): boolean {
   const dekontlar = islemDekontlariniOku(islem);
-  if (dekontlar.some((dekont) => dekont.dogrulamaDurumu === 'DOGRULANDI')) {
-    return true;
-  }
-  return (
-    dekontlar.length === 1 &&
-    !dekontlar[0].dogrulamaDurumu &&
-    (!!islem.makbuzNo ||
-    islem.durum === 'ODEME_DOGRULANDI' ||
-    islem.durum === 'ISLEM_BASLATILABILIR' ||
-    islem.durum === 'TAMAMLANDI')
-  );
+  if (!dekontlar.length) return false;
+  return dekontlar.some((dekont) => dekont.odenenTutar > 0);
 }
 
 function krediYuklemeBekleyenDekontVarMi(islem: Islem): boolean {
@@ -135,7 +126,7 @@ export function makbuzUretilebilirMi(kullanici: Kullanici | null, islem: Islem):
   if (!kullanici.makbuzUretebilir) return false;
   if (!maliKayitGorulebilirMi(kullanici, islem)) return false;
   if (islem.eIslemTuru === 'KREDI_YUKLEME') {
-    return krediYuklemeDogrulanmisDekontVarMi(islem);
+    return krediYuklemeMakbuzKesilebilirMi(islem);
   }
   if (islem.makbuzNo) return false;
   return islem.durum !== 'ODEME_BEKLIYOR';

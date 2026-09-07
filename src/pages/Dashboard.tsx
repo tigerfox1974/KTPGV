@@ -30,9 +30,17 @@ export function Dashboard() {
   }).krediTalebiOdemeOzeti.dogrulanmisOdemeToplami :
   islem.tutar;
   const toplamGelir = islemler.reduce((toplam, islem) => toplam + tahsilatTutari(islem), 0);
-  const makbuzsuz = islemler.filter(
-    (i) => i.durum === 'MAKBUZ_BEKLIYOR' || (!i.makbuzNo && i.durum !== 'ODEME_BEKLIYOR')
-  );
+  const makbuzsuz = islemler.filter((i) => {
+    if (i.eIslemTuru === 'KREDI_YUKLEME') {
+      return (
+        krediYuklemeKaydiniCozumle({
+          islem: i,
+          birimKrediBedeli: patlatmaBedeli(bau)
+        }).makbuzEksikleri.length > 0
+      );
+    }
+    return i.durum === 'MAKBUZ_BEKLIYOR' || (!i.makbuzNo && i.durum !== 'ODEME_BEKLIYOR');
+  });
   const sonIslemler = islemler.slice(0, 5);
   const yaklasanGorevler = ajanda.
   filter((a) => a.durum === 'Planlandı' || a.durum === 'İşlem Başlatılabilir').
@@ -76,9 +84,9 @@ export function Dashboard() {
         <OzetKart etiket="Toplam kayıt" deger={`${islemler.length}`} altMetin="Mali yıl 2026" ikon={FileText} />
         <OzetKart etiket="Tahsil edilen" deger={formatTL(toplamGelir)} altMetin="Dekontlu işlemler" ikon={Wallet} />
         <OzetKart
-          etiket="Makbuz bekleyen"
+          etiket="Eksik makbuz"
           deger={`${makbuzsuz.length}`}
-          altMetin="Ödeme / Makbuz ekranında"
+          altMetin="Eski/istisna kayıtlar"
           ikon={Receipt} />
         
         <OzetKart
