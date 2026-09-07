@@ -20,6 +20,17 @@ Her yeni karar aşağıdaki formatta eklenir:
 
 ## Başlangıç kayıtları
 
+### DEC-20260907-001 — Dekont akışı manuel öncelik için backloga alındı
+- Tarih: 2026-09-07
+- Modül: E Bendi / Ödeme Dekont Makbuz / Dekont Kontrolü
+- Durum: Onaylandı
+- Karar: Dekont işleme akışının manuel öncelik, otomatik okumanın ise isteğe bağlı yardımcı mod olması için uygulama işi ayrı bir backlog görevi olarak açıldı.
+- Gerekçe: Kullanıcı geri bildirimine göre OCR ve benzeri otomatik okuma adımları bazı dekontlarda güvenilirliği düşürüyor; kullanıcı kontrollü manuel giriş ana yol olmalı.
+- Etki: `tasks/backlog/dekont-manuel-oncelik-ocr-yardimci-mod/plan.md` oluşturuldu. Uygulama kodunda bu kayıt aşamasında yeni davranış değişikliği yapılmadı.
+- Koruma: Önce ödeme sonra işlem, dekont ve makbuz ayrımı, E bendi kredi modeli ve mevcut yetki/audit sınırları korunacak.
+- İlgili iş kuralı: BR-001, BR-002, BR-006, BR-015, BR-022
+- İlgili görev: `tasks/backlog/dekont-manuel-oncelik-ocr-yardimci-mod/plan.md`
+
 ### DEC-20260906-002 — E bendi patlatma planlama/sonuç girişleri Yeni İşlem'den kaldırıldı
 - Tarih: 2026-09-06
 - Modül: E Bendi / Taş Ocağı / Patlatma Takvimi / Yeni İşlem
