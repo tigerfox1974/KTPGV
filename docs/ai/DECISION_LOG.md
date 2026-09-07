@@ -100,7 +100,7 @@ Her yeni karar aşağıdaki formatta eklenir:
 ### DEC-20260829-002 — Taş ocağı kısmi ve fazla ödeme dağılımı
 - Tarih: 2026-08-29
 - Modül: E Bendi / Kredi Yükleme / Ödeme ve Bağış Makbuzu
-- Durum: Kalıcı kurala taşındı
+- Durum: Uygulandı
 - Karar: Kredi talebi birden fazla banka dekontuyla ödenebilir. Kümülatif ödemenin karşıladığı tam krediler kullanılabilir olur; tam krediye yetmeyen bakiye sonraki dekontu bekler. Hedefi aşan ödeme ek kredi üretmez ve genel Vakıf bağışı olarak kaydedilir. Krediye ayrılan tutar ile fazla bağış tutarı için ayrı bağış makbuzları düzenlenir.
 - Gerekçe: KTPGV bir vakıftır; Vakfa gelen her ödeme için bağış makbuzu kesilir. Muhasebe görüşü kısmi ödeme, fazla ödeme ve raporlama ayrımını netleştirmiştir.
 - Etki: E bendi kredi yükleme veri modeli, çoklu dekont, kredi kullanılabilirlik hesabı, makbuz dağılımı ve yıl sonu Excel raporu.
@@ -111,7 +111,7 @@ Her yeni karar aşağıdaki formatta eklenir:
 ### DEC-20260829-001 — Taş ocağı dekont OCR yenilemesi ayrı kapsamda yürütülecek
 - Tarih: 2026-08-29
 - Modül: E Bendi / Kredi Yükleme / Dekont OCR
-- Durum: Onay bekliyor
+- Durum: Uygulandı
 - Karar: Hazırlanan yenileme planı yalnız kredi yükleme içindeki dekont görüntüleme, OCR, alan işaretleme ve kullanıcı düzeltme alt modülünü kapsayacak.
 - Gerekçe: Kredi yükleme bölümünün genel çalışma biçimine ilişkin değişiklikler kullanıcı tarafından daha sonra ayrıca bildirilecek.
 - Etki: `tasks/backlog/tas-ocagi-dekont-inceleme-yenileme/plan.md` kapsam sınırı.

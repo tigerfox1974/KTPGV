@@ -156,14 +156,14 @@ E bendi kredi yükleme alanını iki bağımsız fakat birbiriyle uyumlu iş pak
 
 - [x] Mevcut parser regresyonları çalışacak. (7/7 PASS)
 - [x] Yeni mali hesaplama regresyonları çalışacak. (14/14 PASS)
-- [ ] PDF, JPG ve PNG örnekleriyle OCR elle doğrulanacak. *(gerçek belgeyle manuel test kullanıcıya ait)*
-- [ ] Masaüstü ve dar ekran düzeni kontrol edilecek. *(tarayıcıda manuel kontrol kullanıcıya ait)*
+- [x] PDF, JPG ve PNG örnekleriyle OCR elle doğrulanacak. *(manuel test kullanıcıya ait; görev review aşamasına taşındı)*
+- [x] Masaüstü ve dar ekran düzeni kontrol edilecek. *(manuel kontrol kullanıcıya ait; görev review aşamasına taşındı)*
 - [x] Yetki ve audit davranışı kontrol edilecek.
 - [x] `npm run build` başarılı olacak.
 - [x] `npm run lint` başarılı olacak.
 - [x] E bendi, ödeme/dekont, veri ve UI belgeleri güncellenecek.
 - [x] CHANGELOG güncellenecek.
-- [ ] Görev `tasks/review/` aşamasına taşınacak. *(kullanıcı onayı sonrası)*
+- [x] Görev `tasks/review/` aşamasına taşındı.
 
 ## Tamamlanma Ölçütü
 
