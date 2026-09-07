@@ -184,7 +184,7 @@ export function YeniIslem() {
   const baslikGorunur = form.bent !== 'E';
   const raporBolumuVar = trafik || adli;
   const operasyonGorunur =
-  !!form.bent && form.bent !== 'A' && form.bent !== 'B' && form.bent !== 'E';
+  !!form.bent && form.bent !== 'A' && form.bent !== 'B' && form.bent !== 'E' && form.bent !== 'F';
   // E bendinde yalnız kredi yükleme akışı vardır; dekont yalnız kredi yüklemede istenir.
   const dekontGorunur = form.bent === 'E' ? krediYukleme : !!form.bent;
 
@@ -345,7 +345,7 @@ export function YeniIslem() {
       );
     }
     if (form.bent === 'F') {
-      if (!form.fAltTur || !form.operasyonTarihi || !sonuc.gecerli) return false;
+      if (!form.fAltTur || !sonuc.gecerli) return false;
       if (trafik) {
         if (!form.sigortaSirketiId) return false;
         return (
@@ -411,7 +411,7 @@ export function YeniIslem() {
 
   const operasyonTamam = (() => {
     if (!operasyonGorunur) return true;
-    if (form.bent === 'C' || form.bent === 'Ç' || form.bent === 'F') {
+    if (form.bent === 'C' || form.bent === 'Ç') {
       return !!form.operasyonTarihi && !!form.operasyonSaati && form.yer.trim() !== '';
     }
     if (form.bent === 'D') {

@@ -671,8 +671,8 @@ export class MockKtpgvRepository implements KtpgvRepository {
         birim: aktifKullanici.birim,
         birimId: aktifKullanici.birimId,
         olusturanKullaniciId: aktifKullanici.id,
-        tarih: girdi.operasyonTarihi ?? '',
-        saat: girdi.operasyonSaati || '09:00',
+        tarih: girdi.bent === 'F' ? new Date().toISOString().slice(0,10) : (girdi.operasyonTarihi ?? ''),
+        saat: girdi.bent === 'F' ? new Date().toTimeString().slice(0,5) : (girdi.operasyonSaati || '09:00'),
         yer: girdi.yer?.trim() || '—',
         durum: 'Planlandı',
         odemeDurumu: `Ödeme alındı · Makbuz kesildi · ${formatTL(kayit.tutar)}`
